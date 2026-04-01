@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 江苏文化遗产共享平台</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#376757",
+                        secondary: "#4e6073",
+                        tertiary: "#775a19",
+                        background: "#f9faf7",
+                        "surface-soft": "#f3f4f1",
+                        "surface-card": "#ffffff",
+                        "surface-line": "#e2e3e0",
+                        "text-main": "#191c1b",
+                        "text-soft": "#404945",
+                        outline: "#707974"
+                    },
+                    fontFamily: {
+                        headline: ["Noto Serif SC", "serif"],
+                        body: ["Manrope", "sans-serif"]
+                    },
+                    boxShadow: {
+                        panel: "0 40px 80px -20px rgba(55, 103, 87, 0.12)"
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+        }
+
+        .grain-overlay {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+
+        .silk-texture {
+            background-image: linear-gradient(rgba(55, 103, 87, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(55, 103, 87, 0.02) 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-background font-body text-text-main overflow-hidden relative">
+<div class="fixed inset-0 grain-overlay pointer-events-none"></div>
+
+<div class="relative z-10 min-h-screen flex items-center justify-center p-4 md:p-8">
+    <div class="w-full max-w-[1500px] bg-surface-card border border-surface-line/70 rounded-2xl overflow-hidden shadow-panel md:min-h-[880px] flex flex-col md:flex-row">
+        <section class="hidden md:block md:w-3/5 relative overflow-hidden group">
+            <img class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" src="/images/login-hero.jpg" alt="江苏园林意境">
+            <div class="absolute inset-0 bg-gradient-to-tr from-primary/75 via-primary/20 to-transparent"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"></div>
+
+            <div class="absolute top-8 left-8 flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                <span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+                <span class="text-white text-sm tracking-[0.2em] font-semibold">数字文化遗产</span>
+            </div>
+
+            <div class="absolute bottom-16 left-16 right-16 text-white">
+                <p class="text-white/80 tracking-[0.24em] uppercase text-xs mb-4">Jiangsu Heritage Portal</p>
+                <h1 class="font-headline text-5xl leading-tight tracking-wide mb-6">
+                    江苏文化遗产<br>
+                    <span class="text-[#f2d38a]">共享与守护平台</span>
+                </h1>
+                <div class="w-24 h-[2px] bg-[#f2d38a]/60 mb-8"></div>
+                <p class="max-w-xl text-white/90 text-[15px] leading-8 font-light">
+                    面向文化遗产资源共享、投稿、审核与研究协作的统一入口。
+                    通过统一认证接入游客浏览、普通用户登录、贡献者身份与管理员后台分流。
+                </p>
+
+                <div class="mt-10 grid gap-4 max-w-xl">
+                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-4">
+                        <div class="text-sm font-semibold mb-1">安全认证</div>
+                        <div class="text-sm text-white/80 leading-6">支持失败次数预警、15 分钟锁定与 Remember Me 会话保持。</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-4">
+                        <div class="text-sm font-semibold mb-1">角色接入</div>
+                        <div class="text-sm text-white/80 leading-6">游客、普通用户、贡献者、管理员使用统一认证接口完成身份切换。</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="w-full md:w-2/5 flex items-center justify-center p-8 md:p-16 lg:p-20 silk-texture bg-surface-card">
+            <div class="w-full max-w-sm">
+                <div class="mb-10">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full border border-primary/10 bg-primary/5 text-primary text-[10px] tracking-[0.22em] font-bold uppercase mb-4">
+                        Unified Access
+                    </div>
+                    <h2 class="font-headline text-3xl text-primary font-bold tracking-tight mb-2">江苏文化遗产共享平台</h2>
+                    <p class="text-text-soft text-sm leading-7">请输入注册邮箱与密码登录平台，也可以先以游客身份进入浏览公开内容。</p>
+                </div>
+
+                <form id="loginForm" class="space-y-8" novalidate>
+                    <div class="group relative">
+                        <label for="email" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">邮箱地址</label>
+                        <input id="email" name="email" type="email" autocomplete="email" placeholder="name@example.com" class="w-full bg-transparent border-0 border-b border-surface-line py-3 px-0 text-text-main placeholder:text-outline/50 focus:border-primary focus:ring-0" required>
+                    </div>
+
+                    <div class="group relative">
+                        <label for="password" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">登录密码</label>
+                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" class="w-full bg-transparent border-0 border-b border-surface-line py-3 px-0 text-text-main placeholder:text-outline/50 focus:border-primary focus:ring-0" required>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="rememberMe" name="rememberMe" type="checkbox" class="rounded border-surface-line text-primary focus:ring-primary/20">
+                            <span class="text-xs text-text-soft font-medium">30 天内记住我</span>
+                        </label>
+                        <span class="text-xs text-tertiary font-semibold">统一认证入口</span>
+                    </div>
+
+                    <button id="submitButton" type="submit" class="w-full bg-primary text-white py-4 px-6 rounded-xl font-semibold tracking-[0.22em] hover:bg-[#2d5648] transition-all duration-300 shadow-lg shadow-primary/10 active:scale-[0.98] flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:bg-[#9fb4ad] disabled:shadow-none" disabled>
+                        <span>立即登录</span>
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+
+                    <p id="message" class="min-h-6 text-sm leading-6 text-text-soft" aria-live="polite"></p>
+                </form>
+
+                <div class="relative my-10">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-surface-line"></div>
+                    </div>
+                    <div class="relative flex justify-center">
+                        <span class="bg-surface-card px-4 text-[11px] tracking-[0.2em] uppercase text-outline">快捷入口</span>
+                    </div>
+                </div>
+
+                <div class="grid gap-4">
+                    <button id="guestButton" type="button" class="w-full flex items-center justify-center gap-2 py-3 border border-surface-line rounded-xl hover:bg-surface-soft transition-all active:scale-[0.98]">
+                        <span class="material-symbols-outlined text-lg text-text-soft">account_circle</span>
+                        <span class="text-sm font-semibold text-text-soft">游客模式</span>
+                    </button>
+                    <a href="/register.html" class="w-full flex items-center justify-center gap-2 py-3 border border-surface-line rounded-xl hover:bg-surface-soft transition-all">
+                        <span class="material-symbols-outlined text-lg text-text-soft">person_add</span>
+                        <span class="text-sm font-semibold text-text-soft">注册新账号</span>
+                    </a>
+                </div>
+
+                <div class="mt-10 rounded-2xl border border-surface-line bg-surface-soft/70 px-5 py-4">
+                    <div class="text-xs tracking-[0.2em] uppercase text-primary font-bold mb-3">测试账号</div>
+                    <ul class="space-y-2 text-xs text-text-soft leading-6">
+                        <li><strong class="text-text-main">普通用户</strong> demo@heritagehub.com / Password123!</li>
+                        <li><strong class="text-text-main">贡献者</strong> contributor@heritagehub.com / Password123!</li>
+                        <li><strong class="text-text-main">管理员</strong> admin@heritagehub.com / AdminPass123!</li>
+                    </ul>
+                </div>
+
+                <p class="mt-10 text-center text-xs text-outline leading-6">
+                    还没有账号？
+                    <a href="/register.html" class="text-primary font-bold hover:underline underline-offset-4">立即注册</a>
+                </p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script src="/js/login.js"></script>
+</body>
+</html>
