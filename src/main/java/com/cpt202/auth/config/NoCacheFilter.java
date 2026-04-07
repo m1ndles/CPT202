@@ -27,9 +27,11 @@ public class NoCacheFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldDisableCaching(String uri) {
-        return uri.startsWith("/api/auth")
+        return uri.startsWith("/api/")
                 || uri.endsWith("/home.html")
                 || uri.endsWith("/admin.html")
+                || uri.endsWith("/index.html")
+                || uri.endsWith("/detail.html")
                 || uri.endsWith("/login.html")
                 || uri.endsWith("/register.html");
     }

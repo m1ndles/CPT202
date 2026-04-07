@@ -65,7 +65,7 @@ async function handleSubmit(event) {
 
         setMessage(data.message, "success");
         window.setTimeout(() => {
-            window.location.href = data.redirectUrl || "/home.html";
+            window.location.href = data.redirectUrl || "/index.html";
         }, 700);
     } catch (error) {
         setMessage("无法连接服务器，请稍后重试。", "error");
@@ -93,7 +93,7 @@ async function continueAsGuest() {
 
         setMessage(data.message, "success");
         window.setTimeout(() => {
-            window.location.href = data.redirectUrl || "/home.html";
+            window.location.href = data.redirectUrl || "/index.html";
         }, 500);
     } catch (error) {
         setMessage("无法连接服务器，请稍后重试。", "error");

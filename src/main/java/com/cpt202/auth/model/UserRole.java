@@ -41,7 +41,7 @@ public enum UserRole {
     }
 
     public String dashboardPath() {
-        return this == ADMIN ? "/admin.html" : "/home.html";
+        return this == ADMIN ? "/admin.html" : "/index.html";
     }
 
     public static UserRole fromDatabaseValue(String value) {

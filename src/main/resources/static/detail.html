@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Detail</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#376757",
+            secondary: "#4e6073",
+            tertiary: "#775a19",
+            background: "#f9faf7",
+            "surface-soft": "#f3f4f1",
+            "surface-card": "#ffffff",
+            "surface-line": "#e2e3e0",
+            "text-main": "#191c1b",
+            "text-soft": "#404945",
+            outline: "#707974"
+          },
+          fontFamily: {
+            headline: ["Noto Serif SC", "serif"],
+            body: ["Manrope", "sans-serif"]
+          },
+          boxShadow: {
+            panel: "0 40px 80px -20px rgba(55, 103, 87, 0.12)",
+            card: "0 4px 24px -4px rgba(55, 103, 87, 0.10)"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/css/heritage.css">
+</head>
+<body class="min-h-screen bg-background font-body text-text-main relative">
+<div class="grain-overlay"></div>
+<div class="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="fixed bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-tertiary/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+<header class="bg-primary text-white px-6 md:px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-lg shadow-primary/10">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+    <span class="font-headline text-lg font-bold tracking-tight">Jiangsu Heritage Discovery</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <div class="text-right hidden sm:block">
+      <div id="userName" class="text-sm font-semibold"></div>
+      <div id="userRole" class="text-xs text-white/70"></div>
+    </div>
+    <button id="logoutBtn" class="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all active:scale-95">Log out</button>
+  </div>
+</header>
+
+<div class="relative z-10 max-w-5xl mx-auto px-6 md:px-8 py-8">
+  <button id="backBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-text-soft hover:bg-surface-soft hover:text-primary transition-all mb-6">
+    <span class="material-symbols-outlined text-lg">arrow_back</span>
+    Back to list
+  </button>
+
+  <div id="pageNotice" class="hidden mb-6 px-5 py-4 rounded-xl border text-sm" role="alert"></div>
+  <div id="detailContent"></div>
+
+  <div id="commentSection" class="hidden mt-10">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="material-symbols-outlined text-2xl text-primary">forum</span>
+      <h2 class="font-headline text-xl font-bold text-primary">Comments and Feedback</h2>
+    </div>
+
+    <div id="commentForm" class="hidden bg-surface-card border border-surface-line rounded-2xl p-5 mb-6 shadow-card">
+      <textarea id="commentContent" placeholder="Share your thoughts about this heritage resource" maxlength="500"
+        class="w-full min-h-[100px] p-4 bg-surface-soft border-0 rounded-xl text-sm placeholder:text-outline/60 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all resize-y"></textarea>
+      <div class="flex items-center justify-between mt-3">
+        <div id="charCount" class="text-xs text-outline">0 / 500</div>
+        <button id="submitComment" class="px-6 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-[#2d5648] transition-all active:scale-95 flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">send</span>
+          Post comment
+        </button>
+      </div>
+      <div id="formError" class="hidden mt-3 text-sm text-red-600"></div>
+    </div>
+
+    <div id="commentReadonly" class="hidden bg-surface-soft border border-surface-line rounded-2xl p-5 mb-6 text-sm text-text-soft"></div>
+
+    <div class="comment-list" id="commentList"></div>
+
+    <button id="loadMoreBtn" class="hidden w-full mt-4 py-3 border-2 border-dashed border-surface-line rounded-xl text-sm font-medium text-text-soft hover:border-primary hover:text-primary transition-all">
+      Load more comments
+    </button>
+
+    <div id="commentEmpty" class="hidden text-center py-12">
+      <div class="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined text-3xl text-primary">chat_bubble</span>
+      </div>
+      <p class="text-text-main font-semibold mb-1">No comments yet</p>
+      <p class="text-text-soft text-sm">Be the first to add one.</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    addComment,
+    getComments,
+    getResourceById,
+    getSessionUser,
+    incrementView,
+    logout,
+    toggleLike
+  } from './js/heritage-data.js';
+
+  const COMMENTS_PER_PAGE = 10;
+
+  let sessionUser = null;
+  let resource = null;
+  let resourceId = null;
+  let commentPage = 1;
+  let totalCommentPages = 0;
+  let loadedComments = [];
+
+  function slugifyCategory(value) {
+    return `cat-${value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  }
+
+  function getQueryParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/\n/g, '<br>');
+  }
+
+  function showNotice(message, isError = false) {
+    const notice = document.getElementById('pageNotice');
+    if (!message) {
+      notice.classList.add('hidden');
+      notice.textContent = '';
+      return;
+    }
+    notice.textContent = message;
+    notice.classList.remove('hidden');
+    if (isError) {
+      notice.className = 'mb-6 px-5 py-4 rounded-xl border text-sm bg-red-50 border-red-200 text-red-700';
+    } else {
+      notice.className = 'mb-6 px-5 py-4 rounded-xl border text-sm bg-primary/5 border-primary/20 text-primary';
+    }
+  }
+
+  function renderDetail(data) {
+    document.title = `${data.title} - Jiangsu Heritage Discovery Platform`;
+
+    const filesHtml = data.files && data.files.length ? `
+      <div class="mt-8">
+        <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-4">
+          <span class="material-symbols-outlined">folder</span>Files
+        </h3>
+        <div class="file-gallery">
+          ${data.files.map(file => file.type === 'image' ? `
+            <div class="group">
+              <img class="w-full h-36 object-cover rounded-xl border border-surface-line" src="${escapeHtml(file.url)}" alt="${escapeHtml(file.name)}" onerror="this.src='https://picsum.photos/seed/fallback/600/400'">
+              <div class="text-xs text-text-soft mt-2 text-center truncate">${escapeHtml(file.name)}</div>
+            </div>
+          ` : `
+            <a href="${escapeHtml(file.url)}" target="_blank" rel="noopener" class="flex items-center gap-2 px-4 py-3 bg-surface-soft rounded-xl text-sm font-medium text-text-soft hover:bg-primary/10 hover:text-primary transition-all">
+              <span class="material-symbols-outlined">description</span>${escapeHtml(file.name)}
+            </a>
+          `).join('')}
+        </div>
+      </div>
+    ` : '';
+
+    const linksHtml = data.links && data.links.length ? `
+      <div class="mt-8">
+        <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-4">
+          <span class="material-symbols-outlined">link</span>External Links
+        </h3>
+        <ul class="links-list">
+          ${data.links.map(link => `
+            <li>
+              <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-primary hover:text-[#2d5648] hover:underline underline-offset-4">
+                <span class="material-symbols-outlined text-lg">open_in_new</span>${escapeHtml(link.label)}
+              </a>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    ` : '';
+
+    document.getElementById('detailContent').innerHTML = `
+      <div class="bg-surface-card border border-surface-line rounded-2xl overflow-hidden shadow-panel">
+        <div class="relative">
+          <img class="w-full h-64 md:h-80 object-cover" src="${escapeHtml(data.thumbnail)}" alt="${escapeHtml(data.title)}" onerror="this.src='https://picsum.photos/seed/fallback/800/420'">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+          <div class="absolute bottom-4 left-6">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${slugifyCategory(data.category)}">${escapeHtml(data.category)}</span>
+          </div>
+        </div>
+        <div class="p-6 md:p-8">
+          <h1 class="font-headline text-2xl md:text-3xl font-bold text-text-main mb-1">${escapeHtml(data.title)}</h1>
+          <div class="text-text-soft text-sm italic mb-4">${escapeHtml(data.titleEn || '')}</div>
+          <div class="flex flex-wrap items-center gap-4 text-sm text-text-soft mb-6">
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">location_on</span>${escapeHtml(data.place)}</span>
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">visibility</span>${data.viewCount} views</span>
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">calendar_today</span>${escapeHtml(data.createdAt)}</span>
+          </div>
+
+          <div class="mt-6">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-4">
+              <span class="material-symbols-outlined">description</span>Overview
+            </h3>
+            <div class="text-text-main leading-8 p-5 bg-primary/5 border-l-4 border-primary rounded-r-xl">${escapeHtml(data.description)}</div>
+          </div>
+
+          <div class="mt-8">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-4">
+              <span class="material-symbols-outlined">sell</span>Tags
+            </h3>
+            <div class="flex flex-wrap gap-2">
+              ${(data.tags || []).map(tag => `<span class="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">${escapeHtml(tag)}</span>`).join('')}
+            </div>
+          </div>
+
+          ${filesHtml}
+          ${linksHtml}
+
+          <div class="mt-8 pt-6 border-t border-surface-line">
+            <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-3">
+              <span class="material-symbols-outlined">copyright</span>Copyright
+            </h3>
+            <p class="text-sm text-text-soft italic">${escapeHtml(data.copyright || '')}</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('commentSection').classList.remove('hidden');
+  }
+
+  function renderCommentForm() {
+    const form = document.getElementById('commentForm');
+    const readonly = document.getElementById('commentReadonly');
+
+    if (!sessionUser.canComment) {
+      form.classList.add('hidden');
+      readonly.classList.remove('hidden');
+      readonly.textContent = 'Guest mode is read-only. Please log in with a registered account to post comments.';
+      return;
+    }
+
+    form.classList.remove('hidden');
+    readonly.classList.add('hidden');
+  }
+
+  function renderComments() {
+    const list = document.getElementById('commentList');
+    const empty = document.getElementById('commentEmpty');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+    if (!loadedComments.length) {
+      list.innerHTML = '';
+      empty.classList.remove('hidden');
+      loadMoreBtn.classList.add('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    list.innerHTML = loadedComments.map(comment => `
+      <div class="bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary">${escapeHtml(comment.username)}</span>
+            <span class="px-2 py-0.5 bg-primary/80 text-white text-[10px] font-bold rounded-full uppercase">${escapeHtml(comment.role)}</span>
+          </div>
+          <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}</span>
+        </div>
+        <div class="text-text-main text-sm leading-7 mb-4">${escapeHtml(comment.content)}</div>
+        <div class="flex items-center">
+          <button
+            class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
+            data-comment-id="${comment.id}"
+            ${sessionUser.guest ? 'disabled title="Log in to like comments"' : ''}
+          >
+            <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
+            ${comment.likes}
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    loadMoreBtn.classList.toggle('hidden', commentPage >= totalCommentPages);
+
+    list.querySelectorAll('.like-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        try {
+          const updated = await toggleLike(button.dataset.commentId);
+          loadedComments = loadedComments.map(comment => comment.id === updated.id ? updated : comment);
+          renderComments();
+          showNotice('');
+        } catch (error) {
+          button.disabled = false;
+          showNotice(error.message || 'Failed to update like.', true);
+        }
+      });
+    });
+  }
+
+  async function loadComments(reset = false) {
+    if (reset) {
+      commentPage = 1;
+      loadedComments = [];
+    }
+
+    const result = await getComments(resourceId, commentPage, COMMENTS_PER_PAGE);
+    totalCommentPages = result.totalPages || 0;
+
+    if (commentPage === 1) {
+      loadedComments = result.content || [];
+    } else {
+      loadedComments = [...loadedComments, ...(result.content || [])];
+    }
+
+    renderComments();
+  }
+
+  function bindCommentForm() {
+    const textarea = document.getElementById('commentContent');
+    const charCount = document.getElementById('charCount');
+    const formError = document.getElementById('formError');
+
+    textarea.addEventListener('input', () => {
+      const length = textarea.value.length;
+      charCount.textContent = `${length} / 500`;
+      charCount.className = length > 450 ? 'text-xs text-orange-500' : 'text-xs text-outline';
+    });
+
+    const submitBtn = document.getElementById('submitComment');
+    submitBtn.addEventListener('click', async () => {
+      const content = textarea.value.trim();
+      formError.classList.add('hidden');
+
+      if (!content) {
+        formError.textContent = 'Comment cannot be empty.';
+        formError.classList.remove('hidden');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      try {
+        await addComment(resourceId, content);
+        textarea.value = '';
+        charCount.textContent = '0 / 500';
+        charCount.className = 'text-xs text-outline';
+        await loadComments(true);
+        document.getElementById('commentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showNotice('Comment posted.');
+      } catch (error) {
+        formError.textContent = error.message || 'Failed to post comment.';
+        formError.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    loadMoreBtn.addEventListener('click', async () => {
+      if (commentPage >= totalCommentPages) return;
+      commentPage += 1;
+      loadMoreBtn.disabled = true;
+      try {
+        await loadComments();
+      } catch (error) {
+        commentPage -= 1;
+        showNotice(error.message || 'Failed to load more comments.', true);
+      } finally {
+        loadMoreBtn.disabled = false;
+      }
+    });
+  }
+
+  function bindCommonEvents() {
+    document.getElementById('backBtn').addEventListener('click', () => {
+      if (document.referrer && document.referrer.includes('index.html')) {
+        history.back();
+      } else {
+        window.location.href = '/index.html';
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await logout();
+      window.location.href = '/login.html';
+    });
+  }
+
+  async function loadSession() {
+    try {
+      sessionUser = await getSessionUser();
+      document.getElementById('userName').textContent = sessionUser.username;
+      document.getElementById('userRole').textContent = sessionUser.roleLabel;
+      return true;
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      showNotice(error.message || 'Failed to load session.', true);
+      return false;
+    }
+  }
+
+  async function init() {
+    const ready = await loadSession();
+    if (!ready) return;
+
+    resourceId = getQueryParam('id');
+    if (!resourceId) {
+      showNotice('Resource id is missing.', true);
+      return;
+    }
+
+    try {
+      resource = await getResourceById(resourceId);
+      const viewResult = await incrementView(resourceId);
+      resource.viewCount = viewResult.viewCount;
+      renderDetail(resource);
+      renderCommentForm();
+      bindCommentForm();
+      bindCommonEvents();
+      await loadComments(true);
+    } catch (error) {
+      showNotice(error.message || 'Failed to load resource.', true);
+      document.getElementById('detailContent').innerHTML = `
+        <div class="text-center py-16">
+          <div class="w-20 h-20 mx-auto mb-6 bg-red-50 rounded-full flex items-center justify-center">
+            <span class="material-symbols-outlined text-4xl text-red-500">error</span>
+          </div>
+          <p class="text-text-main font-semibold mb-2">Resource not found</p>
+          <p class="text-text-soft text-sm">The resource may have been removed or is not available.</p>
+        </div>
+      `;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

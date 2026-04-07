@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jiangsu Heritage Discovery Platform</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#376757",
+            secondary: "#4e6073",
+            tertiary: "#775a19",
+            background: "#f9faf7",
+            "surface-soft": "#f3f4f1",
+            "surface-card": "#ffffff",
+            "surface-line": "#e2e3e0",
+            "text-main": "#191c1b",
+            "text-soft": "#404945",
+            outline: "#707974"
+          },
+          fontFamily: {
+            headline: ["Noto Serif SC", "serif"],
+            body: ["Manrope", "sans-serif"]
+          },
+          boxShadow: {
+            panel: "0 40px 80px -20px rgba(55, 103, 87, 0.12)",
+            card: "0 4px 24px -4px rgba(55, 103, 87, 0.10)"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="/css/heritage.css">
+</head>
+<body class="min-h-screen bg-background font-body text-text-main relative">
+<div class="grain-overlay"></div>
+<div class="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="fixed bottom-[-15%] left-[-10%] w-[400px] h-[400px] bg-tertiary/5 rounded-full blur-[80px] pointer-events-none"></div>
+
+<header class="bg-primary text-white px-6 md:px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-lg shadow-primary/10">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+    <span class="font-headline text-lg font-bold tracking-tight">Jiangsu Heritage Discovery</span>
+  </div>
+  <div class="flex items-center gap-4">
+    <div class="text-right hidden sm:block">
+      <div id="userName" class="text-sm font-semibold"></div>
+      <div id="userRole" class="text-xs text-white/70"></div>
+    </div>
+    <button id="logoutBtn" class="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all active:scale-95">Log out</button>
+  </div>
+</header>
+
+<div class="relative z-10">
+  <section class="px-6 md:px-8 pt-12 pb-8 max-w-7xl mx-auto">
+    <div class="inline-flex items-center px-3 py-1 rounded-full border border-primary/10 bg-primary/5 text-primary text-[10px] tracking-[0.22em] font-bold uppercase mb-4">
+      Heritage Discovery
+    </div>
+    <h1 class="font-headline text-3xl md:text-4xl text-primary font-bold tracking-tight mb-2">Explore Heritage Resources</h1>
+    <p class="text-text-soft text-sm leading-7 max-w-2xl">Browse, search and filter approved cultural heritage resources from across Jiangsu province.</p>
+  </section>
+
+  <div id="pageNotice" class="hidden mx-6 md:mx-8 max-w-7xl lg:mx-auto mb-4 px-5 py-4 rounded-xl border text-sm" role="alert"></div>
+
+  <section class="px-6 md:px-8 max-w-7xl mx-auto">
+    <div class="bg-surface-card border border-surface-line rounded-2xl p-5 md:p-6 shadow-card mb-6">
+      <div class="flex flex-col md:flex-row gap-4 mb-5">
+        <div class="flex-1 relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">search</span>
+          <input type="text" id="searchInput" placeholder="Search by title, description, or tag" autocomplete="off"
+            class="w-full pl-10 pr-4 py-3 bg-surface-soft border-0 rounded-xl text-sm placeholder:text-outline/60 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all">
+        </div>
+        <div class="flex gap-2">
+          <button id="searchBtn" class="px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-[#2d5648] transition-all active:scale-95 flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">search</span>
+            Search
+          </button>
+          <button id="clearSearchBtn" class="px-4 py-3 border border-surface-line rounded-xl text-sm font-medium text-text-soft hover:bg-surface-soft transition-all active:scale-95">Clear</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="flex items-center gap-2">
+          <label for="categoryFilter" class="text-xs font-bold tracking-wide text-text-soft uppercase">Category</label>
+          <select id="categoryFilter" class="px-3 py-2 pr-8 bg-surface-soft border-0 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M6%208L1%203h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_8px_center] bg-no-repeat">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="placeFilter" class="text-xs font-bold tracking-wide text-text-soft uppercase">Place</label>
+          <select id="placeFilter" class="px-3 py-2 pr-8 bg-surface-soft border-0 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2012%2012%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M6%208L1%203h10z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px] bg-[right_8px_center] bg-no-repeat">
+            <option value="">All places</option>
+          </select>
+        </div>
+        <button id="clearFilterBtn" class="ml-auto text-xs font-semibold text-primary hover:text-[#2d5648] transition-colors flex items-center gap-1">
+          <span class="material-symbols-outlined text-base">refresh</span>
+          Reset filters
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <div id="resultCount" class="text-sm text-text-soft font-medium">0 resources</div>
+      <div class="flex items-center gap-2">
+        <label for="sortSelect" class="text-xs font-bold tracking-wide text-text-soft uppercase">Sort</label>
+        <select id="sortSelect" class="px-3 py-2 bg-surface-card border border-surface-line rounded-lg text-sm focus:ring-2 focus:ring-primary/20 cursor-pointer">
+          <option value="newest">Newest</option>
+          <option value="views">Most viewed</option>
+          <option value="title">Title A-Z</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="px-6 md:px-8 max-w-7xl mx-auto pb-12">
+    <div class="resource-grid" id="resourceGrid"></div>
+
+    <div id="emptyState" class="hidden text-center py-16">
+      <div class="w-20 h-20 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined text-4xl text-primary">museum</span>
+      </div>
+      <p class="text-text-main font-semibold mb-2">No matching resources found</p>
+      <p class="text-text-soft text-sm">Try changing the keyword or filters.</p>
+    </div>
+
+    <div class="pagination flex justify-center items-center gap-2 mt-8" id="pagination"></div>
+  </section>
+</div>
+
+<script type="module">
+  import { getCategories, getPlaces, getResources, getSessionUser, logout } from './js/heritage-data.js';
+
+  const PAGE_SIZE = 6;
+  const SESSION_KEY = 'heritage-discovery-state';
+
+  let sessionUser = null;
+  let state = {
+    keyword: '',
+    category: '',
+    place: '',
+    sort: 'newest',
+    page: 1
+  };
+
+  function slugifyCategory(value) {
+    return `cat-${value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  }
+
+  function showNotice(message, isError = false) {
+    const notice = document.getElementById('pageNotice');
+    if (!message) {
+      notice.classList.add('hidden');
+      notice.textContent = '';
+      return;
+    }
+    notice.textContent = message;
+    notice.classList.remove('hidden');
+    if (isError) {
+      notice.className = 'mx-6 md:mx-8 max-w-7xl lg:mx-auto mb-4 px-5 py-4 rounded-xl border text-sm bg-red-50 border-red-200 text-red-700';
+    } else {
+      notice.className = 'mx-6 md:mx-8 max-w-7xl lg:mx-auto mb-4 px-5 py-4 rounded-xl border text-sm bg-primary/5 border-primary/20 text-primary';
+    }
+  }
+
+  function saveState() {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  }
+
+  function restoreState() {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    try {
+      Object.assign(state, JSON.parse(raw));
+    } catch {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  }
+
+  function applyStateToUI() {
+    document.getElementById('searchInput').value = state.keyword;
+    document.getElementById('categoryFilter').value = state.category;
+    document.getElementById('placeFilter').value = state.place;
+    document.getElementById('sortSelect').value = state.sort;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderCards(resources) {
+    const grid = document.getElementById('resourceGrid');
+    const empty = document.getElementById('emptyState');
+
+    if (!resources.length) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    grid.innerHTML = resources.map(resource => `
+      <div class="resource-card bg-surface-card border border-surface-line rounded-2xl overflow-hidden shadow-card hover:shadow-panel" data-id="${resource.id}" role="button" tabindex="0">
+        <div class="relative overflow-hidden">
+          <img class="w-full h-48 object-cover transition-transform duration-500 hover:scale-105" src="${escapeHtml(resource.thumbnail)}" alt="${escapeHtml(resource.title)}" onerror="this.src='https://picsum.photos/seed/fallback/800/500'">
+          <div class="absolute top-3 left-3">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-bold ${slugifyCategory(resource.category)}">${escapeHtml(resource.category)}</span>
+          </div>
+        </div>
+        <div class="p-5">
+          <h3 class="card-title font-headline text-lg font-bold text-text-main mb-2 leading-snug">${escapeHtml(resource.title)}</h3>
+          <div class="flex items-center gap-1 text-text-soft text-sm mb-3">
+            <span class="material-symbols-outlined text-base">location_on</span>
+            ${escapeHtml(resource.place)}
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            ${(resource.tags || []).map(tag => `<span class="px-2 py-0.5 bg-primary/5 text-primary text-xs font-medium rounded-full">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+          <div class="flex items-center justify-between text-xs text-outline pt-3 border-t border-surface-line">
+            <span>${escapeHtml(resource.createdAt)}</span>
+            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">visibility</span>${resource.viewCount}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.resource-card').forEach(card => {
+      const go = () => {
+        saveState();
+        window.location.href = `detail.html?id=${card.dataset.id}`;
+      };
+      card.addEventListener('click', go);
+      card.addEventListener('keydown', event => {
+        if (event.key === 'Enter') go();
+      });
+    });
+  }
+
+  function renderPagination(totalPages, currentPage) {
+    const container = document.getElementById('pagination');
+    if (totalPages <= 1) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const btnBase = 'min-w-[40px] h-10 px-3 rounded-lg text-sm font-medium transition-all';
+    const btnNormal = `${btnBase} bg-surface-card border border-surface-line text-text-soft hover:border-primary hover:text-primary disabled:opacity-40 disabled:cursor-default disabled:hover:border-surface-line disabled:hover:text-text-soft`;
+    const btnActive = `${btnBase} bg-primary text-white border border-primary`;
+
+    let html = `<button class="${btnNormal}" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}"><span class="material-symbols-outlined text-lg">chevron_left</span></button>`;
+    for (let page = 1; page <= totalPages; page += 1) {
+      html += `<button class="${page === currentPage ? btnActive : btnNormal}" data-page="${page}">${page}</button>`;
+    }
+    html += `<button class="${btnNormal}" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}"><span class="material-symbols-outlined text-lg">chevron_right</span></button>`;
+    container.innerHTML = html;
+
+    container.querySelectorAll('button[data-page]').forEach(button => {
+      button.addEventListener('click', async () => {
+        state.page = Number(button.dataset.page);
+        await refresh();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+  }
+
+  async function refresh() {
+    try {
+      const result = await getResources({
+        keyword: state.keyword,
+        category: state.category,
+        place: state.place,
+        sort: state.sort,
+        page: state.page,
+        size: PAGE_SIZE
+      });
+
+      renderCards(result.content || []);
+      renderPagination(result.totalPages || 0, result.page || 1);
+      document.getElementById('resultCount').textContent = `${result.totalItems || 0} resources`;
+      state.page = result.page || 1;
+      saveState();
+      if (!sessionUser.guest) {
+        showNotice('');
+      }
+    } catch (error) {
+      showNotice(error.message || 'Failed to load resources.', true);
+    }
+  }
+
+  async function loadFilters() {
+    try {
+      const [categories, places] = await Promise.all([getCategories(), getPlaces()]);
+
+      const categoryFilter = document.getElementById('categoryFilter');
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+      });
+
+      const placeFilter = document.getElementById('placeFilter');
+      places.forEach(place => {
+        const option = document.createElement('option');
+        option.value = place;
+        option.textContent = place;
+        placeFilter.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Failed to load filters:', error);
+    }
+  }
+
+  function bindEvents() {
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      state.keyword = document.getElementById('searchInput').value.trim();
+      state.page = 1;
+      await refresh();
+    });
+
+    document.getElementById('searchInput').addEventListener('keydown', async event => {
+      if (event.key !== 'Enter') return;
+      state.keyword = event.target.value.trim();
+      state.page = 1;
+      await refresh();
+    });
+
+    document.getElementById('clearSearchBtn').addEventListener('click', async () => {
+      state.keyword = '';
+      state.page = 1;
+      document.getElementById('searchInput').value = '';
+      await refresh();
+    });
+
+    document.getElementById('categoryFilter').addEventListener('change', async event => {
+      state.category = event.target.value;
+      state.page = 1;
+      await refresh();
+    });
+
+    document.getElementById('placeFilter').addEventListener('change', async event => {
+      state.place = event.target.value;
+      state.page = 1;
+      await refresh();
+    });
+
+    document.getElementById('clearFilterBtn').addEventListener('click', async () => {
+      state.category = '';
+      state.place = '';
+      state.page = 1;
+      document.getElementById('categoryFilter').value = '';
+      document.getElementById('placeFilter').value = '';
+      await refresh();
+    });
+
+    document.getElementById('sortSelect').addEventListener('change', async event => {
+      state.sort = event.target.value;
+      state.page = 1;
+      await refresh();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await logout();
+      window.location.href = '/login.html';
+    });
+  }
+
+  async function loadSession() {
+    try {
+      sessionUser = await getSessionUser();
+      document.getElementById('userName').textContent = sessionUser.username;
+      document.getElementById('userRole').textContent = sessionUser.roleLabel;
+      if (sessionUser.guest) {
+        showNotice('Guest mode is read-only. Commenting and likes are disabled on the detail page.');
+      }
+      return true;
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      showNotice(error.message || 'Failed to load session.', true);
+      return false;
+    }
+  }
+
+  async function init() {
+    const ready = await loadSession();
+    if (!ready) return;
+    restoreState();
+    await loadFilters();
+    applyStateToUI();
+    bindEvents();
+    await refresh();
+  }
+
+  init();
+</script>
+</body>
+</html>
