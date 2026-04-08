@@ -91,6 +91,19 @@ public class UserRepository {
                 role.name());
     }
 
+    public void updateUser(Long userId, String email, String username, String passwordHash, UserRole role) {
+        jdbcTemplate.update("""
+                        UPDATE users
+                        SET email = ?, username = ?, password_hash = ?, role = ?
+                        WHERE id = ?
+                        """,
+                email,
+                username,
+                passwordHash,
+                role.name(),
+                userId);
+    }
+
     private RowMapper<UserAccount> userRowMapper() {
         return this::mapUser;
     }

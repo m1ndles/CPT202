@@ -49,7 +49,7 @@ public class AuthService {
         return new AuthenticatedUser(user.id(), user.username(), user.email(), user.role());
     }
 
-    public void register(String email, String username, String password) {
+    public AuthenticatedUser register(String email, String username, String password) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         String normalizedUsername = username.trim();
 
@@ -67,6 +67,12 @@ public class AuthService {
                 passwordEncoder.encode(password),
                 UserRole.USER
         );
+
+        UserAccount user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new AuthException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create account."));
+        userRepository.resetFailedLogin(user.id());
+
+        return new AuthenticatedUser(user.id(), user.username(), user.email(), user.role());
     }
 
     public SessionUserResponse getSessionUser(Long userId, UserRole sessionRole) {

@@ -54,9 +54,23 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public LoginResponse register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request.email(), request.username(), request.password());
-        return new LoginResponse("Account created successfully. Please log in.", "/login.html?registered=1", null, UserRole.USER.name());
+    public LoginResponse register(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse
+    ) {
+        AuthService.AuthenticatedUser user = authService.register(request.email(), request.username(), request.password());
+
+        invalidateSession(httpRequest);
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute("userId", user.id());
+        session.setAttribute("username", user.username());
+        session.setAttribute("email", user.email());
+        session.setAttribute("role", user.role().name());
+        session.setMaxInactiveInterval(STANDARD_SESSION_SECONDS);
+        writeSessionCookie(session, false, httpResponse);
+
+        return new LoginResponse("Account created successfully.", user.role().dashboardPath(), user.username(), user.role().name());
     }
 
     @PostMapping("/guest")

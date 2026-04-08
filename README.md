@@ -68,7 +68,7 @@ Visit:
 
 - User: `demo@heritagehub.com` / `Password123!`
 - Contributor: `contributor@heritagehub.com` / `Password123!`
-- Admin: `admin@heritagehub.com` / `AdminPass123!`
+- Admin: `Admin@qq.com` / `admin123456`
 
 The application seeds these accounts automatically if they do not already exist.
 
