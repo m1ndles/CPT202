@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - 江苏文化遗产共享平台</title>
+    <title>Sign In - Jiangsu Heritage Discovery Platform</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,6 +41,13 @@
             font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
         }
 
+        .icon-inline {
+            width: 1.1rem;
+            height: 1.1rem;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
         .grain-overlay {
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
             opacity: 0.03;
@@ -59,37 +66,27 @@
 <div class="relative z-10 min-h-screen flex items-center justify-center p-4 md:p-8">
     <div class="w-full max-w-[1500px] bg-surface-card border border-surface-line/70 rounded-2xl overflow-hidden shadow-panel md:min-h-[880px] flex flex-col md:flex-row">
         <section class="hidden md:block md:w-3/5 relative overflow-hidden group">
-            <img class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" src="/images/login-hero.jpg" alt="江苏园林意境">
+            <img class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105" src="/images/login-hero.jpg" alt="Jiangsu garden landscape">
             <div class="absolute inset-0 bg-gradient-to-tr from-primary/75 via-primary/20 to-transparent"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"></div>
 
             <div class="absolute top-8 left-8 flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
-                <span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">account_balance</span>
-                <span class="text-white text-sm tracking-[0.2em] font-semibold">数字文化遗产</span>
+                <svg class="icon-inline text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 3 3 7v2h18V7l-9-4Zm7 8H5v6H3v2h18v-2h-2v-6Zm-2 0v6h-2v-6h2Zm-4 0v6h-2v-6h2Zm-4 0v6H7v-6h2Z"/>
+                </svg>
+                <span class="text-white text-sm tracking-[0.2em] font-semibold">Jiangsu Heritage</span>
             </div>
 
             <div class="absolute bottom-16 left-16 right-16 text-white">
-                <p class="text-white/80 tracking-[0.24em] uppercase text-xs mb-4">Jiangsu Heritage Portal</p>
+                <p class="text-white/80 tracking-[0.24em] uppercase text-xs mb-4">Welcome Back</p>
                 <h1 class="font-headline text-5xl leading-tight tracking-wide mb-6">
-                    江苏文化遗产<br>
-                    <span class="text-[#f2d38a]">共享与守护平台</span>
+                    Sign in to continue<br>
+                    <span class="text-[#f2d38a]">your heritage journey</span>
                 </h1>
                 <div class="w-24 h-[2px] bg-[#f2d38a]/60 mb-8"></div>
                 <p class="max-w-xl text-white/90 text-[15px] leading-8 font-light">
-                    面向文化遗产资源共享、投稿、审核与研究协作的统一入口。
-                    通过统一认证接入游客浏览、普通用户登录、贡献者身份与管理员后台分流。
+                    Explore cultural heritage resources, save your discoveries, and pick up where you left off.
                 </p>
-
-                <div class="mt-10 grid gap-4 max-w-xl">
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-4">
-                        <div class="text-sm font-semibold mb-1">安全认证</div>
-                        <div class="text-sm text-white/80 leading-6">支持失败次数预警、15 分钟锁定与 Remember Me 会话保持。</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-5 py-4">
-                        <div class="text-sm font-semibold mb-1">角色接入</div>
-                        <div class="text-sm text-white/80 leading-6">游客、普通用户、贡献者、管理员使用统一认证接口完成身份切换。</div>
-                    </div>
-                </div>
             </div>
         </section>
 
@@ -97,34 +94,37 @@
             <div class="w-full max-w-sm">
                 <div class="mb-10">
                     <div class="inline-flex items-center px-3 py-1 rounded-full border border-primary/10 bg-primary/5 text-primary text-[10px] tracking-[0.22em] font-bold uppercase mb-4">
-                        Unified Access
+                        Welcome Back
                     </div>
-                    <h2 class="font-headline text-3xl text-primary font-bold tracking-tight mb-2">江苏文化遗产共享平台</h2>
-                    <p class="text-text-soft text-sm leading-7">请输入注册邮箱与密码登录平台，也可以先以游客身份进入浏览公开内容。</p>
+                    <h2 class="font-headline text-3xl text-primary font-bold tracking-tight mb-2">Sign In</h2>
+                    <p class="text-text-soft text-sm leading-7">Use your email and password to access your account.</p>
                 </div>
 
                 <form id="loginForm" class="space-y-8" novalidate>
                     <div class="group relative">
-                        <label for="email" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">邮箱地址</label>
+                        <label for="email" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">Email Address</label>
                         <input id="email" name="email" type="email" autocomplete="email" placeholder="name@example.com" class="w-full bg-transparent border-0 border-b border-surface-line py-3 px-0 text-text-main placeholder:text-outline/50 focus:border-primary focus:ring-0" required>
                     </div>
 
                     <div class="group relative">
-                        <label for="password" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">登录密码</label>
-                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" class="w-full bg-transparent border-0 border-b border-surface-line py-3 px-0 text-text-main placeholder:text-outline/50 focus:border-primary focus:ring-0" required>
+                        <label for="password" class="absolute -top-6 left-0 text-[10px] font-bold tracking-[0.18em] text-primary/70 uppercase group-focus-within:text-primary">Password</label>
+                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" class="w-full bg-transparent border-0 border-b border-surface-line py-3 px-0 text-text-main placeholder:text-outline/50 focus:border-primary focus:ring-0" required>
                     </div>
 
                     <div class="flex items-center justify-between gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input id="rememberMe" name="rememberMe" type="checkbox" class="rounded border-surface-line text-primary focus:ring-primary/20">
-                            <span class="text-xs text-text-soft font-medium">30 天内记住我</span>
+                            <span class="text-xs text-text-soft font-medium">Remember me for 30 days</span>
                         </label>
-                        <span class="text-xs text-tertiary font-semibold">统一认证入口</span>
+                        <a href="/register.html" class="text-xs text-tertiary font-semibold hover:text-primary transition-colors duration-300">Create account</a>
                     </div>
 
                     <button id="submitButton" type="submit" class="w-full bg-primary text-white py-4 px-6 rounded-xl font-semibold tracking-[0.22em] hover:bg-[#2d5648] transition-all duration-300 shadow-lg shadow-primary/10 active:scale-[0.98] flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:bg-[#9fb4ad] disabled:shadow-none" disabled>
-                        <span>立即登录</span>
-                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        <span>Sign In</span>
+                        <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 12h14"/>
+                            <path d="m13 6 6 6-6 6"/>
+                        </svg>
                     </button>
 
                     <p id="message" class="min-h-6 text-sm leading-6 text-text-soft" aria-live="polite"></p>
@@ -135,33 +135,38 @@
                         <div class="w-full border-t border-surface-line"></div>
                     </div>
                     <div class="relative flex justify-center">
-                        <span class="bg-surface-card px-4 text-[11px] tracking-[0.2em] uppercase text-outline">快捷入口</span>
+                        <span class="bg-surface-card px-4 text-[11px] tracking-[0.2em] uppercase text-outline">Or continue as</span>
                     </div>
                 </div>
 
                 <div class="grid gap-4">
                     <button id="guestButton" type="button" class="w-full flex items-center justify-center gap-2 py-3 border border-surface-line rounded-xl hover:bg-surface-soft transition-all active:scale-[0.98]">
-                        <span class="material-symbols-outlined text-lg text-text-soft">account_circle</span>
-                        <span class="text-sm font-semibold text-text-soft">游客模式</span>
+                        <svg class="icon-inline text-text-soft" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.33 0-6 1.79-6 4v1h12v-1c0-2.21-2.67-4-6-4Z"/>
+                        </svg>
+                        <span class="guest-button-text text-sm font-semibold text-text-soft">Guest Access</span>
                     </button>
                     <a href="/register.html" class="w-full flex items-center justify-center gap-2 py-3 border border-surface-line rounded-xl hover:bg-surface-soft transition-all">
-                        <span class="material-symbols-outlined text-lg text-text-soft">person_add</span>
-                        <span class="text-sm font-semibold text-text-soft">注册新账号</span>
+                        <svg class="icon-inline text-text-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 5v14"/>
+                            <path d="M5 12h14"/>
+                        </svg>
+                        <span class="text-sm font-semibold text-text-soft">Create Account</span>
                     </a>
                 </div>
 
                 <div class="mt-10 rounded-2xl border border-surface-line bg-surface-soft/70 px-5 py-4">
-                    <div class="text-xs tracking-[0.2em] uppercase text-primary font-bold mb-3">测试账号</div>
+                    <div class="text-xs tracking-[0.2em] uppercase text-primary font-bold mb-3">Demo Accounts</div>
                     <ul class="space-y-2 text-xs text-text-soft leading-6">
-                        <li><strong class="text-text-main">普通用户</strong> demo@heritagehub.com / Password123!</li>
-                        <li><strong class="text-text-main">贡献者</strong> contributor@heritagehub.com / Password123!</li>
-                        <li><strong class="text-text-main">管理员</strong> Admin@qq.com / admin123456</li>
+                        <li><strong class="text-text-main">Standard User</strong> demo@heritagehub.com / Password123!</li>
+                        <li><strong class="text-text-main">Contributor</strong> contributor@heritagehub.com / Password123!</li>
+                        <li><strong class="text-text-main">Administrator</strong> Admin@qq.com / admin123456</li>
                     </ul>
                 </div>
 
                 <p class="mt-10 text-center text-xs text-outline leading-6">
-                    还没有账号？
-                    <a href="/register.html" class="text-primary font-bold hover:underline underline-offset-4">立即注册</a>
+                    New here?
+                    <a href="/register.html" class="text-primary font-bold hover:underline underline-offset-4">Create your account</a>
                 </p>
             </div>
         </section>

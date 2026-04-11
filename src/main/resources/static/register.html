@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册 - 江苏文化遗产共享平台</title>
+    <title>Create Account - Jiangsu Heritage Discovery Platform</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,32 +53,32 @@
 
     <div class="w-full max-w-xl bg-surface-card/85 backdrop-blur-xl rounded-[2rem] shadow-card overflow-hidden border border-surface-line/70 relative z-10">
         <div class="relative h-52 w-full overflow-hidden">
-            <img alt="江苏传统建筑细部" class="w-full h-full object-cover" src="/images/register-hero.jpg">
+            <img alt="Traditional Jiangsu architectural detail" class="w-full h-full object-cover" src="/images/register-hero.jpg">
             <div class="absolute inset-0 bg-gradient-to-t from-white via-white/45 to-transparent"></div>
             <div class="absolute bottom-6 left-8">
                 <p class="text-[11px] tracking-[0.2em] uppercase text-primary/70 font-bold mb-2">Jiangsu Heritage Portal</p>
-                <h1 class="font-headline text-3xl font-bold text-primary tracking-tight">创建平台账号</h1>
-                <p class="text-text-soft text-sm mt-1">加入江苏文化遗产共享平台</p>
+                <h1 class="font-headline text-3xl font-bold text-primary tracking-tight">Create Your Account</h1>
+                <p class="text-text-soft text-sm mt-1">Join the Jiangsu Heritage Discovery Platform</p>
             </div>
         </div>
 
         <div class="px-8 pb-12 pt-6">
             <div class="mb-6 text-sm text-text-soft leading-7">
-                新用户注册后默认创建普通用户账号。贡献者身份和管理员权限将在后续模块中单独授予，不通过公开注册入口生成。
+                Create your account to start exploring and engaging with Jiangsu's cultural heritage resources. Standard access is available right away, while contributor and administrator roles are granted separately when needed.
             </div>
 
             <form id="registerForm" class="space-y-8" novalidate>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="group">
-                        <label for="registerUsername" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">用户名</label>
+                        <label for="registerUsername" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">Username</label>
                         <div class="relative">
-                            <input id="registerUsername" name="username" type="text" autocomplete="username" placeholder="请输入唯一用户名" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
+                            <input id="registerUsername" name="username" type="text" autocomplete="username" placeholder="Choose a unique username" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
                             <div class="absolute bottom-0 left-0 h-0.5 w-0 bg-primary group-focus-within:w-full transition-all duration-500"></div>
                         </div>
                     </div>
 
                     <div class="group">
-                        <label for="registerEmail" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">邮箱地址</label>
+                        <label for="registerEmail" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">Email Address</label>
                         <div class="relative">
                             <input id="registerEmail" name="email" type="email" autocomplete="email" placeholder="example@jiangsu.org" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
                             <div class="absolute bottom-0 left-0 h-0.5 w-0 bg-primary group-focus-within:w-full transition-all duration-500"></div>
@@ -88,17 +88,17 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="group">
-                        <label for="registerPassword" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">密码</label>
+                        <label for="registerPassword" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">Password</label>
                         <div class="relative">
-                            <input id="registerPassword" name="password" type="password" autocomplete="new-password" placeholder="至少 8 位字符" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
+                            <input id="registerPassword" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
                             <div class="absolute bottom-0 left-0 h-0.5 w-0 bg-primary group-focus-within:w-full transition-all duration-500"></div>
                         </div>
                     </div>
 
                     <div class="group">
-                        <label for="confirmPassword" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">确认密码</label>
+                        <label for="confirmPassword" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2 px-1">Confirm Password</label>
                         <div class="relative">
-                            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="请再次输入密码" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
+                            <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Enter your password again" class="w-full bg-transparent border-0 border-b border-surface-line focus:ring-0 focus:border-primary transition-all duration-300 py-3 px-1 text-text-main placeholder:text-outline/60" required>
                             <div class="absolute bottom-0 left-0 h-0.5 w-0 bg-primary group-focus-within:w-full transition-all duration-500"></div>
                         </div>
                     </div>
@@ -109,43 +109,43 @@
                         <input id="terms" name="terms" type="checkbox" class="h-5 w-5 rounded-full border-surface-line text-primary focus:ring-primary/20 cursor-pointer transition-colors duration-300">
                     </div>
                     <label for="terms" class="text-sm text-text-soft leading-7">
-                        我已阅读并同意平台的
-                        <span class="text-primary font-medium">服务条款</span>
-                        与
-                        <span class="text-primary font-medium">隐私政策</span>
+                        I have read and agree to the platform
+                        <span class="text-primary font-medium">Terms of Service</span>
+                        and
+                        <span class="text-primary font-medium">Privacy Policy</span>
                     </label>
                 </div>
 
                 <button id="registerSubmitButton" type="submit" class="w-full py-4 bg-primary text-white rounded-full font-semibold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:bg-[#9fb4ad] disabled:shadow-none disabled:hover:scale-100" disabled>
-                    <span>立即注册</span>
+                    <span>Create Account</span>
                     <span class="material-symbols-outlined text-xl">arrow_forward</span>
                 </button>
 
                 <p id="registerMessage" class="min-h-6 text-sm leading-6 text-text-soft" aria-live="polite"></p>
 
                 <div class="flex items-center justify-center gap-2 text-text-soft text-sm">
-                    <span>已有账号？</span>
-                    <a href="/login.html" class="text-tertiary font-bold hover:text-primary transition-colors duration-300 border-b-2 border-tertiary/20 hover:border-primary/40 pb-0.5">返回登录</a>
+                    <span>Already have an account?</span>
+                    <a href="/login.html" class="text-tertiary font-bold hover:text-primary transition-colors duration-300 border-b-2 border-tertiary/20 hover:border-primary/40 pb-0.5">Back to sign in</a>
                 </div>
             </form>
         </div>
 
         <div class="bg-surface-soft/60 py-4 px-8 border-t border-surface-line text-center">
-            <p class="text-[10px] text-text-soft/70 tracking-[0.2em] uppercase">Digital Curator Philosophy · 守护指尖之下的千年传承</p>
+            <p class="text-[10px] text-text-soft/70 tracking-[0.2em] uppercase">Digital Curator Philosophy · Preserving centuries of heritage at your fingertips</p>
         </div>
     </div>
 </main>
 
 <footer class="w-full py-10 px-8 flex flex-col md:flex-row justify-between items-center gap-6 max-w-7xl mx-auto border-t border-primary/10">
     <div class="flex flex-col items-center md:items-start gap-2">
-        <div class="text-primary font-headline text-lg font-bold tracking-tight">江苏文化遗产共享平台</div>
-        <p class="text-text-soft text-xs opacity-80">© 江苏文化遗产共享平台 版权所有</p>
+        <div class="text-primary font-headline text-lg font-bold tracking-tight">Jiangsu Heritage Discovery Platform</div>
+        <p class="text-text-soft text-xs opacity-80">© Jiangsu Heritage Discovery Platform. All rights reserved.</p>
     </div>
     <div class="flex gap-8 text-sm">
-        <span class="text-text-soft">关于平台</span>
-        <span class="text-text-soft">遗产保护</span>
-        <span class="text-text-soft">使用条款</span>
-        <span class="text-text-soft">隐私政策</span>
+        <span class="text-text-soft">About</span>
+        <span class="text-text-soft">Heritage Protection</span>
+        <span class="text-text-soft">Terms</span>
+        <span class="text-text-soft">Privacy</span>
     </div>
 </footer>
 

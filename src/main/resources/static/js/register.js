@@ -40,23 +40,23 @@ function validateRegisterForm() {
     const confirmPassword = confirmPasswordInput.value;
 
     if (!email || !username || !password || !confirmPassword) {
-        return "请完整填写注册信息。";
+        return "Please complete all required registration fields.";
     }
 
     if (!isValidEmail(email)) {
-        return "请输入有效的邮箱地址。";
+        return "Please enter a valid email address.";
     }
 
     if (password.length < 8) {
-        return "密码长度至少为 8 位。";
+        return "Password must be at least 8 characters.";
     }
 
     if (password !== confirmPassword) {
-        return "两次输入的密码不一致。";
+        return "The passwords do not match.";
     }
 
     if (!termsInput.checked) {
-        return "请先阅读并同意服务条款。";
+        return "Please agree to the Terms of Service first.";
     }
 
     return null;
@@ -73,7 +73,7 @@ async function handleRegisterSubmit(event) {
     }
 
     registerSubmitButton.disabled = true;
-    registerSubmitButton.querySelector("span").textContent = "注册中...";
+    registerSubmitButton.querySelector("span").textContent = "Creating...";
 
     try {
         const response = await fetch("/api/auth/register", {
@@ -90,7 +90,7 @@ async function handleRegisterSubmit(event) {
 
         const data = await response.json();
         if (!response.ok) {
-            setRegisterMessage(data.message || "注册失败。", "error");
+            setRegisterMessage(data.message || "Registration failed.", "error");
             return;
         }
 
@@ -99,9 +99,9 @@ async function handleRegisterSubmit(event) {
             window.location.href = data.redirectUrl || "/login.html?registered=1";
         }, 700);
     } catch (error) {
-        setRegisterMessage("无法连接服务器，请稍后重试。", "error");
+        setRegisterMessage("Unable to reach the server. Please try again later.", "error");
     } finally {
-        registerSubmitButton.querySelector("span").textContent = "立即注册";
+        registerSubmitButton.querySelector("span").textContent = "Create Account";
         updateRegisterButtonState();
     }
 }

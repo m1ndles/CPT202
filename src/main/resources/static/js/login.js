@@ -4,6 +4,7 @@ const passwordInput = document.querySelector("#password");
 const rememberMeInput = document.querySelector("#rememberMe");
 const submitButton = document.querySelector("#submitButton");
 const guestButton = document.querySelector("#guestButton");
+const guestButtonText = document.querySelector(".guest-button-text");
 const message = document.querySelector("#message");
 
 function setMessage(text, type) {
@@ -28,7 +29,7 @@ function updateButtonState() {
 function loadRedirectMessage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("registered") === "1") {
-        setMessage("注册成功，请使用新账号登录。", "success");
+        setMessage("Account created successfully. Please sign in with your new account.", "success");
     }
 }
 
@@ -37,12 +38,12 @@ async function handleSubmit(event) {
     setMessage("", null);
 
     if (submitButton.disabled) {
-        setMessage("请填写完整的邮箱和密码。", "error");
+        setMessage("Please enter both email and password.", "error");
         return;
     }
 
     submitButton.disabled = true;
-    submitButton.querySelector("span").textContent = "登录中...";
+    submitButton.querySelector("span").textContent = "Signing In...";
 
     try {
         const response = await fetch("/api/auth/login", {
@@ -59,7 +60,7 @@ async function handleSubmit(event) {
 
         const data = await response.json();
         if (!response.ok) {
-            setMessage(data.message || "登录失败。", "error");
+            setMessage(data.message || "Sign-in failed.", "error");
             return;
         }
 
@@ -68,9 +69,9 @@ async function handleSubmit(event) {
             window.location.href = data.redirectUrl || "/index.html";
         }, 700);
     } catch (error) {
-        setMessage("无法连接服务器，请稍后重试。", "error");
+        setMessage("Unable to reach the server. Please try again later.", "error");
     } finally {
-        submitButton.querySelector("span").textContent = "立即登录";
+        submitButton.querySelector("span").textContent = "Sign In";
         updateButtonState();
     }
 }
@@ -78,7 +79,7 @@ async function handleSubmit(event) {
 async function continueAsGuest() {
     setMessage("", null);
     guestButton.disabled = true;
-    guestButton.querySelectorAll("span")[1].textContent = "进入中...";
+    guestButtonText.textContent = "Entering...";
 
     try {
         const response = await fetch("/api/auth/guest", {
@@ -87,7 +88,7 @@ async function continueAsGuest() {
         const data = await response.json();
 
         if (!response.ok) {
-            setMessage(data.message || "游客进入失败。", "error");
+            setMessage(data.message || "Guest access failed.", "error");
             return;
         }
 
@@ -96,10 +97,10 @@ async function continueAsGuest() {
             window.location.href = data.redirectUrl || "/index.html";
         }, 500);
     } catch (error) {
-        setMessage("无法连接服务器，请稍后重试。", "error");
+        setMessage("Unable to reach the server. Please try again later.", "error");
     } finally {
         guestButton.disabled = false;
-        guestButton.querySelectorAll("span")[1].textContent = "游客模式";
+        guestButtonText.textContent = "Guest Access";
     }
 }
 
