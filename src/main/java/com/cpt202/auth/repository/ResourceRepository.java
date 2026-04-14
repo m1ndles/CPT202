@@ -4,12 +4,15 @@ import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.model.HeritageResource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -47,6 +50,15 @@ public class ResourceRepository {
     public Optional<HeritageResource> findById(Long id) {
         List<HeritageResource> results = jdbcTemplate.query(
                 "SELECT * FROM heritage_resources WHERE id = ? AND status = 'APPROVED'",
+                resourceRowMapper(),
+                id
+        );
+        return results.stream().findFirst();
+    }
+
+    public Optional<HeritageResource> findAnyById(Long id) {
+        List<HeritageResource> results = jdbcTemplate.query(
+                "SELECT * FROM heritage_resources WHERE id = ?",
                 resourceRowMapper(),
                 id
         );
@@ -114,6 +126,157 @@ public class ResourceRepository {
         return count == null ? 0 : count;
     }
 
+    public HeritageResource insert(HeritageResource resource) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            var statement = connection.prepareStatement(
+                    """
+                    INSERT INTO heritage_resources
+                    (title, title_en, category, period, place, description, thumbnail, copyright, tracking_id, status, view_count, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    new String[]{"id"}
+            );
+            statement.setString(1, resource.title());
+            statement.setString(2, resource.titleEn());
+            statement.setString(3, resource.category());
+            statement.setString(4, resource.period());
+            statement.setString(5, resource.place());
+            statement.setString(6, resource.description());
+            statement.setString(7, resource.thumbnail());
+            statement.setString(8, resource.copyright());
+            statement.setString(9, resource.trackingId());
+            statement.setString(10, resource.status());
+            statement.setInt(11, resource.viewCount());
+            statement.setTimestamp(12, resource.createdAt() == null ? null : Timestamp.valueOf(resource.createdAt()));
+            return statement;
+        }, keyHolder);
+
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Failed to create resource.");
+        }
+
+        return new HeritageResource(
+                key.longValue(),
+                resource.title(),
+                resource.titleEn(),
+                resource.category(),
+                resource.period(),
+                resource.place(),
+                resource.description(),
+                resource.thumbnail(),
+                resource.copyright(),
+                resource.trackingId(),
+                resource.status(),
+                resource.viewCount(),
+                resource.createdAt()
+        );
+    }
+
+    public HeritageResource updateDraft(HeritageResource resource) {
+        jdbcTemplate.update(
+                """
+                UPDATE heritage_resources
+                SET title = ?, title_en = ?, category = ?, period = ?, place = ?, description = ?, thumbnail = ?, copyright = ?, tracking_id = ?, status = ?, view_count = ?
+                WHERE id = ?
+                """,
+                resource.title(),
+                resource.titleEn(),
+                resource.category(),
+                resource.period(),
+                resource.place(),
+                resource.description(),
+                resource.thumbnail(),
+                resource.copyright(),
+                resource.trackingId(),
+                resource.status(),
+                resource.viewCount(),
+                resource.id()
+        );
+        return resource;
+    }
+
+    public Optional<HeritageResource> findDraftById(Long id) {
+        List<HeritageResource> results = jdbcTemplate.query(
+                "SELECT * FROM heritage_resources WHERE id = ? AND status = 'DRAFT'",
+                resourceRowMapper(),
+                id
+        );
+        return results.stream().findFirst();
+    }
+
+    public Long insertAttachment(Long resourceId, String name, String type, String url) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            var statement = connection.prepareStatement(
+                    "INSERT INTO heritage_resource_files (resource_id, name, type, url) VALUES (?, ?, ?, ?)",
+                    new String[]{"id"}
+            );
+            statement.setLong(1, resourceId);
+            statement.setString(2, name);
+            statement.setString(3, type);
+            statement.setString(4, url);
+            return statement;
+        }, keyHolder);
+
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("Failed to create attachment.");
+        }
+        return key.longValue();
+    }
+
+    public List<AttachmentRecord> findDraftAttachments(Long resourceId) {
+        return jdbcTemplate.query(
+                "SELECT id, name, type, url FROM heritage_resource_files WHERE resource_id = ? ORDER BY id",
+                (rs, rowNum) -> new AttachmentRecord(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        rs.getString("type"),
+                        rs.getString("url")
+                ),
+                resourceId
+        );
+    }
+
+    public Optional<AttachmentRecord> findAttachmentById(Long resourceId, Long attachmentId) {
+        List<AttachmentRecord> results = jdbcTemplate.query(
+                "SELECT id, name, type, url FROM heritage_resource_files WHERE resource_id = ? AND id = ?",
+                (rs, rowNum) -> new AttachmentRecord(
+                        rs.getLong("id"),
+                        rs.getString("name"),
+                        rs.getString("type"),
+                        rs.getString("url")
+                ),
+                resourceId,
+                attachmentId
+        );
+        return results.stream().findFirst();
+    }
+
+    public void deleteAttachment(Long resourceId, Long attachmentId) {
+        jdbcTemplate.update(
+                "DELETE FROM heritage_resource_files WHERE resource_id = ? AND id = ?",
+                resourceId,
+                attachmentId
+        );
+    }
+
+    public void replaceTags(Long resourceId, List<String> tags) {
+        jdbcTemplate.update("DELETE FROM heritage_resource_tags WHERE resource_id = ?", resourceId);
+        if (tags == null || tags.isEmpty()) {
+            return;
+        }
+        for (String tag : tags) {
+            jdbcTemplate.update(
+                    "INSERT INTO heritage_resource_tags (resource_id, tag) VALUES (?, ?)",
+                    resourceId,
+                    tag
+            );
+        }
+    }
+
     private void appendFilters(StringBuilder sql, List<Object> params,
                                String keyword, String category, String place) {
         sql.append(" WHERE r.status = 'APPROVED'");
@@ -164,13 +327,18 @@ public class ResourceRepository {
                 rs.getString("title"),
                 rs.getString("title_en"),
                 rs.getString("category"),
+                rs.getString("period"),
                 rs.getString("place"),
                 rs.getString("description"),
                 rs.getString("thumbnail"),
                 rs.getString("copyright"),
+                rs.getString("tracking_id"),
                 rs.getString("status"),
                 rs.getInt("view_count"),
                 rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toLocalDateTime()
         );
+    }
+
+    public record AttachmentRecord(Long id, String name, String type, String url) {
     }
 }

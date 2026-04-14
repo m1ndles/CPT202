@@ -10,10 +10,12 @@ public record HeritageResource(
         String title,
         String titleEn,
         String category,
+        String period,
         String place,
         String description,
         String thumbnail,
         String copyright,
+        String trackingId,
         String status,
         int viewCount,
         LocalDateTime createdAt

@@ -17,10 +17,12 @@ CREATE TABLE IF NOT EXISTS heritage_resources (
     title       VARCHAR(200) NOT NULL                            COMMENT 'display name shown on cards and detail page',
     title_en    VARCHAR(200)                                     COMMENT 'English title for bilingual reference',
     category    VARCHAR(60)  NOT NULL                            COMMENT 'classification, e.g. Classical Garden, Traditional Craft',
+    period      VARCHAR(100)                                     COMMENT 'historical period, e.g. Ming Dynasty',
     place       VARCHAR(60)  NOT NULL                            COMMENT 'city or region where the heritage is located',
     description TEXT                                             COMMENT 'full introduction paragraph',
     thumbnail   VARCHAR(500)                                     COMMENT 'cover image URL for list cards',
     copyright   VARCHAR(500)                                     COMMENT 'licence or attribution notice',
+    tracking_id VARCHAR(40) UNIQUE                               COMMENT 'submission tracking identifier for review workflow',
     status      VARCHAR(20)  NOT NULL DEFAULT 'APPROVED'         COMMENT 'workflow state: APPROVED / PENDING / REJECTED',
     view_count  INT          NOT NULL DEFAULT 0                  COMMENT 'incremented each time the detail page is visited',
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'row creation timestamp'

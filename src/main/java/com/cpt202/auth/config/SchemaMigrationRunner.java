@@ -17,19 +17,59 @@ public class SchemaMigrationRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Integer roleColumnCount = jdbcTemplate.queryForObject("""
+        addColumnIfMissing(
+                "users",
+                "role",
+                """
+                ALTER TABLE users
+                ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER'
+                """
+        );
+        addColumnIfMissing(
+                "users",
+                "avatar_url",
+                """
+                ALTER TABLE users
+                ADD COLUMN avatar_url VARCHAR(500) NULL
+                """
+        );
+        addColumnIfMissing(
+                "users",
+                "bio",
+                """
+                ALTER TABLE users
+                ADD COLUMN bio TEXT NULL
+                """
+        );
+        addColumnIfMissing(
+                "heritage_resources",
+                "period",
+                """
+                ALTER TABLE heritage_resources
+                ADD COLUMN period VARCHAR(100) NULL
+                """
+        );
+        addColumnIfMissing(
+                "heritage_resources",
+                "tracking_id",
+                """
+                ALTER TABLE heritage_resources
+                ADD COLUMN tracking_id VARCHAR(40) NULL UNIQUE
+                """
+        );
+    }
+
+    private void addColumnIfMissing(String tableName, String columnName, String ddl) {
+        Integer columnCount = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
                 FROM information_schema.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE()
-                  AND TABLE_NAME = 'users'
-                  AND COLUMN_NAME = 'role'
-                """, Integer.class);
+                  AND TABLE_NAME = ?
+                  AND COLUMN_NAME = ?
+                """, Integer.class, tableName, columnName);
 
-        if (roleColumnCount == null || roleColumnCount == 0) {
-            jdbcTemplate.execute("""
-                    ALTER TABLE users
-                    ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER'
-                    """);
+        if (columnCount == null || columnCount == 0) {
+            jdbcTemplate.execute(ddl);
         }
     }
 }
