@@ -456,7 +456,7 @@ function bindEvents() {
     if (!canUploadResource) {
       return;
     }
-    window.location.href = "/index.html";
+    window.location.href = "/submit-resource.html";
   });
 }
 
