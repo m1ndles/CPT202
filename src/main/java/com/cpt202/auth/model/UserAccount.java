@@ -11,6 +11,8 @@ public record UserAccount(
         int failedAttempts,
         LocalDateTime lockedUntil,
         LocalDateTime lastLoginAt,
+        String avatarUrl,
+        String bio,
         LocalDateTime createdAt
 ) {
 }

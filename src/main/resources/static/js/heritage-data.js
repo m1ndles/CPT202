@@ -3,11 +3,12 @@ const JSON_HEADERS = {
 };
 
 async function request(url, options = {}) {
+  const hasFormData = options.body instanceof FormData;
   const config = {
     credentials: 'same-origin',
     ...options,
     headers: {
-      ...(options.body ? JSON_HEADERS : {}),
+      ...(options.body && !hasFormData ? JSON_HEADERS : {}),
       ...(options.headers || {})
     }
   };
@@ -27,6 +28,40 @@ async function request(url, options = {}) {
 
 export function getSessionUser() {
   return request('/api/auth/me');
+}
+
+export function getProfile() {
+  return request('/api/profile');
+}
+
+export function updateProfile(payload) {
+  return request('/api/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function uploadAvatar(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request('/api/profile/avatar', {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export function updatePassword(payload) {
+  return request('/api/profile/password', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateEmail(payload) {
+  return request('/api/profile/email', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
 }
 
 export function logout() {

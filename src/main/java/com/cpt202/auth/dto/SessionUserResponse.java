@@ -10,6 +10,8 @@ public record SessionUserResponse(
         boolean canComment,
         boolean canUpload,
         boolean canAccessAdmin,
+        String avatarUrl,
+        String bio,
         String createdAt,
         String lastLoginAt
 ) {

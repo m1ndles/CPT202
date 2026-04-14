@@ -22,7 +22,7 @@ public class UserRepository {
 
     public Optional<UserAccount> findByEmail(String email) {
         String sql = """
-                SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, created_at
+                SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, avatar_url, bio, created_at
                 FROM users
                 WHERE email = ?
                 """;
@@ -33,7 +33,7 @@ public class UserRepository {
 
     public Optional<UserAccount> findById(Long userId) {
         String sql = """
-                SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, created_at
+                SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, avatar_url, bio, created_at
                 FROM users
                 WHERE id = ?
                 """;
@@ -56,6 +56,16 @@ public class UserRepository {
                 "SELECT COUNT(*) FROM users WHERE username = ?",
                 Integer.class,
                 username
+        );
+        return count != null && count > 0;
+    }
+
+    public boolean existsByUsernameExcludingUserId(String username, Long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE username = ? AND id <> ?",
+                Integer.class,
+                username,
+                userId
         );
         return count != null && count > 0;
     }
@@ -104,6 +114,48 @@ public class UserRepository {
                 userId);
     }
 
+    public void updateProfile(Long userId, String username, String bio, String avatarUrl) {
+        jdbcTemplate.update("""
+                        UPDATE users
+                        SET username = ?, bio = ?, avatar_url = ?
+                        WHERE id = ?
+                        """,
+                username,
+                bio,
+                avatarUrl,
+                userId);
+    }
+
+    public void updateAvatarUrl(Long userId, String avatarUrl) {
+        jdbcTemplate.update("""
+                        UPDATE users
+                        SET avatar_url = ?
+                        WHERE id = ?
+                        """,
+                avatarUrl,
+                userId);
+    }
+
+    public void updatePasswordHash(Long userId, String passwordHash) {
+        jdbcTemplate.update("""
+                        UPDATE users
+                        SET password_hash = ?
+                        WHERE id = ?
+                        """,
+                passwordHash,
+                userId);
+    }
+
+    public void updateEmail(Long userId, String email) {
+        jdbcTemplate.update("""
+                        UPDATE users
+                        SET email = ?
+                        WHERE id = ?
+                        """,
+                email,
+                userId);
+    }
+
     private RowMapper<UserAccount> userRowMapper() {
         return this::mapUser;
     }
@@ -118,6 +170,8 @@ public class UserRepository {
                 rs.getInt("failed_attempts"),
                 rs.getTimestamp("locked_until") == null ? null : rs.getTimestamp("locked_until").toLocalDateTime(),
                 rs.getTimestamp("last_login_at") == null ? null : rs.getTimestamp("last_login_at").toLocalDateTime(),
+                rs.getString("avatar_url"),
+                rs.getString("bio"),
                 rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toLocalDateTime()
         );
     }

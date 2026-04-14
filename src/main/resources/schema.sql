@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     failed_attempts INT          NOT NULL DEFAULT 0                  COMMENT 'consecutive failed login count',
     locked_until    DATETIME     NULL                                COMMENT 'account locked until this time after too many failures',
     last_login_at   DATETIME     NULL                                COMMENT 'timestamp of last successful login',
+    avatar_url      VARCHAR(500) NULL                                COMMENT 'profile avatar image URL',
+    bio             TEXT         NULL                                COMMENT 'short personal biography shown on the profile page',
     created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'account creation time'
 ) COMMENT = 'platform accounts for authentication and authorisation';
 

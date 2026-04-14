@@ -76,7 +76,7 @@ public class DemoUserInitializer implements CommandLineRunner {
                 user.id(),
                 normalizedTargetEmail,
                 ADMIN_USERNAME,
-                passwordHash,
+                user.passwordHash(),
                 UserRole.ADMIN
         );
     }

@@ -86,6 +86,8 @@ public class AuthService {
                     "Guest session",
                     UserRole.GUEST,
                     true,
+                    null,
+                    "Guest visitors can browse approved heritage resources.",
                     "Temporary access",
                     "Ends when you log out"
             );
@@ -103,6 +105,8 @@ public class AuthService {
                 user.email(),
                 user.role(),
                 false,
+                user.avatarUrl(),
+                user.bio(),
                 formatDateTime(user.createdAt(), "Not available"),
                 formatDateTime(user.lastLoginAt(), "This is your first completed login")
         );
@@ -113,6 +117,8 @@ public class AuthService {
             String email,
             UserRole role,
             boolean guest,
+            String avatarUrl,
+            String bio,
             String createdAt,
             String lastLoginAt
     ) {
@@ -126,6 +132,8 @@ public class AuthService {
                 role.canComment(),
                 role.canUpload(),
                 role.canAccessAdmin(),
+                avatarUrl,
+                bio,
                 createdAt,
                 lastLoginAt
         );
