@@ -2,7 +2,7 @@ package com.cpt202.auth.model;
 
 public enum UserRole {
     GUEST("Guest", "Browse the platform with read-only access.", false, false, false),
-    USER("Registered User", "Comment on resources and submit new heritage content.", true, true, false),
+    USER("Registered User", "Comment on resources and manage your personal profile.", true, false, false),
     CONTRIBUTOR("Contributor", "Registered member with contributor status shown on the profile.", true, true, false),
     ADMIN("Administrator", "Manage reviews, roles, categories, and publication workflow.", true, true, true);
 
