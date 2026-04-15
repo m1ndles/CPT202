@@ -65,6 +65,13 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    public List<HeritageResource> findAllResources() {
+        return jdbcTemplate.query(
+                "SELECT * FROM heritage_resources ORDER BY created_at DESC, id DESC",
+                resourceRowMapper()
+        );
+    }
+
     public List<String> findCategories() {
         return jdbcTemplate.queryForList(
                 "SELECT DISTINCT category FROM heritage_resources WHERE status = 'APPROVED' ORDER BY category",

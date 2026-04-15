@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contributor Application Detail | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/contributor-approval.css">
+</head>
+<body data-page="contributor-approval">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <main class="detail-layout">
+        <section class="detail-main">
+            <a class="back-link" href="/admin/contributor-approval-list.html">Back to List</a>
+            <section class="panel application-panel">
+                <p class="eyebrow">Contributor Application</p>
+                <h1 id="applicantName">Loading application...</h1>
+                <div class="info-grid">
+                    <div><span>Username</span><strong id="username"></strong></div>
+                    <div><span>Submission date</span><strong id="submittedAt"></strong></div>
+                    <div><span>Expertise field</span><strong id="expertiseField"></strong></div>
+                    <div><span>Status</span><strong><span id="statusBadge" class="status-badge"></span></strong></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <p class="eyebrow">Qualification Review</p>
+                <h2>Application details</h2>
+                <div class="content-stack">
+                    <article class="detail-box text-box">
+                        <span class="meta-label">Motivation statement</span>
+                        <p id="motivationStatement"></p>
+                    </article>
+                    <article class="detail-box inline-box">
+                        <span class="meta-label">Portfolio or supporting link</span>
+                        <a id="portfolioLink" class="resource-link" href="#" target="_blank" rel="noreferrer">Open supporting portfolio</a>
+                    </article>
+                    <article class="detail-box text-box">
+                        <span class="meta-label">Optional notes or supporting evidence</span>
+                        <p id="supportingEvidence"></p>
+                    </article>
+                </div>
+            </section>
+        </section>
+
+        <aside class="detail-sidebar">
+            <section class="panel moderation-panel">
+                <p class="eyebrow">Review Decision</p>
+                <h2>Contributor approval controls</h2>
+                <p class="decision-helper">Approve contributor access or explain what must improve before reapplication.</p>
+                <label class="textarea-label" for="rejectionComments">Rejection Comments</label>
+                <textarea id="rejectionComments" rows="7" placeholder="Explain what qualifications or evidence need improvement before reapplication."></textarea>
+                <div class="action-stack">
+                    <button id="approveButton" class="primary-button" type="button">Approve Contributor</button>
+                    <button id="rejectButton" class="danger-button" type="button">Reject Contributor</button>
+                    <a class="secondary-button button-link" href="/admin/contributor-approval-list.html">Back to List</a>
+                </div>
+                <div id="existingRejectionBlock" class="existing-rejection" hidden>
+                    <span class="meta-label">Existing rejection comments</span>
+                    <p id="existingRejectionComments"></p>
+                </div>
+                <p id="feedbackMessage" class="feedback-message"></p>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/contributor-approval-detail.js"></script>
+</body>
+</html>

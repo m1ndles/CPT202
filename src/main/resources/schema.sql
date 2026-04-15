@@ -70,3 +70,57 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) COMMENT = 'one like per user per comment, composite PK prevents duplicates';
+
+CREATE TABLE IF NOT EXISTS contributor_applications (
+    id                   BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique application identifier',
+    user_id              BIGINT       NOT NULL                            COMMENT 'applicant account id',
+    full_name            VARCHAR(120) NOT NULL                            COMMENT 'displayed applicant full name',
+    expertise_field      VARCHAR(120) NOT NULL                            COMMENT 'main domain of contribution',
+    motivation_statement TEXT         NOT NULL                            COMMENT 'why the user wants contributor access',
+    portfolio_link       VARCHAR(500) NULL                                COMMENT 'external portfolio or uploaded file URL',
+    attachment_name      VARCHAR(255) NULL                                COMMENT 'uploaded supporting file original name',
+    attachment_url       VARCHAR(500) NULL                                COMMENT 'uploaded supporting file access URL',
+    status               VARCHAR(20)  NOT NULL DEFAULT 'PENDING'          COMMENT 'PENDING / APPROVED / REJECTED',
+    rejection_comments   TEXT         NULL                                COMMENT 'review feedback when rejected',
+    submitted_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'application submission time',
+    reviewed_at          DATETIME     NULL                                COMMENT 'when the application was reviewed',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) COMMENT = 'registered user requests to become contributors';
+
+CREATE TABLE IF NOT EXISTS admin_categories (
+    id          BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique category identifier',
+    name        VARCHAR(80)  NOT NULL UNIQUE                    COMMENT 'category display name',
+    description TEXT         NOT NULL                           COMMENT 'category description shown in admin console',
+    status      VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'          COMMENT 'ACTIVE / INACTIVE',
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'last update time'
+) COMMENT = 'admin managed taxonomy categories';
+
+CREATE TABLE IF NOT EXISTS admin_tags (
+    id          BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique tag identifier',
+    name        VARCHAR(80)  NOT NULL UNIQUE                    COMMENT 'tag display name',
+    description TEXT         NOT NULL                           COMMENT 'tag description shown in admin console',
+    status      VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE'          COMMENT 'ACTIVE / INACTIVE',
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'last update time'
+) COMMENT = 'admin managed taxonomy tags';
+
+CREATE TABLE IF NOT EXISTS admin_archive_records (
+    id                  BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique archive record identifier',
+    resource_id         BIGINT       NOT NULL UNIQUE                     COMMENT 'resource hidden from public visibility',
+    contributor_label   VARCHAR(160) NULL                                COMMENT 'displayed contributor label in the archive table',
+    archived_by         VARCHAR(120) NOT NULL                            COMMENT 'admin username or system marker',
+    archive_reason      TEXT         NULL                                COMMENT 'why the resource was archived',
+    publication_history TEXT         NULL                                COMMENT 'summary of the publication lifecycle',
+    original_metadata   TEXT         NULL                                COMMENT 'resource metadata snapshot for archive detail',
+    archived_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'archive creation time',
+    FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE
+) COMMENT = 'archived heritage resources hidden from public visibility';
+
+CREATE TABLE IF NOT EXISTS admin_activity_history (
+    id            BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique activity identifier',
+    action_type   VARCHAR(80)  NOT NULL                           COMMENT 'short action label used for filtering',
+    target_type   VARCHAR(80)  NOT NULL                           COMMENT 'resource, contributor, category, tag, archive',
+    target_name   VARCHAR(200) NOT NULL                           COMMENT 'displayed target name',
+    operator_name VARCHAR(120) NOT NULL                           COMMENT 'who performed the action',
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'activity time',
+    details       TEXT         NULL                               COMMENT 'human readable activity details'
+) COMMENT = 'admin activity audit trail';

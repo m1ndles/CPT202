@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contributor Approval | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/contributor-approval.css">
+</head>
+<body data-page="contributor-approval">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <p class="eyebrow">Contributor Approval</p>
+            <h1>Pending Contributor Applications</h1>
+            <p class="hero-text">Review contributor qualification requests and decide who can enter the submission workflow.</p>
+            <div class="queue-summary">
+                <strong id="pendingCountText">0 contributor applications awaiting review</strong>
+                <p>Use the tools below to find the next application to review.</p>
+            </div>
+        </div>
+        <div class="hero-aside">
+            <span>Pending applications</span>
+            <strong id="pendingCount">0</strong>
+        </div>
+    </section>
+
+    <section class="toolbar panel contributor-toolbar">
+        <div class="field-group grow">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="search" placeholder="Search by username, full name, or expertise field">
+        </div>
+        <div class="field-group">
+            <label for="expertiseFilter">Expertise field</label>
+            <select id="expertiseFilter"></select>
+        </div>
+        <button id="clearFiltersButton" class="secondary-button toolbar-button" type="button">Clear Filters</button>
+    </section>
+
+    <section class="panel list-panel">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Application List</p>
+                <h2>Applications awaiting qualification review</h2>
+            </div>
+            <button id="refreshButton" class="secondary-button" type="button">Refresh List</button>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Applicant</th>
+                    <th>Expertise Field</th>
+                    <th>Submission Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="applicationTableBody"></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="empty-state" hidden>
+            <h3>There are no pending contributor applications right now.</h3>
+        </div>
+    </section>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/contributor-approval-list.js"></script>
+</body>
+</html>

@@ -64,6 +64,21 @@ export function updateEmail(payload) {
   });
 }
 
+export function getCurrentContributorApplication() {
+  return request('/api/contributor-applications/current');
+}
+
+export function getMyContributorApplications() {
+  return request('/api/contributor-applications/mine');
+}
+
+export function submitContributorApplication(formData) {
+  return request('/api/contributor-applications', {
+    method: 'POST',
+    body: formData
+  });
+}
+
 export function logout() {
   return request('/api/auth/logout', { method: 'POST' });
 }

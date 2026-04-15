@@ -1,0 +1,200 @@
+.queue-summary {
+    margin-top: 22px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.56);
+    border: 1px solid var(--line);
+}
+
+.queue-summary strong {
+    display: block;
+    color: var(--ink);
+    font-size: 0.88rem;
+}
+
+.queue-summary p {
+    margin: 8px 0 0;
+}
+
+.contributor-toolbar {
+    grid-template-columns: minmax(0, 2fr) minmax(220px, 0.9fr) auto;
+}
+
+.list-panel {
+    padding: 24px 28px;
+}
+
+.applicant-cell {
+    display: grid;
+    gap: 2px;
+    min-width: 220px;
+}
+
+.applicant-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.applicant-subtitle {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.application-panel {
+    padding: 24px 28px;
+}
+
+.hero-copy h1,
+.application-panel h1,
+.applicant-name {
+    max-width: 18ch;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.info-grid strong,
+.content-stack p,
+.decision-helper,
+#existingRejectionComments,
+textarea {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.info-grid span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.content-stack {
+    display: grid;
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.detail-box {
+    padding: 24px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(31, 42, 36, 0.1);
+    box-shadow: 0 10px 26px rgba(57, 67, 59, 0.08);
+}
+
+.content-stack article {
+    display: grid;
+    gap: 18px;
+}
+
+.text-box {
+    min-height: 176px;
+    align-content: start;
+}
+
+.inline-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    min-height: 136px;
+}
+
+.resource-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--accent);
+    border: 1px solid var(--line);
+    font-weight: 700;
+}
+
+.inline-box .resource-link {
+    justify-self: end;
+}
+
+.resource-link.disabled {
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.moderation-panel {
+    position: sticky;
+    top: 24px;
+    display: grid;
+    gap: 16px;
+}
+
+.moderation-panel h2 {
+    font-size: clamp(0.92rem, 1vw, 1.04rem);
+    line-height: 1.28;
+}
+
+.decision-helper {
+    margin: -4px 0 0;
+    font-size: clamp(0.68rem, 0.9vw, 0.76rem);
+    line-height: 1.4;
+}
+
+.action-stack {
+    display: grid;
+    gap: 8px;
+}
+
+.action-stack > * {
+    min-width: 0;
+}
+
+#rejectionComments {
+    min-height: 120px;
+}
+
+#rejectionComments,
+#rejectionComments::placeholder {
+    font-size: clamp(0.8rem, 0.95vw, 0.88rem);
+    line-height: 1.42;
+}
+
+.button-link {
+    width: 100%;
+}
+
+.existing-rejection {
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+}
+
+@media (max-width: 1080px) {
+    .moderation-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 900px) {
+    .contributor-toolbar,
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .application-panel h1 {
+        max-width: 100%;
+    }
+
+    .inline-box {
+        align-items: start;
+    }
+}

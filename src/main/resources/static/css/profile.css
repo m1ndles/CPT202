@@ -21,6 +21,31 @@
   animation: riseIn 420ms ease-out both;
 }
 
+.application-summary-card {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 1.25rem;
+  padding: 1rem 1rem 1.1rem;
+}
+
+.application-summary-card[data-status="APPROVED"] {
+  background: #ecfdf3;
+  border-color: #9fddbc;
+  color: #166534;
+}
+
+.application-summary-card[data-status="REJECTED"] {
+  background: #fef2f2;
+  border-color: #f4b5b5;
+  color: #b42318;
+}
+
+.application-summary-card[data-status="PENDING"] {
+  background: #fffbeb;
+  border-color: #f6d58f;
+  color: #92400e;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;

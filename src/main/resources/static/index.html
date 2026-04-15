@@ -50,6 +50,7 @@
     <span class="font-headline text-lg font-bold tracking-tight">Jiangsu Heritage Discovery</span>
   </div>
   <div class="flex items-center gap-4">
+    <a id="applyContributorNavLink" href="/applicant.html" class="hidden px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all">Apply Contributor</a>
     <a href="/profile.html" class="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all">My Profile</a>
     <div class="text-right hidden sm:block">
       <div id="userName" class="text-sm font-semibold"></div>
@@ -378,6 +379,10 @@
       sessionUser = await getSessionUser();
       document.getElementById('userName').textContent = sessionUser.username;
       document.getElementById('userRole').textContent = sessionUser.roleLabel;
+      const applyContributorNavLink = document.getElementById('applyContributorNavLink');
+      if (applyContributorNavLink) {
+        applyContributorNavLink.classList.toggle('hidden', sessionUser.role !== 'USER');
+      }
       if (sessionUser.guest) {
         showNotice('Guest mode is read-only. Commenting and likes are disabled on the detail page.');
       }

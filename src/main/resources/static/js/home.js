@@ -2,6 +2,7 @@ const welcomeTitle = document.querySelector("#welcomeTitle");
 const sessionText = document.querySelector("#sessionText");
 const logoutButton = document.querySelector("#logoutButton");
 const homeMessage = document.querySelector("#homeMessage");
+const applyContributorLink = document.querySelector("#applyContributorLink");
 
 function setHomeMessage(text, type) {
     homeMessage.textContent = text;
@@ -24,6 +25,9 @@ async function loadSession() {
 
         welcomeTitle.textContent = `Welcome back, ${data.username}.`;
         sessionText.textContent = `Your session is active for ${data.email}. You can continue into the platform from here.`;
+        if (applyContributorLink) {
+            applyContributorLink.hidden = data.role !== "USER";
+        }
     } catch (error) {
         setHomeMessage("Unable to load session details.", "error");
     }
