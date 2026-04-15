@@ -1,0 +1,96 @@
+.taxonomy-toolbar {
+    grid-template-columns: minmax(0, 2fr) minmax(180px, 0.9fr) auto;
+}
+
+.taxonomy-panel {
+    padding: 24px 28px;
+    display: grid;
+    gap: 18px;
+}
+
+.taxonomy-tabbar {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.taxonomy-tab {
+    min-height: 40px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.74);
+    color: var(--muted);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.taxonomy-tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+.taxonomy-section {
+    display: grid;
+    gap: 16px;
+}
+
+.taxonomy-aside {
+    display: grid;
+    gap: 12px;
+}
+
+.inner-toolbar {
+    padding: 12px;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.management-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.list-panel {
+    padding: 24px 28px;
+}
+
+.editor-panel {
+    padding: 24px 28px;
+    display: grid;
+    gap: 16px;
+    position: sticky;
+    top: 24px;
+}
+
+.editor-form {
+    display: grid;
+    gap: 16px;
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.compact-action {
+    min-height: 38px;
+    padding: 9px 12px;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 980px) {
+    .management-layout,
+    .taxonomy-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-panel {
+        position: static;
+    }
+}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">Resource Placeholder</title>
+  <desc id="desc">Placeholder illustration for heritage resource preview.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e7efe9" />
+      <stop offset="100%" stop-color="#d5e1db" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)" />
+  <circle cx="655" cy="108" r="74" fill="#c9d9cf" opacity="0.55" />
+  <circle cx="168" cy="388" r="96" fill="#b9cbc1" opacity="0.45" />
+  <rect x="135" y="118" width="530" height="264" rx="20" fill="#fcfdfc" stroke="#7f968a" stroke-width="8" />
+  <rect x="178" y="160" width="444" height="180" rx="14" fill="#eef4f0" />
+  <path d="M210 310 322 222l72 57 87-96 109 127H210Z" fill="#88a093" />
+  <circle cx="296" cy="214" r="26" fill="#d0ddd6" />
+  <path d="M366 162h166" stroke="#88a093" stroke-width="16" stroke-linecap="round" />
+  <path d="M366 196h126" stroke="#a1b4aa" stroke-width="12" stroke-linecap="round" />
+  <path d="M366 228h146" stroke="#a1b4aa" stroke-width="12" stroke-linecap="round" />
+  <path d="M246 418h308" stroke="#5e766a" stroke-width="14" stroke-linecap="round" />
+  <text x="400" y="454" text-anchor="middle" fill="#4d6659" font-family="Arial, Helvetica, sans-serif" font-size="28">Heritage Resource Preview</text>
+</svg>

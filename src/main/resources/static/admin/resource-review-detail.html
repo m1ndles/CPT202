@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Review Detail | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/resource-review.css">
+</head>
+<body data-page="resource-review">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <main class="detail-layout">
+        <section class="detail-main">
+            <a class="back-link" href="/admin/resource-review-list.html">Back to Queue</a>
+
+            <section class="panel">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Overview</p>
+                        <h2>Heritage Resource Overview</h2>
+                    </div>
+                </div>
+                <div class="overview-header">
+                    <h1 id="title">Loading resource...</h1>
+                    <p id="subtitle" class="subtitle"></p>
+                </div>
+                <div class="overview-grid">
+                    <div>
+                        <span class="meta-label">Place</span>
+                        <strong id="place"></strong>
+                    </div>
+                    <div>
+                        <span class="meta-label">Tags</span>
+                        <div id="tags" class="tag-list"></div>
+                    </div>
+                </div>
+                <div class="description-wrap">
+                    <p id="description" class="description collapsed"></p>
+                    <button id="descriptionToggle" class="inline-toggle" type="button" hidden>Read more</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Media and Links</p>
+                        <h2>Related images and files</h2>
+                    </div>
+                </div>
+                <div class="media-grid">
+                    <article class="media-card detail-box">
+                        <div class="card-head">
+                            <span class="meta-label">Cover image</span>
+                        </div>
+                        <img id="resourceImage" src="/review/images/resource-placeholder.svg" alt="Resource preview">
+                    </article>
+                    <article class="media-card detail-box">
+                        <div class="card-head">
+                            <span class="meta-label">File attachment</span>
+                            <details class="detail-toggle">
+                                <summary>Show file details</summary>
+                                <p id="fileDetails" class="toggle-copy"></p>
+                            </details>
+                        </div>
+                        <a id="fileLink" class="resource-link" href="#" target="_blank" rel="noreferrer">Open attached file</a>
+                    </article>
+                    <article class="media-card detail-box">
+                        <div class="card-head">
+                            <span class="meta-label">External link</span>
+                            <details class="detail-toggle">
+                                <summary>Show external link details</summary>
+                                <p id="externalDetails" class="toggle-copy"></p>
+                            </details>
+                        </div>
+                        <a id="externalLink" class="resource-link" href="#" target="_blank" rel="noreferrer">Visit external reference</a>
+                    </article>
+                </div>
+            </section>
+        </section>
+
+        <aside class="detail-sidebar">
+            <section class="panel moderation-panel">
+                <p class="eyebrow">Review Decision</p>
+                <h2>Resource publication controls</h2>
+                <div class="sidebar-meta">
+                    <div><span>Contributor</span><strong id="contributor"></strong></div>
+                    <div><span>Category</span><strong id="category"></strong></div>
+                    <div><span>Submission date</span><strong id="submissionDate"></strong></div>
+                    <div><span>Current status</span><strong><span id="statusBadge" class="status-badge"></span></strong></div>
+                </div>
+                <div class="visibility-pill" id="visibilityPill">Visibility: hidden</div>
+
+                <details class="accordion-card">
+                    <summary>Show rights information</summary>
+                    <div class="accordion-content">
+                        <p id="copyrightDeclaration"></p>
+                    </div>
+                </details>
+
+                <details class="accordion-card">
+                    <summary>Show submission metadata</summary>
+                    <div class="accordion-content">
+                        <p id="submissionMetadata"></p>
+                    </div>
+                </details>
+
+                <label class="textarea-label" for="rejectionComments">Rejection Comments</label>
+                <p class="decision-helper">Explain what must be corrected before resubmission.</p>
+                <textarea id="rejectionComments" rows="7" placeholder="Explain what is incomplete, unclear, or not yet ready for publication."></textarea>
+
+                <div class="action-stack">
+                    <button id="approveButton" class="primary-button" type="button">Approve Resource</button>
+                    <button id="rejectButton" class="danger-button" type="button">Reject Resource</button>
+                    <a class="secondary-button button-link" href="/admin/resource-review-list.html">Back to Queue</a>
+                </div>
+
+                <div id="existingRejectionBlock" class="existing-rejection" hidden>
+                    <span class="meta-label">Existing rejection comments</span>
+                    <p id="existingRejectionComments"></p>
+                </div>
+
+                <p id="feedbackMessage" class="feedback-message"></p>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/resource-review-detail.js"></script>
+</body>
+</html>

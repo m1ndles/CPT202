@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contributor Application - Jiangsu Heritage Discovery</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Manrope:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "#376757",
+            tertiary: "#775a19",
+            background: "#f9faf7",
+            "surface-soft": "#f3f4f1",
+            "surface-card": "#ffffff",
+            "surface-line": "#e2e3e0",
+            "text-main": "#191c1b",
+            "text-soft": "#404945",
+            outline: "#707974"
+          },
+          fontFamily: {
+            headline: ["Noto Serif SC", "serif"],
+            body: ["Manrope", "sans-serif"]
+          },
+          boxShadow: {
+            card: "0 10px 30px -12px rgba(55, 103, 87, 0.16)",
+            panel: "0 40px 80px -20px rgba(55, 103, 87, 0.12)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(55, 103, 87, 0.08) 1px, transparent 1px);
+      background-size: 18px 18px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 72%);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-background text-text-main font-body">
+<header class="bg-primary text-white px-6 md:px-8 py-4 flex items-center justify-between sticky top-0 z-50 shadow-lg shadow-primary/10">
+  <a href="/index.html" class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+    <span class="font-headline text-lg font-bold tracking-tight">Jiangsu Heritage Discovery</span>
+  </a>
+  <div class="flex items-center gap-3">
+    <a href="/profile.html" class="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all">My Profile</a>
+    <a href="/index.html" class="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-sm font-medium hover:bg-white/20 transition-all">Back to Discover</a>
+  </div>
+</header>
+
+<main class="relative z-10 max-w-6xl mx-auto px-6 md:px-8 py-10 md:py-12">
+  <section class="mb-8">
+    <div class="inline-flex items-center px-3 py-1 rounded-full border border-primary/10 bg-primary/5 text-primary text-[10px] tracking-[0.22em] font-bold uppercase mb-4">
+      Contributor Access
+    </div>
+    <h1 class="font-headline text-3xl md:text-5xl text-primary font-bold tracking-tight">Apply to become a contributor</h1>
+    <p class="mt-3 text-text-soft text-sm leading-7 max-w-2xl">
+      Load your profile, add your expertise, and upload a portfolio or supporting file for admin review.
+    </p>
+  </section>
+
+  <div id="pageMessage" class="hidden mb-6 px-5 py-4 rounded-xl border text-sm" role="status" aria-live="polite"></div>
+
+  <section class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+    <form id="applicationForm" class="bg-surface-card border border-surface-line rounded-2xl p-6 md:p-7 shadow-card space-y-5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-4 border-b border-surface-line">
+        <div>
+          <p class="text-[11px] tracking-[0.2em] uppercase text-primary/80 font-bold mb-1">Application Form</p>
+          <h2 class="font-headline text-3xl text-primary">Contributor profile</h2>
+        </div>
+        <button id="loadProfileBtn" type="button"
+                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-primary/25 text-primary font-semibold text-sm hover:bg-primary/10 transition-all">
+          <span class="material-symbols-outlined text-base">manage_accounts</span>
+          Load Profile
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <label for="fullName" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2">Full Name</label>
+          <input id="fullName" name="fullName" type="text" maxlength="120" required
+                 class="w-full rounded-xl border border-surface-line bg-surface-soft px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
+        </div>
+        <div>
+          <label for="expertiseField" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2">Expertise Field</label>
+          <select id="expertiseField" name="expertiseField" required
+                  class="w-full rounded-xl border border-surface-line bg-surface-soft px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
+            <option value="">Select your expertise field</option>
+          </select>
+          <p class="mt-2 text-xs text-outline">Choose the closest field that matches your contributor expertise.</p>
+        </div>
+      </div>
+
+      <div>
+        <label for="motivationStatement" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2">Motivation Statement</label>
+        <textarea id="motivationStatement" name="motivationStatement" rows="7" maxlength="2000" required
+                  placeholder="Explain why you want to become a contributor and what kinds of resources you can provide."
+                  class="w-full rounded-xl border border-surface-line bg-surface-soft px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"></textarea>
+      </div>
+
+      <div>
+        <label for="portfolioLink" class="block text-xs font-semibold text-text-soft uppercase tracking-[0.18em] mb-2">Portfolio or Supporting Link</label>
+        <input id="portfolioLink" name="portfolioLink" type="url" maxlength="500"
+               placeholder="https://example.com/portfolio"
+               class="w-full rounded-xl border border-surface-line bg-surface-soft px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary">
+        <p class="mt-2 text-xs text-outline">If you upload a file and leave this empty, the uploaded file link will be used here for admin review.</p>
+      </div>
+
+      <div class="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5">
+        <label for="supportingFile" class="block text-sm font-semibold text-primary mb-2">Upload portfolio or supporting file</label>
+        <input id="supportingFile" name="supportingFile" type="file" accept="application/pdf,image/png,image/jpeg,image/webp"
+               class="block w-full text-sm text-text-soft file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#2d5648]">
+        <p id="fileHint" class="mt-2 text-xs text-outline">PDF, JPG, PNG, WEBP only, max 10MB.</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 justify-end pt-2">
+        <a href="/profile.html" class="inline-flex justify-center rounded-xl border border-surface-line px-5 py-3 text-sm font-semibold text-text-soft hover:bg-surface-soft transition-all">Cancel</a>
+        <button id="submitApplicationBtn" type="submit"
+                class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold text-sm tracking-wide hover:bg-[#2d5648] transition-all active:scale-95 disabled:cursor-not-allowed disabled:bg-[#9fb4ad]">
+          <span class="material-symbols-outlined text-base">send</span>
+          Submit Application
+        </button>
+      </div>
+    </form>
+
+    <aside class="space-y-5">
+      <section class="bg-surface-card border border-surface-line rounded-2xl p-6 shadow-card">
+        <p class="text-[11px] tracking-[0.2em] uppercase text-primary/80 font-bold mb-1">Loaded Profile</p>
+        <h2 id="profileName" class="font-headline text-2xl text-primary">Not loaded</h2>
+        <p id="profileEmail" class="mt-2 text-sm text-text-soft break-all">Click Load Profile to fill from your account.</p>
+        <div class="mt-4 rounded-xl bg-surface-soft border border-surface-line p-4 text-sm text-text-soft">
+          <strong class="block text-text-main mb-1">Profile bio</strong>
+          <p id="profileBio">-</p>
+        </div>
+      </section>
+
+      <section class="bg-surface-card border border-surface-line rounded-2xl p-6 shadow-card">
+        <p class="text-[11px] tracking-[0.2em] uppercase text-primary/80 font-bold mb-1">Application Status</p>
+        <div id="applicationStatus" class="text-sm leading-6 text-text-soft">No application loaded yet.</div>
+      </section>
+    </aside>
+  </section>
+</main>
+
+<script type="module">
+  import {
+    getCategories,
+    getCurrentContributorApplication,
+    getProfile,
+    submitContributorApplication
+  } from './js/heritage-data.js';
+
+  const pageMessage = document.getElementById('pageMessage');
+  const form = document.getElementById('applicationForm');
+  const loadProfileBtn = document.getElementById('loadProfileBtn');
+  const submitApplicationBtn = document.getElementById('submitApplicationBtn');
+  const fileInput = document.getElementById('supportingFile');
+  const fileHint = document.getElementById('fileHint');
+  const applicationStatus = document.getElementById('applicationStatus');
+  const expertiseFieldSelect = document.getElementById('expertiseField');
+
+  function renderExpertiseFieldOptions(categories, selectedValue = '') {
+    const safeCategories = Array.isArray(categories) ? categories.filter(category => typeof category === 'string' && category.trim()) : [];
+    expertiseFieldSelect.innerHTML = `
+      <option value="">Select your expertise field</option>
+      ${safeCategories.map(option => `<option value="${option}" ${option === selectedValue ? 'selected' : ''}>${option}</option>`).join('')}
+    `;
+  }
+
+  function showMessage(message, type = 'info') {
+    if (!message) {
+      pageMessage.classList.add('hidden');
+      pageMessage.textContent = '';
+      return;
+    }
+    pageMessage.classList.remove('hidden');
+    pageMessage.textContent = message;
+    if (type === 'error') {
+      pageMessage.className = 'mb-6 px-5 py-4 rounded-xl border text-sm bg-red-50 border-red-200 text-red-700';
+      return;
+    }
+    if (type === 'success') {
+      pageMessage.className = 'mb-6 px-5 py-4 rounded-xl border text-sm bg-primary/5 border-primary/20 text-primary';
+      return;
+    }
+    pageMessage.className = 'mb-6 px-5 py-4 rounded-xl border text-sm bg-surface-soft border-surface-line text-text-soft';
+  }
+
+  function renderApplicationStatus(application) {
+    if (!application) {
+      applicationStatus.innerHTML = `
+        <div class="rounded-2xl border border-surface-line bg-surface-soft px-4 py-4">
+          <div class="text-xs font-semibold uppercase tracking-[0.18em] text-outline">Current Status</div>
+          <p class="mt-2 text-sm leading-6 text-text-soft">No contributor application has been submitted yet.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const status = application.status || 'PENDING';
+    const link = application.portfolioLink || application.attachmentUrl || '';
+    const statusLabel = status === 'APPROVED'
+      ? 'Approved'
+      : status === 'REJECTED'
+        ? 'Rejected'
+        : 'Pending Review';
+    const statusCardClass = status === 'APPROVED'
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+      : status === 'REJECTED'
+        ? 'border-red-200 bg-red-50 text-red-800'
+        : 'border-amber-200 bg-amber-50 text-amber-800';
+    const statusBadgeClass = status === 'APPROVED'
+      ? 'bg-emerald-600/10 text-emerald-700 border border-emerald-200'
+      : status === 'REJECTED'
+        ? 'bg-red-600/10 text-red-700 border border-red-200'
+        : 'bg-amber-500/10 text-amber-700 border border-amber-200';
+    const statusDescription = status === 'APPROVED'
+      ? 'Your contributor access has been approved. You can now upload resources.'
+      : status === 'REJECTED'
+        ? 'Your application was rejected. Please review the admin feedback below before submitting again.'
+        : 'Your application is waiting for admin review.';
+
+    applicationStatus.innerHTML = `
+      <div class="rounded-2xl border px-4 py-4 ${statusCardClass}">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-[0.18em] opacity-80">Current Status</div>
+            <p class="mt-2 text-sm font-semibold">${statusDescription}</p>
+          </div>
+          <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] ${statusBadgeClass}">
+            ${statusLabel}
+          </span>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 text-sm leading-6">
+          <div><strong class="text-text-main">Expertise Field:</strong> ${application.expertiseField || '-'}</div>
+          <div><strong class="text-text-main">Submitted:</strong> ${application.submittedAt || '-'}</div>
+          ${application.reviewedAt ? `<div><strong class="text-text-main">Reviewed:</strong> ${application.reviewedAt}</div>` : ''}
+          ${application.rejectionComments ? `<div class="rounded-xl border border-current/15 bg-white/60 px-3 py-3"><strong class="block text-text-main mb-1">Admin Feedback</strong><span>${application.rejectionComments}</span></div>` : ''}
+          ${link ? `<a class="font-semibold underline" href="${link}" target="_blank" rel="noreferrer">Open supporting link</a>` : '<div>No supporting link yet.</div>'}
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadProfile() {
+    loadProfileBtn.disabled = true;
+    const originalLabel = loadProfileBtn.innerHTML;
+    loadProfileBtn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Loading...';
+
+    try {
+      const [profile, categories] = await Promise.all([
+        getProfile(),
+        getCategories()
+      ]);
+      if (profile.guest) {
+        showMessage('Please sign in with a registered account before applying.', 'error');
+        return;
+      }
+      renderExpertiseFieldOptions(categories);
+      if (profile.role === 'ADMIN' || profile.role === 'CONTRIBUTOR') {
+        showMessage('This account already has elevated permissions and does not need a contributor application.', 'info');
+      }
+
+      document.getElementById('fullName').value = profile.username || '';
+      if (!expertiseFieldSelect.value && Array.isArray(categories) && categories.length > 0) {
+        expertiseFieldSelect.value = categories[0];
+      }
+      if (!document.getElementById('motivationStatement').value.trim() && profile.bio) {
+        document.getElementById('motivationStatement').value = profile.bio;
+      }
+      document.getElementById('profileName').textContent = profile.username || 'Unknown user';
+      document.getElementById('profileEmail').textContent = profile.email || '-';
+      document.getElementById('profileBio').textContent = profile.bio || 'No biography saved yet.';
+
+      let currentApplication = null;
+      if (profile.role === 'USER') {
+        currentApplication = await getCurrentContributorApplication();
+      } else if (profile.role === 'CONTRIBUTOR') {
+        currentApplication = {
+          status: 'APPROVED',
+          expertiseField: categories[0] || 'Contributor account active',
+          submittedAt: 'Approved account',
+          reviewedAt: '',
+          rejectionComments: '',
+          portfolioLink: '',
+          attachmentUrl: ''
+        };
+      }
+      if (currentApplication?.expertiseField) {
+        if (!Array.from(expertiseFieldSelect.options).some(option => option.value === currentApplication.expertiseField)) {
+          const legacyOption = document.createElement('option');
+          legacyOption.value = currentApplication.expertiseField;
+          legacyOption.textContent = `${currentApplication.expertiseField} (existing value)`;
+          expertiseFieldSelect.appendChild(legacyOption);
+        }
+        expertiseFieldSelect.value = currentApplication.expertiseField;
+      }
+      renderApplicationStatus(currentApplication);
+      showMessage('Profile loaded successfully.', 'success');
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.href = '/login.html';
+        return;
+      }
+      showMessage(error.message || 'Failed to load profile.', 'error');
+    } finally {
+      loadProfileBtn.disabled = false;
+      loadProfileBtn.innerHTML = originalLabel;
+    }
+  }
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    fileHint.textContent = file ? `Selected: ${file.name}` : 'PDF, JPG, PNG, WEBP only, max 10MB.';
+  });
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    showMessage('');
+
+    const payload = {
+      fullName: document.getElementById('fullName').value.trim(),
+      expertiseField: expertiseFieldSelect.value,
+      motivationStatement: document.getElementById('motivationStatement').value.trim(),
+      portfolioLink: document.getElementById('portfolioLink').value.trim()
+    };
+
+    const formData = new FormData();
+    formData.append('application', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    const file = fileInput.files?.[0];
+    if (file) {
+      formData.append('file', file);
+    }
+
+    submitApplicationBtn.disabled = true;
+    const originalLabel = submitApplicationBtn.innerHTML;
+    submitApplicationBtn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Submitting...';
+
+    try {
+      const application = await submitContributorApplication(formData);
+      renderApplicationStatus(application);
+      showMessage('Contributor application submitted successfully. The uploaded file is now shown as the Portfolio or supporting link in admin details.', 'success');
+    } catch (error) {
+      showMessage(error.message || 'Failed to submit contributor application.', 'error');
+    } finally {
+      submitApplicationBtn.disabled = false;
+      submitApplicationBtn.innerHTML = originalLabel;
+    }
+  });
+
+  loadProfileBtn.addEventListener('click', loadProfile);
+  loadProfile();
+</script>
+</body>
+</html>

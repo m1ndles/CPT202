@@ -96,7 +96,11 @@ public class AuthController {
         Object userIdValue = session.getAttribute("userId");
         Long userId = userIdValue instanceof Long ? (Long) userIdValue : null;
         UserRole sessionRole = UserRole.fromDatabaseValue(String.valueOf(roleValue));
-        return authService.getSessionUser(userId, sessionRole);
+        SessionUserResponse user = authService.getSessionUser(userId, sessionRole);
+        session.setAttribute("username", user.username());
+        session.setAttribute("email", user.email());
+        session.setAttribute("role", user.role());
+        return user;
     }
 
     @PostMapping("/logout")

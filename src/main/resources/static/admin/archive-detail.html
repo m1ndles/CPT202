@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Detail | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/archive-management.css">
+</head>
+<body data-page="archive">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <main class="detail-layout">
+        <section class="detail-main">
+            <a class="back-link" href="/admin/archive-management.html">Back to Archive</a>
+
+            <section class="panel archive-detail-panel">
+                <p class="eyebrow">Archive Detail</p>
+                <h1 id="archiveTitle">Loading archive record...</h1>
+                <div class="archive-info-grid">
+                    <div><span>Category</span><strong id="archiveCategory"></strong></div>
+                    <div><span>Contributor</span><strong id="archiveContributor"></strong></div>
+                    <div><span>Archive status</span><strong><span id="archiveStatus" class="status-badge">ARCHIVED</span></strong></div>
+                </div>
+            </section>
+
+            <section class="panel archive-content-panel">
+                <p class="eyebrow">Archived Resource Record</p>
+                <h2>Publication history and metadata</h2>
+                <div class="content-stack">
+                    <article class="detail-box text-box">
+                        <span class="meta-label">Original metadata</span>
+                        <p id="originalMetadata"></p>
+                    </article>
+                    <article class="detail-box text-box">
+                        <span class="meta-label">Publication history</span>
+                        <p id="publicationHistory"></p>
+                    </article>
+                </div>
+            </section>
+        </section>
+
+        <aside class="detail-sidebar">
+            <section class="panel moderation-panel archive-decision-panel">
+                <p class="eyebrow">Restore Decision</p>
+                <h2>Archive controls</h2>
+                <div class="sidebar-meta">
+                    <div><span>Archived by</span><strong id="archivedBy"></strong></div>
+                    <div><span>Archived at</span><strong id="archivedAt"></strong></div>
+                </div>
+                <div class="visibility-pill">Visibility: hidden</div>
+                <article class="detail-box text-box">
+                    <span class="meta-label">Archive reason</span>
+                    <p id="archiveReason"></p>
+                </article>
+                <div class="action-stack">
+                    <button id="restoreButton" class="primary-button" type="button">Restore Resource</button>
+                    <a class="secondary-button button-link" href="/admin/archive-management.html">Back to Archive</a>
+                </div>
+                <p id="feedbackMessage" class="feedback-message"></p>
+            </section>
+        </aside>
+    </main>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/archive-detail.js"></script>
+</body>
+</html>

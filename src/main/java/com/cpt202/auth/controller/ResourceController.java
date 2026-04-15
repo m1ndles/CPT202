@@ -9,7 +9,9 @@ import com.cpt202.auth.dto.ResourceSubmissionDto;
 import com.cpt202.auth.dto.ResourceSummary;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.HeritageResource;
+import com.cpt202.auth.model.UserAccount;
 import com.cpt202.auth.model.UserRole;
+import com.cpt202.auth.repository.UserRepository;
 import com.cpt202.auth.service.CommentService;
 import com.cpt202.auth.service.DraftAttachmentService;
 import com.cpt202.auth.service.ResourceService;
@@ -44,13 +46,16 @@ public class ResourceController {
     private final ResourceService resourceService;
     private final CommentService commentService;
     private final DraftAttachmentService draftAttachmentService;
+    private final UserRepository userRepository;
 
     public ResourceController(ResourceService resourceService,
                               CommentService commentService,
-                              DraftAttachmentService draftAttachmentService) {
+                              DraftAttachmentService draftAttachmentService,
+                              UserRepository userRepository) {
         this.resourceService = resourceService;
         this.commentService = commentService;
         this.draftAttachmentService = draftAttachmentService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
@@ -208,10 +213,16 @@ public class ResourceController {
     }
 
     private void requireUploadPermission(HttpSession session) {
-        UserRole role = currentRole(session);
-        if (role == null) {
+        Long userId = currentUserId(session);
+        if (userId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
         }
+        UserAccount user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
+        UserRole role = user.role();
+        session.setAttribute("role", role.name());
+        session.setAttribute("username", user.username());
+        session.setAttribute("email", user.email());
         if (!role.canUpload()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Your current role cannot submit new resources.");
         }
