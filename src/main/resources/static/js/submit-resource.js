@@ -1,4 +1,4 @@
-import { getSessionUser, logout } from './heritage-data.js';
+import { getSessionUser, logout, submitResourceAppeal } from './heritage-data.js';
 
 const form = document.getElementById('resourceForm');
 const saveText = document.getElementById('saveText');
@@ -22,6 +22,15 @@ const uploadedFilesTitle = document.getElementById('uploadedFilesTitle');
 const uploadError = document.getElementById('uploadError');
 const hiddenTags = document.getElementById('hiddenTags');
 const attachmentNames = document.getElementById('attachmentNames');
+const revisionContextSection = document.getElementById('revisionContextSection');
+const revisionFeedbackText = document.getElementById('revisionFeedbackText');
+const revisionAppealList = document.getElementById('revisionAppealList');
+const appealFormCard = document.getElementById('appealFormCard');
+const appealReadonlyCard = document.getElementById('appealReadonlyCard');
+const appealReadonlyText = document.getElementById('appealReadonlyText');
+const appealInput = document.getElementById('appealInput');
+const sendAppealBtn = document.getElementById('sendAppealBtn');
+const appealStatus = document.getElementById('appealStatus');
 
 const attachments = [];
 const tags = [];
@@ -33,9 +42,28 @@ let autosaveEnabled = true;
 let saveInFlight = false;
 let pendingAutosave = false;
 let readOnlyMode = false;
+let currentRevisionContext = {
+  rejectionComments: '',
+  appealMessages: [],
+  canSendAppeal: false,
+  status: ''
+};
 
 function setSaveState(text) {
   saveText.textContent = text;
+}
+
+function setAppealStatus(message, isError = false) {
+  if (!message) {
+    appealStatus.textContent = '';
+    appealStatus.className = 'hidden mt-3 rounded-xl border px-4 py-3 text-sm';
+    return;
+  }
+
+  appealStatus.textContent = message;
+  appealStatus.className = isError
+    ? 'mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600'
+    : 'mt-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-700';
 }
 
 function setReadOnlyMode(enabled, options = {}) {
@@ -56,6 +84,8 @@ function setReadOnlyMode(enabled, options = {}) {
   submitBtn.disabled = enabled;
   confirmSubmitBtn.disabled = enabled;
   retrySaveBtn.disabled = enabled;
+  appealInput.disabled = enabled || !currentRevisionContext.canSendAppeal;
+  sendAppealBtn.disabled = enabled || !currentRevisionContext.canSendAppeal;
 
   if (enabled) {
     closeModal();
@@ -140,6 +170,26 @@ function closeModal() {
 function updateHiddenValues() {
   hiddenTags.value = tags.join(',');
   attachmentNames.value = attachments.map(item => item.name).join(',');
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function labelForRole(role) {
+  switch (String(role || '').toUpperCase()) {
+    case 'ADMIN':
+      return 'Admin';
+    case 'SYSTEM':
+      return 'System';
+    default:
+      return 'Contributor';
+  }
 }
 
 function buildTagChip(value, list, render) {
@@ -294,6 +344,87 @@ function syncAttachments(list) {
   list.forEach(item => attachments.push(item));
   updateHiddenValues();
   renderAttachments();
+}
+
+function renderAppealThread(messages) {
+  if (!Array.isArray(messages) || !messages.length) {
+    revisionAppealList.innerHTML = `
+      <div class="appeal-bubble system">
+        <div class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Conversation Timeline</div>
+        <p class="mt-3 text-sm leading-7 text-slate-600">No conversation messages have been sent for this resource yet.</p>
+      </div>
+    `;
+    return;
+  }
+
+  revisionAppealList.innerHTML = messages.map(item => {
+    const role = String(item.senderRole || '').toLowerCase() || 'contributor';
+    return `
+      <article class="appeal-bubble ${escapeHtml(role)}">
+        <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+          <strong class="text-slate-700">${escapeHtml(item.senderName || labelForRole(item.senderRole))}</strong>
+          <span>${escapeHtml(labelForRole(item.senderRole))}</span>
+          <span>${escapeHtml(item.createdAt || '')}</span>
+        </div>
+        <p class="mt-3 text-sm leading-7 text-slate-700">${escapeHtml(item.content || '')}</p>
+      </article>
+    `;
+  }).join('');
+}
+
+function hideRevisionContext() {
+  currentRevisionContext = {
+    rejectionComments: '',
+    appealMessages: [],
+    canSendAppeal: false,
+    status: currentRevisionContext.status || ''
+  };
+  revisionContextSection.classList.add('hidden');
+  revisionFeedbackText.textContent = 'No reviewer feedback is currently stored for this resource.';
+  revisionAppealList.innerHTML = '';
+  appealFormCard.classList.add('hidden');
+  appealReadonlyCard.classList.add('hidden');
+  appealInput.value = '';
+  setAppealStatus('');
+}
+
+function renderRevisionContext(data = {}) {
+  const feedback = String(data.rejectionComments || '').trim();
+  const appealMessages = Array.isArray(data.appealMessages) ? data.appealMessages : [];
+  const canSendAppeal = Boolean(data.canSendAppeal);
+  const status = String(data.status || '').toUpperCase();
+  const hasContext = Boolean(feedback) || appealMessages.length || canSendAppeal;
+
+  currentRevisionContext = {
+    rejectionComments: feedback,
+    appealMessages,
+    canSendAppeal,
+    status
+  };
+
+  if (!hasContext) {
+    hideRevisionContext();
+    return;
+  }
+
+  revisionContextSection.classList.remove('hidden');
+  revisionFeedbackText.textContent = feedback || 'No reviewer feedback is currently stored for this resource.';
+  renderAppealThread(appealMessages);
+  setAppealStatus('');
+
+  if (canSendAppeal) {
+    appealFormCard.classList.remove('hidden');
+    appealReadonlyCard.classList.add('hidden');
+  } else {
+    appealFormCard.classList.add('hidden');
+    appealReadonlyCard.classList.remove('hidden');
+    appealReadonlyText.textContent = status === 'PENDING'
+      ? 'This conversation becomes read-only while the resource is under review.'
+      : 'This resource is not currently open for new conversation messages.';
+  }
+
+  appealInput.disabled = readOnlyMode || !canSendAppeal;
+  sendAppealBtn.disabled = readOnlyMode || !canSendAppeal;
 }
 
 function validateUploadFile(file) {
@@ -500,6 +631,7 @@ function applySavedDraft(data) {
   (data.tags || []).forEach(tag => tags.push(tag));
   renderAllTags();
   syncAttachments(data.attachments || []);
+  renderRevisionContext(data);
   setReadOnlyMode(data.status === 'PENDING', { trackingId: data.trackingId || '' });
 }
 
@@ -665,6 +797,43 @@ retrySaveBtn.addEventListener('click', async () => {
   await saveDraft({ showToastMessage: false });
 });
 
+sendAppealBtn.addEventListener('click', async () => {
+  if (readOnlyMode) {
+    return;
+  }
+
+  const resourceId = resourceIdInput.value ? Number(resourceIdInput.value) : null;
+  const content = appealInput.value.trim();
+
+  if (!resourceId) {
+    setAppealStatus('Please save this draft before sending a message.', true);
+    return;
+  }
+
+  if (!content) {
+    setAppealStatus('Message content is required.', true);
+    return;
+  }
+
+  sendAppealBtn.disabled = true;
+  setAppealStatus('');
+
+  try {
+    const response = await submitResourceAppeal(resourceId, content);
+    currentRevisionContext = {
+      ...currentRevisionContext,
+      appealMessages: response.appealMessages || currentRevisionContext.appealMessages
+    };
+    renderRevisionContext(currentRevisionContext);
+    appealInput.value = '';
+    setAppealStatus(response.message || 'Message sent to the admin review team.');
+  } catch (error) {
+    setAppealStatus(error.message || 'Failed to send message.', true);
+  } finally {
+    sendAppealBtn.disabled = readOnlyMode || !currentRevisionContext.canSendAppeal;
+  }
+});
+
 logoutBtn.addEventListener('click', async () => {
   await logout();
   window.location.href = '/login.html';
@@ -709,6 +878,7 @@ fileInput.addEventListener('change', event => {
 bindTagInput('tagInput', tags);
 renderAllTags();
 renderAttachments();
+hideRevisionContext();
 
 window.addEventListener('beforeunload', () => {
   window.clearTimeout(autosaveTimer);

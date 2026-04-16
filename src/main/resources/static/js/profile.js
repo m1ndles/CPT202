@@ -568,6 +568,14 @@ function bindEvents() {
     }
   });
 
+  document.getElementById("myResourcesBtn")?.addEventListener("click", () => {
+    window.location.href = "/my-resources.html";
+  });
+
+  document.getElementById("favoritesBtn")?.addEventListener("click", () => {
+    window.location.href = "/my-favorites.html";
+  });
+
   document.getElementById("uploadResourceBtn")?.addEventListener("click", () => {
     if (!canUploadResource) {
       return;

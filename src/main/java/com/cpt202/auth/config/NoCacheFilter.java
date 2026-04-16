@@ -35,6 +35,9 @@ public class NoCacheFilter extends OncePerRequestFilter {
                 || uri.endsWith("/login.html")
                 || uri.endsWith("/register.html")
                 || uri.endsWith("/profile.html")
+                || uri.endsWith("/my-favorites.html")
+                || uri.endsWith("/my-resources.html")
+                || uri.endsWith("/my-resource-detail.html")
                 || uri.endsWith("/applicant.html");
     }
 }

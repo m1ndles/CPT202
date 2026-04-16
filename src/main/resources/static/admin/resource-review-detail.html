@@ -91,6 +91,26 @@
                     </article>
                 </div>
             </section>
+
+            <section class="panel">
+                <div class="section-head">
+                    <div>
+                        <p class="eyebrow">Revision Thread</p>
+                        <h2>Conversation with contributor</h2>
+                    </div>
+                </div>
+                <p class="appeal-helper">Use this thread to reply to contributor clarification, answer follow-up questions, and keep the revision context in one place.</p>
+                <div id="appealThreadList" class="appeal-thread-list"></div>
+                <div id="appealReplyCard" class="appeal-reply-card" hidden>
+                    <label class="textarea-label" for="appealReplyInput">Reply to Contributor</label>
+                    <p class="decision-helper">Your reply will appear in the contributor's conversation view.</p>
+                    <textarea id="appealReplyInput" rows="5" maxlength="1000" placeholder="Write a follow-up reply for the contributor here."></textarea>
+                    <div class="action-stack">
+                        <button id="sendAppealReplyButton" class="primary-button" type="button">Send Reply</button>
+                    </div>
+                    <p id="appealReplyStatus" class="feedback-message"></p>
+                </div>
+            </section>
         </section>
 
         <aside class="detail-sidebar">
@@ -122,6 +142,7 @@
                 <label class="textarea-label" for="rejectionComments">Rejection Comments</label>
                 <p class="decision-helper">Explain what must be corrected before resubmission.</p>
                 <textarea id="rejectionComments" rows="7" placeholder="Explain what is incomplete, unclear, or not yet ready for publication."></textarea>
+                <div id="workflowNotice" class="workflow-notice" hidden></div>
 
                 <div class="action-stack">
                     <button id="approveButton" class="primary-button" type="button">Approve Resource</button>

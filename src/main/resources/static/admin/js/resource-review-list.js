@@ -4,6 +4,7 @@ const pendingCount = document.getElementById("pendingCount");
 const pendingCountText = document.getElementById("pendingCountText");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
+const statusFilter = document.getElementById("statusFilter");
 const sortSelect = document.getElementById("sortSelect");
 const resourceTableBody = document.getElementById("resourceTableBody");
 const emptyState = document.getElementById("emptyState");
@@ -13,6 +14,7 @@ const clearFiltersButton = document.getElementById("clearFiltersButton");
 const state = {
     search: "",
     category: "All",
+    status: "All",
     sort: "desc"
 };
 
@@ -28,6 +30,17 @@ function renderCategories(categories) {
     categoryFilter.innerHTML = categories.map((category) => `
         <option value="${category}" ${category === state.category ? "selected" : ""}>${category}</option>
     `).join("");
+}
+
+function countLabel(status, count) {
+    switch (status) {
+        case "PENDING_REVIEW":
+            return `${count} pending resources`;
+        case "REJECTED":
+            return `${count} rejected resources`;
+        default:
+            return `${count} resources in the review queue`;
+    }
 }
 
 function renderTable(items) {
@@ -52,8 +65,8 @@ function renderTable(items) {
             <td>${item.category}</td>
             <td>${item.place}</td>
             <td>${formatDate(item.submissionDate)}</td>
-            <td><span class="status-badge pending_review">${item.status.replaceAll("_", " ")}</span></td>
-            <td><a class="primary-button button-link" href="/admin/resource-review-detail.html?id=${item.id}">Open Review</a></td>
+            <td><span class="status-badge ${item.status.toLowerCase()}">${item.status.replaceAll("_", " ")}</span></td>
+            <td><a class="primary-button button-link" href="/admin/resource-review-detail.html?id=${item.id}">${item.status === "REJECTED" ? "Open Record" : "Open Review"}</a></td>
         </tr>
     `).join("");
 
@@ -66,8 +79,9 @@ async function loadResources() {
 
     try {
         const data = await getResourceReviewList(state);
-        pendingCount.textContent = data.pendingCount;
-        pendingCountText.textContent = `${data.pendingCount} resources awaiting review`;
+        state.category = data.activeCategory;
+        pendingCount.textContent = data.displayCount;
+        pendingCountText.textContent = countLabel(state.status, data.displayCount);
         renderCategories(data.categories);
         renderTable(data.items);
     } finally {
@@ -79,8 +93,10 @@ async function loadResources() {
 function resetFilters() {
     state.search = "";
     state.category = "All";
+    state.status = "All";
     state.sort = "desc";
     searchInput.value = "";
+    statusFilter.value = "All";
     sortSelect.value = "desc";
     loadResources();
 }
@@ -96,6 +112,11 @@ searchInput.addEventListener("input", (event) => {
 
 categoryFilter.addEventListener("change", (event) => {
     state.category = event.target.value;
+    loadResources();
+});
+
+statusFilter.addEventListener("change", (event) => {
+    state.status = event.target.value;
     loadResources();
 });
 

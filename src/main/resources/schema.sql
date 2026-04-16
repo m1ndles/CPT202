@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS heritage_resources (
     tracking_id VARCHAR(40) UNIQUE                               COMMENT 'submission tracking identifier for review workflow',
     status      VARCHAR(20)  NOT NULL DEFAULT 'APPROVED'         COMMENT 'workflow state: APPROVED / PENDING / REJECTED',
     view_count  INT          NOT NULL DEFAULT 0                  COMMENT 'incremented each time the detail page is visited',
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'row creation timestamp'
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'row creation timestamp',
+    owner_user_id BIGINT     NULL                                COMMENT 'contributor account that created the resource draft/submission',
+    owner_username VARCHAR(60) NULL                              COMMENT 'display name snapshot of the owning contributor',
+    FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) COMMENT = 'cultural heritage entries published on the platform';
 
 CREATE TABLE IF NOT EXISTS heritage_resource_tags (
@@ -51,6 +54,25 @@ CREATE TABLE IF NOT EXISTS heritage_resource_links (
     url         VARCHAR(500) NOT NULL                   COMMENT 'target URL',
     FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE
 ) COMMENT = 'external reference URLs for a heritage resource';
+
+CREATE TABLE IF NOT EXISTS resource_favorites (
+    resource_id BIGINT       NOT NULL                            COMMENT 'favorited resource id',
+    user_id     BIGINT       NOT NULL                            COMMENT 'registered user who saved the resource',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'when the resource was favorited',
+    PRIMARY KEY (resource_id, user_id),
+    FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) COMMENT = 'saved resource list for registered users';
+
+CREATE TABLE IF NOT EXISTS resource_appeal_messages (
+    id          BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique appeal message identifier',
+    resource_id BIGINT       NOT NULL                            COMMENT 'resource currently under revision',
+    sender_role VARCHAR(20)  NOT NULL                            COMMENT 'CONTRIBUTOR / ADMIN / SYSTEM',
+    sender_name VARCHAR(120) NOT NULL                            COMMENT 'display name shown in the appeal thread',
+    content     TEXT         NOT NULL                            COMMENT 'appeal or clarification message body',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'when the message was created',
+    FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE
+) COMMENT = 'appeal and clarification thread for rejected resources';
 
 CREATE TABLE IF NOT EXISTS comments (
     id          BIGINT   PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique comment identifier',

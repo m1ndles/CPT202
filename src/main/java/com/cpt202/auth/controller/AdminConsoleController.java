@@ -1,5 +1,7 @@
 package com.cpt202.auth.controller;
 
+import com.cpt202.auth.dto.ResourceAppealRequest;
+import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
 import com.cpt202.auth.dto.admin.AdminActionResponse;
 import com.cpt202.auth.dto.admin.AdminArchiveItemResponse;
 import com.cpt202.auth.dto.admin.AdminCategoryItemResponse;
@@ -65,6 +67,14 @@ public class AdminConsoleController {
                                                     HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.rejectResourceReview(resourceId, request.rejectionComments(), currentUsername(session));
+    }
+
+    @PostMapping("/resources/reviews/{resourceId}/appeals")
+    public ResourceAppealSubmissionResponse submitResourceReviewReply(@PathVariable Long resourceId,
+                                                                     @Valid @RequestBody ResourceAppealRequest request,
+                                                                     HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.submitResourceReviewReply(resourceId, currentUsername(session), request.content());
     }
 
     @GetMapping("/categories")

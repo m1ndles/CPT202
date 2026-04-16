@@ -27,15 +27,15 @@
     <section class="hero-panel">
         <div class="hero-copy">
             <p class="eyebrow">Resource Review</p>
-            <h1>Pending Resource Reviews</h1>
-            <p class="hero-text">Review contributor submissions and decide whether each resource can move into public visible status.</p>
+            <h1>Resource Review Queue</h1>
+            <p class="hero-text">Review pending submissions and reopen rejected records when contributors send clarification or revised follow-up notes.</p>
             <div class="queue-summary">
-                <strong id="pendingCountText">0 resources awaiting review</strong>
-                <p>Use the filters below to find the next item to moderate.</p>
+                <strong id="pendingCountText">0 resources in the review queue</strong>
+                <p>Use the filters below to switch between pending moderation and rejected revision cases.</p>
             </div>
         </div>
         <div class="hero-aside">
-            <span>Pending resources</span>
+            <span>Visible records</span>
             <strong id="pendingCount">0</strong>
         </div>
     </section>
@@ -48,6 +48,14 @@
         <div class="field-group">
             <label for="categoryFilter">Category</label>
             <select id="categoryFilter"></select>
+        </div>
+        <div class="field-group">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter">
+                <option value="All">All reviewable</option>
+                <option value="PENDING_REVIEW">Pending review</option>
+                <option value="REJECTED">Rejected / revision</option>
+            </select>
         </div>
         <div class="field-group">
             <label for="sortSelect">Sort by submission date</label>
@@ -63,7 +71,7 @@
         <div class="section-head">
             <div>
                 <p class="eyebrow">Review Queue</p>
-                <h2>Resources awaiting publication review</h2>
+                <h2>Resources in moderation and revision flow</h2>
             </div>
             <button id="refreshButton" class="secondary-button" type="button">Refresh Queue</button>
         </div>
@@ -84,7 +92,7 @@
             </table>
         </div>
         <div id="emptyState" class="empty-state" hidden>
-            <h3>No pending resources match your current filters.</h3>
+            <h3>No resources match your current filters.</h3>
         </div>
     </section>
 </div>

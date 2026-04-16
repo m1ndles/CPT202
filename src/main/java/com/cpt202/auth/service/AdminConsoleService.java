@@ -2,6 +2,8 @@ package com.cpt202.auth.service;
 
 import com.cpt202.auth.dto.ContributorApplicationResponse;
 import com.cpt202.auth.dto.ContributorApplicationSummaryResponse;
+import com.cpt202.auth.dto.ResourceAppealMessageResponse;
+import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
 import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.dto.admin.AdminActionResponse;
 import com.cpt202.auth.dto.admin.AdminArchiveItemResponse;
@@ -22,6 +24,7 @@ import com.cpt202.auth.repository.AdminActivityRepository;
 import com.cpt202.auth.repository.AdminArchiveRepository;
 import com.cpt202.auth.repository.AdminTaxonomyRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
+import com.cpt202.auth.repository.ResourceAppealMessageRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,6 +50,7 @@ public class AdminConsoleService {
     private final ContributorApplicationRepository contributorApplicationRepository;
     private final ContributorApplicationService contributorApplicationService;
     private final ResourceRepository resourceRepository;
+    private final ResourceAppealMessageRepository resourceAppealMessageRepository;
     private final AdminTaxonomyRepository adminTaxonomyRepository;
     private final AdminArchiveRepository adminArchiveRepository;
     private final AdminActivityRepository adminActivityRepository;
@@ -54,12 +58,14 @@ public class AdminConsoleService {
     public AdminConsoleService(ContributorApplicationRepository contributorApplicationRepository,
                                ContributorApplicationService contributorApplicationService,
                                ResourceRepository resourceRepository,
+                               ResourceAppealMessageRepository resourceAppealMessageRepository,
                                AdminTaxonomyRepository adminTaxonomyRepository,
                                AdminArchiveRepository adminArchiveRepository,
                                AdminActivityRepository adminActivityRepository) {
         this.contributorApplicationRepository = contributorApplicationRepository;
         this.contributorApplicationService = contributorApplicationService;
         this.resourceRepository = resourceRepository;
+        this.resourceAppealMessageRepository = resourceAppealMessageRepository;
         this.adminTaxonomyRepository = adminTaxonomyRepository;
         this.adminArchiveRepository = adminArchiveRepository;
         this.adminActivityRepository = adminActivityRepository;
@@ -289,7 +295,7 @@ public class AdminConsoleService {
 
     public List<AdminResourceReviewItemResponse> getResourceReviewList() {
         return resourceRepository.findAllResources().stream()
-                .filter(resource -> "PENDING".equalsIgnoreCase(resource.status()))
+                .filter(resource -> isReviewQueueStatus(resource.status()))
                 .sorted(Comparator.comparing(HeritageResource::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(resource -> new AdminResourceReviewItemResponse(
                         resource.id(),
@@ -298,7 +304,7 @@ public class AdminConsoleService {
                         resource.category(),
                         resource.place(),
                         formatDate(resource.createdAt()),
-                        "PENDING_REVIEW",
+                        mapReviewStatus(resource.status()),
                         defaultImage(resource.thumbnail())
                 ))
                 .toList();
@@ -310,12 +316,14 @@ public class AdminConsoleService {
 
         List<ResourceRepository.AttachmentRecord> attachments = resourceRepository.findDraftAttachments(resourceId);
         List<ResourceDetail.LinkItem> links = resourceRepository.findLinksByResourceId(resourceId);
+        List<ResourceAppealMessageResponse> appealMessages = resourceAppealMessageRepository.findByResourceId(resource.id());
         String fileLink = attachments.isEmpty() ? null : attachments.get(0).url();
         String externalLink = links.isEmpty() ? null : links.get(0).url();
         String status = mapReviewStatus(resource.status());
         String archiveReason = adminArchiveRepository.findByResourceId(resource.id())
                 .map(AdminArchiveRepository.ArchiveRecord::archiveReason)
                 .orElse(null);
+        boolean canReplyInAppealThread = canReplyInAppealThread(resource, archiveReason, appealMessages);
 
         return new AdminResourceReviewDetailResponse(
                 resource.id(),
@@ -334,8 +342,44 @@ public class AdminConsoleService {
                 resourceRepository.findTagsByResourceId(resourceId),
                 resource.copyright(),
                 buildSubmissionMetadata(resource),
-                "REJECTED".equalsIgnoreCase(resource.status()) ? archiveReason : null,
+                archiveReason,
+                appealMessages,
+                canReplyInAppealThread,
                 "APPROVED".equalsIgnoreCase(resource.status())
+        );
+    }
+
+    @Transactional
+    public ResourceAppealSubmissionResponse submitResourceReviewReply(Long resourceId,
+                                                                     String operatorName,
+                                                                     String content) {
+        HeritageResource resource = resourceRepository.findAnyById(resourceId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
+        String normalizedContent = requireText(content, "Reply message content is required.");
+        if (normalizedContent.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Reply message must be 1000 characters or fewer.");
+        }
+
+        String archiveReason = adminArchiveRepository.findByResourceId(resource.id())
+                .map(AdminArchiveRepository.ArchiveRecord::archiveReason)
+                .orElse(null);
+        List<ResourceAppealMessageResponse> appealMessages = resourceAppealMessageRepository.findByResourceId(resource.id());
+        if (!canReplyInAppealThread(resource, archiveReason, appealMessages)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "This resource is not currently available for conversation replies.");
+        }
+
+        resourceAppealMessageRepository.insert(
+                resource.id(),
+                "ADMIN",
+                operator(operatorName),
+                normalizedContent,
+                LocalDateTime.now()
+        );
+
+        return new ResourceAppealSubmissionResponse(
+                "Reply sent to the contributor.",
+                resourceAppealMessageRepository.findByResourceId(resource.id())
         );
     }
 
@@ -620,7 +664,9 @@ public class AdminConsoleService {
                 resource.trackingId(),
                 nextStatus,
                 resource.viewCount(),
-                resource.createdAt()
+                resource.createdAt(),
+                resource.ownerUserId(),
+                resource.ownerUsername()
         ));
     }
 
@@ -640,6 +686,9 @@ public class AdminConsoleService {
     }
 
     private String contributorLabel(HeritageResource resource) {
+        if (hasText(resource.ownerUsername())) {
+            return resource.ownerUsername();
+        }
         return resource.trackingId() == null ? "Contributor" : "Tracking " + resource.trackingId();
     }
 
@@ -660,6 +709,21 @@ public class AdminConsoleService {
             case "REJECTED" -> "REJECTED";
             default -> String.valueOf(status).toUpperCase(Locale.ROOT);
         };
+    }
+
+    private boolean isReviewQueueStatus(String status) {
+        String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
+        return "PENDING".equals(normalized) || "REJECTED".equals(normalized);
+    }
+
+    private boolean canReplyInAppealThread(HeritageResource resource,
+                                           String archiveReason,
+                                           List<ResourceAppealMessageResponse> appealMessages) {
+        String normalizedStatus = String.valueOf(resource.status()).toUpperCase(Locale.ROOT);
+        if (!"PENDING".equals(normalizedStatus) && !"REJECTED".equals(normalizedStatus)) {
+            return false;
+        }
+        return hasText(archiveReason) || !appealMessages.isEmpty();
     }
 
     private String formatDate(LocalDateTime value) {

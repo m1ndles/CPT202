@@ -76,15 +76,21 @@ export async function rejectContributorApplication(id, rejectionComments) {
     });
 }
 
-export async function getResourceReviewList({ search = "", category = "All", sort = "desc" } = {}) {
+export async function getResourceReviewList({ search = "", category = "All", status = "All", sort = "desc" } = {}) {
     const resources = await request("/api/admin/resources/reviews");
-    const items = resources
-        .filter((item) => category === "All" || item.category === category)
+    const statusFiltered = resources
+        .filter((item) => status === "All" || item.status === status);
+    const categories = ["All", ...new Set(statusFiltered.map((item) => item.category).filter(Boolean))];
+    const activeCategory = categories.includes(category) ? category : "All";
+    const items = statusFiltered
+        .filter((item) => activeCategory === "All" || item.category === activeCategory)
         .filter((item) => matchesSearch(item, search, ["title", "contributor", "category", "place"]));
 
     return {
-        pendingCount: resources.length,
-        categories: ["All", ...new Set(resources.map((item) => item.category).filter(Boolean))],
+        totalCount: statusFiltered.length,
+        displayCount: items.length,
+        categories,
+        activeCategory,
         items: sortByDate(items, "submissionDate", sort)
     };
 }
@@ -108,6 +114,13 @@ export async function rejectResourceReview(id, rejectionComments) {
     });
     const resource = await getResourceReviewDetail(id);
     return { ...response, resource };
+}
+
+export async function sendResourceReviewReply(id, content) {
+    return await request(`/api/admin/resources/reviews/${id}/appeals`, {
+        method: "POST",
+        body: JSON.stringify({ content })
+    });
 }
 
 export async function getCategoryList({ search = "", status = "All" } = {}) {

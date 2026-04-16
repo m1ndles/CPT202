@@ -117,6 +117,15 @@ textarea {
     flex: 0 0 auto;
 }
 
+.nav-action {
+    cursor: pointer;
+}
+
+.nav-action:disabled {
+    opacity: 0.72;
+    cursor: wait;
+}
+
 .nav-link.active {
     background: var(--accent);
     color: #fff;

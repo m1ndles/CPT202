@@ -1,7 +1,8 @@
 import {
     approveResourceReview,
     getResourceReviewDetail,
-    rejectResourceReview
+    rejectResourceReview,
+    sendResourceReviewReply
 } from "/admin/js/api.js";
 
 const params = new URLSearchParams(window.location.search);
@@ -31,6 +32,13 @@ const rejectButton = document.getElementById("rejectButton");
 const feedbackMessage = document.getElementById("feedbackMessage");
 const existingRejectionBlock = document.getElementById("existingRejectionBlock");
 const existingRejectionComments = document.getElementById("existingRejectionComments");
+const appealThreadList = document.getElementById("appealThreadList");
+const appealReplyCard = document.getElementById("appealReplyCard");
+const appealReplyInput = document.getElementById("appealReplyInput");
+const sendAppealReplyButton = document.getElementById("sendAppealReplyButton");
+const appealReplyStatus = document.getElementById("appealReplyStatus");
+const workflowNotice = document.getElementById("workflowNotice");
+let currentDetail = null;
 
 function formatDate(value) {
     return new Date(value).toLocaleDateString("en-CA", {
@@ -43,6 +51,31 @@ function formatDate(value) {
 function setFeedback(message = "", type = "") {
     feedbackMessage.textContent = message;
     feedbackMessage.className = `feedback-message ${type}`.trim();
+}
+
+function setAppealReplyStatus(message = "", type = "") {
+    appealReplyStatus.textContent = message;
+    appealReplyStatus.className = `feedback-message ${type}`.trim();
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function labelForRole(role) {
+    switch (String(role || "").toUpperCase()) {
+        case "ADMIN":
+            return "Admin";
+        case "SYSTEM":
+            return "System";
+        default:
+            return "Contributor";
+    }
 }
 
 function renderTags(tags) {
@@ -67,6 +100,62 @@ function renderLink(element, href, activeText, inactiveText) {
     element.classList.add("disabled");
 }
 
+function renderAppealThread(messages) {
+    if (!Array.isArray(messages) || !messages.length) {
+        appealThreadList.innerHTML = `
+            <div class="appeal-thread-empty">
+                No contributor appeal messages have been recorded for this resource yet.
+            </div>
+        `;
+        return;
+    }
+
+    appealThreadList.innerHTML = messages.map((item) => {
+        const role = String(item.senderRole || "").toLowerCase() || "contributor";
+        return `
+            <article class="appeal-thread-item ${escapeHtml(role)}">
+                <div class="appeal-thread-meta">
+                    <strong>${escapeHtml(item.senderName || labelForRole(item.senderRole))}</strong>
+                    <span>${escapeHtml(labelForRole(item.senderRole))}</span>
+                    <span>${escapeHtml(item.createdAt || "")}</span>
+                </div>
+                <p class="appeal-thread-body">${escapeHtml(item.content || "")}</p>
+            </article>
+        `;
+    }).join("");
+}
+
+function renderWorkflowNotice(status) {
+    if (status === "REJECTED") {
+        workflowNotice.hidden = false;
+        workflowNotice.className = "workflow-notice waiting";
+        workflowNotice.textContent = "This record is currently read-only because it has already been rejected. You can continue the clarification thread below, but the approve and reject controls will unlock only after the contributor resubmits it and the status returns to Pending Review.";
+        return;
+    }
+
+    if (status === "APPROVED") {
+        workflowNotice.hidden = false;
+        workflowNotice.className = "workflow-notice locked";
+        workflowNotice.textContent = "This resource has already been approved and is no longer in the active moderation queue.";
+        return;
+    }
+
+    workflowNotice.hidden = true;
+    workflowNotice.className = "workflow-notice";
+    workflowNotice.textContent = "";
+}
+
+function renderReplyComposer(detail) {
+    const canReply = Boolean(detail.canReplyInAppealThread);
+    appealReplyCard.hidden = !canReply;
+    if (!canReply) {
+        appealReplyInput.value = "";
+        setAppealReplyStatus("");
+        return;
+    }
+    sendAppealReplyButton.disabled = false;
+}
+
 function updateDescriptionClamp() {
     descriptionElement.classList.add("collapsed");
     descriptionToggle.hidden = true;
@@ -79,6 +168,7 @@ function updateDescriptionClamp() {
 }
 
 function renderDetail(detail) {
+    currentDetail = detail;
     titleElement.textContent = detail.title;
     subtitleElement.textContent = detail.subtitle || "Heritage Resource Overview";
     placeElement.textContent = detail.place || "Place not provided";
@@ -100,6 +190,9 @@ function renderDetail(detail) {
     submissionMetadata.textContent = detail.submissionMetadata || "No submission metadata available.";
     rejectionCommentsInput.value = detail.rejectionComments || "";
     visibilityPill.textContent = detail.visible ? "Visibility: public" : "Visibility: hidden";
+    renderAppealThread(detail.appealMessages || []);
+    renderReplyComposer(detail);
+    renderWorkflowNotice(detail.status);
 
     const reviewable = detail.status === "PENDING_REVIEW";
     approveButton.disabled = !reviewable;
@@ -119,6 +212,7 @@ async function loadDetail() {
         const detail = await getResourceReviewDetail(resourceId);
         renderDetail(detail);
         setFeedback("");
+        setAppealReplyStatus("");
     } catch (error) {
         setFeedback(error.message || "Resource not found.", "error");
         approveButton.disabled = true;
@@ -148,6 +242,35 @@ rejectButton.addEventListener("click", async () => {
         setFeedback(response.message, "success");
     } catch (error) {
         setFeedback(error.message || "Failed to reject resource.", "error");
+    }
+});
+
+sendAppealReplyButton?.addEventListener("click", async () => {
+    const content = appealReplyInput.value.trim();
+    if (!resourceId || !currentDetail?.canReplyInAppealThread) {
+        return;
+    }
+    if (!content) {
+        setAppealReplyStatus("Reply message content is required.", "error");
+        return;
+    }
+
+    sendAppealReplyButton.disabled = true;
+    setAppealReplyStatus("");
+
+    try {
+        const response = await sendResourceReviewReply(resourceId, content);
+        currentDetail = {
+            ...currentDetail,
+            appealMessages: response.appealMessages || currentDetail.appealMessages
+        };
+        renderAppealThread(currentDetail.appealMessages);
+        appealReplyInput.value = "";
+        setAppealReplyStatus(response.message || "Reply sent.", "success");
+    } catch (error) {
+        setAppealReplyStatus(error.message || "Failed to send reply.", "error");
+    } finally {
+        sendAppealReplyButton.disabled = false;
     }
 });
 

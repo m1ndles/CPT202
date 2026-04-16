@@ -30,7 +30,7 @@ public class DraftAttachmentService {
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "pdf", "mp3", "wav");
     private static final Set<String> IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
-    private static final Set<String> VIEWABLE_STATUSES = Set.of("DRAFT", "PENDING");
+    private static final Set<String> VIEWABLE_STATUSES = Set.of("DRAFT", "PENDING", "REJECTED");
 
     private final ResourceRepository resourceRepository;
     private final Path uploadDir;
@@ -112,11 +112,17 @@ public class DraftAttachmentService {
                 .toList();
     }
 
+    public void removeStoredFilesForResource(Long resourceId) {
+        resourceRepository.findDraftAttachments(resourceId)
+                .forEach(attachment -> deleteStoredFile(attachment.url()));
+    }
+
     private HeritageResource requireEditableDraft(Long draftId) {
         HeritageResource resource = resourceRepository.findAnyById(draftId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Draft not found."));
-        if (!"DRAFT".equalsIgnoreCase(resource.status())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft resources can be edited.");
+        String normalized = String.valueOf(resource.status()).toUpperCase(Locale.ROOT);
+        if (!"DRAFT".equals(normalized) && !"REJECTED".equals(normalized)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft or rejected resources can be edited.");
         }
         return resource;
     }

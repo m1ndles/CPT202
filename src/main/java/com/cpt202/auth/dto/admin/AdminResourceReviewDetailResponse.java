@@ -1,5 +1,6 @@
 package com.cpt202.auth.dto.admin;
 
+import com.cpt202.auth.dto.ResourceAppealMessageResponse;
 import java.util.List;
 
 public record AdminResourceReviewDetailResponse(
@@ -20,6 +21,8 @@ public record AdminResourceReviewDetailResponse(
         String copyrightDeclaration,
         String submissionMetadata,
         String rejectionComments,
+        List<ResourceAppealMessageResponse> appealMessages,
+        boolean canReplyInAppealThread,
         boolean visible
 ) {
 }

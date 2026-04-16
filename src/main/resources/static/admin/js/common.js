@@ -6,6 +6,42 @@ document.querySelectorAll("[data-nav]").forEach((link) => {
     }
 });
 
+function ensureLogoutButton() {
+    const adminNav = document.querySelector(".admin-nav");
+    if (!adminNav || document.getElementById("adminLogoutButton")) {
+        return null;
+    }
+
+    const logoutButton = document.createElement("button");
+    logoutButton.type = "button";
+    logoutButton.id = "adminLogoutButton";
+    logoutButton.className = "nav-link nav-action";
+    logoutButton.textContent = "Log out";
+    adminNav.appendChild(logoutButton);
+    return logoutButton;
+}
+
+async function handleLogout(logoutButton) {
+    if (logoutButton) {
+        logoutButton.disabled = true;
+        logoutButton.textContent = "Signing out...";
+    }
+
+    try {
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+    } finally {
+        window.location.replace("/login.html");
+    }
+}
+
+const logoutButton = ensureLogoutButton();
+logoutButton?.addEventListener("click", () => {
+    handleLogout(logoutButton);
+});
+
 (async () => {
     try {
         const response = await fetch("/api/auth/me", {
