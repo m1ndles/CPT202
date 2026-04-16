@@ -3,13 +3,19 @@ package com.cpt202.auth.controller;
 import com.cpt202.auth.dto.AddCommentRequest;
 import com.cpt202.auth.dto.CommentResponse;
 import com.cpt202.auth.dto.DraftAttachmentResponse;
+import com.cpt202.auth.dto.MyResourceItemResponse;
 import com.cpt202.auth.dto.PageResponse;
+import com.cpt202.auth.dto.ResourceAppealRequest;
+import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
 import com.cpt202.auth.dto.ResourceDetail;
+import com.cpt202.auth.dto.ResourceFavoriteResponse;
 import com.cpt202.auth.dto.ResourceSubmissionDto;
 import com.cpt202.auth.dto.ResourceSummary;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.HeritageResource;
+import com.cpt202.auth.model.UserAccount;
 import com.cpt202.auth.model.UserRole;
+import com.cpt202.auth.repository.UserRepository;
 import com.cpt202.auth.service.CommentService;
 import com.cpt202.auth.service.DraftAttachmentService;
 import com.cpt202.auth.service.ResourceService;
@@ -44,13 +50,16 @@ public class ResourceController {
     private final ResourceService resourceService;
     private final CommentService commentService;
     private final DraftAttachmentService draftAttachmentService;
+    private final UserRepository userRepository;
 
     public ResourceController(ResourceService resourceService,
                               CommentService commentService,
-                              DraftAttachmentService draftAttachmentService) {
+                              DraftAttachmentService draftAttachmentService,
+                              UserRepository userRepository) {
         this.resourceService = resourceService;
         this.commentService = commentService;
         this.draftAttachmentService = draftAttachmentService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping
@@ -75,9 +84,40 @@ public class ResourceController {
         return resourceService.getPlaces();
     }
 
+    @GetMapping("/mine")
+    public List<MyResourceItemResponse> getMyResources(
+            @RequestParam(defaultValue = "") String status,
+            HttpSession session
+    ) {
+        UserAccount user = requireUploadPermission(session);
+        return resourceService.getMyResources(user.id(), status);
+    }
+
+    @GetMapping("/favorites")
+    public List<ResourceSummary> getMyFavoriteResources(HttpSession session) {
+        UserAccount user = requireRegisteredUser(session);
+        return resourceService.getMyFavoriteResources(user.id());
+    }
+
     @GetMapping("/{resourceId}")
-    public ResourceDetail getResource(@PathVariable Long resourceId) {
-        return resourceService.getResource(resourceId);
+    public ResourceDetail getResource(@PathVariable Long resourceId,
+                                      HttpSession session) {
+        return resourceService.getResource(resourceId, currentUserId(session));
+    }
+
+    @DeleteMapping("/{resourceId}")
+    public ResponseEntity<Map<String, String>> deleteOwnedResource(@PathVariable Long resourceId,
+                                                                   HttpSession session) {
+        UserAccount user = requireUploadPermission(session);
+        resourceService.deleteOwnedResource(resourceId, user.id());
+        return ResponseEntity.ok(Map.of("message", "Resource deleted successfully."));
+    }
+
+    @PostMapping("/{resourceId}/favorite")
+    public ResourceFavoriteResponse toggleFavorite(@PathVariable Long resourceId,
+                                                   HttpSession session) {
+        UserAccount user = requireRegisteredUser(session);
+        return resourceService.toggleFavorite(resourceId, user.id());
     }
 
     @PostMapping("/{resourceId}/view")
@@ -107,8 +147,8 @@ public class ResourceController {
     @PostMapping("/submit")
     public ResponseEntity<Map<String, Object>> submitResource(@RequestBody ResourceSubmissionDto request,
                                                               HttpSession session) {
-        requireUploadPermission(session);
-        HeritageResource resource = resourceService.submitResource(request);
+        UserAccount user = requireUploadPermission(session);
+        HeritageResource resource = resourceService.submitResource(request, user.id(), user.username());
         Object email = session.getAttribute("email");
         if (email instanceof String emailValue) {
             resourceService.sendSubmissionConfirmation(emailValue, resource);
@@ -125,8 +165,8 @@ public class ResourceController {
     @PostMapping("/draft")
     public ResponseEntity<Map<String, Object>> createDraft(@RequestBody ResourceSubmissionDto request,
                                                            HttpSession session) {
-        requireUploadPermission(session);
-        HeritageResource resource = resourceService.createDraft(request);
+        UserAccount user = requireUploadPermission(session);
+        HeritageResource resource = resourceService.createDraft(request, user.id(), user.username());
         String draftId = "DRAFT-" + resource.id();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of(
@@ -141,8 +181,8 @@ public class ResourceController {
     @GetMapping("/draft/{resourceId}")
     public Map<String, Object> getDraft(@PathVariable Long resourceId,
                                         HttpSession session) {
-        requireUploadPermission(session);
-        HeritageResource resource = resourceService.getDraft(resourceId);
+        UserAccount user = requireUploadPermission(session);
+        HeritageResource resource = resourceService.getOwnedDraft(resourceId, user.id());
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", resource.id());
         response.put("title", resource.title());
@@ -156,8 +196,21 @@ public class ResourceController {
         response.put("trackingId", resource.trackingId() == null ? "" : resource.trackingId());
         response.put("status", resource.status());
         response.put("savedAt", java.time.LocalDateTime.now().toString());
+        response.put("rejectionComments", resourceService.getRevisionFeedback(resourceId, user.id()));
+        response.put("appealMessages", resourceService.getAppealMessages(resourceId, user.id()));
+        response.put("canSendAppeal", resourceService.canSendAppeal(resourceId, user.id()));
         response.put("attachments", draftAttachmentService.getDraftAttachments(resourceId));
         return response;
+    }
+
+    @PostMapping("/{resourceId}/appeals")
+    public ResourceAppealSubmissionResponse submitAppeal(
+            @PathVariable Long resourceId,
+            @Valid @RequestBody ResourceAppealRequest request,
+            HttpSession session
+    ) {
+        UserAccount user = requireUploadPermission(session);
+        return resourceService.submitAppeal(resourceId, user.id(), user.username(), request.content());
     }
 
     @PostMapping(value = "/draft/{resourceId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -166,7 +219,8 @@ public class ResourceController {
             @RequestPart("file") MultipartFile file,
             HttpSession session
     ) {
-        requireUploadPermission(session);
+        UserAccount user = requireUploadPermission(session);
+        resourceService.getOwnedEditableDraft(resourceId, user.id());
         DraftAttachmentResponse attachment = draftAttachmentService.uploadDraftAttachment(resourceId, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(attachment);
     }
@@ -177,7 +231,8 @@ public class ResourceController {
             @PathVariable Long attachmentId,
             HttpSession session
     ) {
-        requireUploadPermission(session);
+        UserAccount user = requireUploadPermission(session);
+        resourceService.getOwnedEditableDraft(resourceId, user.id());
         draftAttachmentService.removeDraftAttachment(resourceId, attachmentId);
         return ResponseEntity.ok(Map.of("message", "Attachment removed."));
     }
@@ -207,13 +262,35 @@ public class ResourceController {
         }
     }
 
-    private void requireUploadPermission(HttpSession session) {
-        UserRole role = currentRole(session);
-        if (role == null) {
+    private UserAccount requireUploadPermission(HttpSession session) {
+        Long userId = currentUserId(session);
+        if (userId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
         }
+        UserAccount user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
+        UserRole role = user.role();
+        session.setAttribute("role", role.name());
+        session.setAttribute("username", user.username());
+        session.setAttribute("email", user.email());
         if (!role.canUpload()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Your current role cannot submit new resources.");
         }
+        return user;
+    }
+
+    private UserAccount requireRegisteredUser(HttpSession session) {
+        Object roleValue = session.getAttribute("role");
+        if (roleValue == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
+        }
+
+        Long userId = currentUserId(session);
+        if (userId == null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Please log in with a registered account to manage favorites.");
+        }
+
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
     }
 }

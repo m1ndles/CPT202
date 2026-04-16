@@ -1,4 +1,13 @@
-import { getProfile, logout, updateEmail, updatePassword, updateProfile, uploadAvatar } from "./heritage-data.js";
+import {
+  getCurrentContributorApplication,
+  getProfile,
+  getMyContributorApplications,
+  logout,
+  updateEmail,
+  updatePassword,
+  updateProfile,
+  uploadAvatar
+} from "./heritage-data.js";
 
 const pageMessage = document.getElementById("pageMessage");
 const profileForm = document.getElementById("profileForm");
@@ -19,6 +28,9 @@ const sidebarEmail = document.getElementById("sidebarEmail");
 const sidebarBio = document.getElementById("sidebarBio");
 const applicationRecordsBtn = document.getElementById("applicationRecordsBtn");
 const myResourcesBtn = document.getElementById("myResourcesBtn");
+const contributorApplicationPanel = document.getElementById("contributorApplicationPanel");
+const applicationStatusBadge = document.getElementById("applicationStatusBadge");
+const applicationSummaryCard = document.getElementById("applicationSummaryCard");
 const emailValue = document.getElementById("emailValue");
 const roleBadge = document.getElementById("roleBadge");
 const roleDescription = document.getElementById("roleDescription");
@@ -37,6 +49,69 @@ const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 const passwordMessage = document.getElementById("passwordMessage");
 let currentAvatarUrl = "";
 let canUploadResource = false;
+
+function renderContributorApplicationSummary(application) {
+  if (!contributorApplicationPanel || !applicationSummaryCard || !applicationStatusBadge) {
+    return;
+  }
+
+  contributorApplicationPanel.classList.remove("hidden");
+
+  if (!application) {
+    applicationStatusBadge.textContent = "No Record";
+    applicationStatusBadge.className = "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] border-surface-line bg-surface-soft text-text-soft";
+    applicationSummaryCard.dataset.status = "NONE";
+    applicationSummaryCard.className = "application-summary-card border-surface-line bg-surface-soft text-text-soft";
+    applicationSummaryCard.innerHTML = `
+      <div class="text-xs uppercase tracking-[0.18em] text-outline">Current Status</div>
+      <p class="mt-2 text-sm leading-6">You have not submitted a contributor application yet.</p>
+    `;
+    return;
+  }
+
+  const status = application.status || "PENDING";
+  const statusLabel = status === "APPROVED"
+    ? "Approved"
+    : status === "REJECTED"
+      ? "Rejected"
+      : "Pending";
+  const badgeClass = status === "APPROVED"
+    ? "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] border-emerald-200 bg-emerald-50 text-emerald-700"
+    : status === "REJECTED"
+      ? "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] border-red-200 bg-red-50 text-red-700"
+      : "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] border-amber-200 bg-amber-50 text-amber-700";
+  const summaryText = status === "APPROVED"
+    ? "Your contributor access is active. You can now upload heritage resources."
+    : status === "REJECTED"
+      ? "Your application was rejected. Please read the admin feedback before applying again."
+      : "Your application is still being reviewed by the admin team.";
+  const reviewRow = application.reviewedAt
+    ? `<div><strong class="text-text-main">Reviewed:</strong> ${application.reviewedAt}</div>`
+    : "";
+  const feedbackRow = application.rejectionComments
+    ? `<div class="rounded-xl border border-current/15 bg-white/60 px-3 py-3"><strong class="block text-text-main mb-1">Admin Feedback</strong><span>${application.rejectionComments}</span></div>`
+    : "";
+  const link = application.portfolioLink || application.attachmentUrl || "";
+  const linkRow = link
+    ? `<a class="font-semibold underline" href="${link}" target="_blank" rel="noreferrer">Open supporting link</a>`
+    : "<div>No supporting link attached.</div>";
+
+  applicationStatusBadge.textContent = statusLabel;
+  applicationStatusBadge.className = badgeClass;
+  applicationSummaryCard.dataset.status = status;
+  applicationSummaryCard.className = "application-summary-card";
+  applicationSummaryCard.innerHTML = `
+    <div class="text-xs uppercase tracking-[0.18em] opacity-80">Current Status</div>
+    <p class="mt-2 text-sm font-semibold leading-6">${summaryText}</p>
+    <div class="mt-4 grid gap-3 text-sm leading-6">
+      <div><strong class="text-text-main">Expertise Field:</strong> ${application.expertiseField || "-"}</div>
+      <div><strong class="text-text-main">Submitted:</strong> ${application.submittedAt || "-"}</div>
+      ${reviewRow}
+      ${feedbackRow}
+      ${linkRow}
+    </div>
+  `;
+}
 
 function showMessage(message, type = "info") {
   if (!message) {
@@ -219,6 +294,22 @@ async function loadProfile() {
       });
     }
     applyProfileToUI(user);
+    if (user.role === "USER") {
+      const currentApplication = await getCurrentContributorApplication();
+      renderContributorApplicationSummary(currentApplication || null);
+    } else if (user.role === "CONTRIBUTOR") {
+      renderContributorApplicationSummary({
+        status: "APPROVED",
+        expertiseField: "Contributor account active",
+        submittedAt: "Approved account",
+        reviewedAt: "",
+        rejectionComments: "",
+        portfolioLink: "",
+        attachmentUrl: ""
+      });
+    } else {
+      renderContributorApplicationSummary(null);
+    }
   } catch (error) {
     if (error.status === 401) {
       window.location.href = "/login.html";
@@ -449,7 +540,40 @@ function bindEvents() {
   });
 
   document.getElementById("applyContributorBtn")?.addEventListener("click", () => {
-    showMessage("Contributor application flow is reserved. We can wire it to an API next.", "info");
+    window.location.href = "/applicant.html";
+  });
+
+  document.getElementById("applicationRecordsBtn")?.addEventListener("click", async () => {
+    try {
+      const [currentApplication, items] = await Promise.all([
+        getCurrentContributorApplication(),
+        getMyContributorApplications()
+      ]);
+      if (!currentApplication && !items.length) {
+        renderContributorApplicationSummary(null);
+        showMessage("You have not submitted a contributor application yet.", "info");
+        return;
+      }
+
+      const latest = currentApplication || items[0];
+      renderContributorApplicationSummary(latest);
+      const detail = [
+        `Latest status: ${latest.status}`,
+        `Submitted at: ${latest.submittedAt}`,
+        latest.portfolioLink ? `Portfolio link ready in your latest application.` : "No portfolio link in latest application."
+      ].join(" ");
+      showMessage(detail, "success");
+    } catch (error) {
+      showMessage(error.message || "Failed to load application records.", "error");
+    }
+  });
+
+  document.getElementById("myResourcesBtn")?.addEventListener("click", () => {
+    window.location.href = "/my-resources.html";
+  });
+
+  document.getElementById("favoritesBtn")?.addEventListener("click", () => {
+    window.location.href = "/my-favorites.html";
   });
 
   document.getElementById("uploadResourceBtn")?.addEventListener("click", () => {

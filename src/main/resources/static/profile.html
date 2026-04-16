@@ -101,10 +101,10 @@
     </aside>
       <div class="p-1">
         <div class="space-y-2">
-          <button id="favoritesBtn" type="button"
-                  class="w-full rounded-xl border border-primary/25 bg-white px-3 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10 transition-all">
+          <a id="favoritesBtn" href="/my-favorites.html"
+                  class="block w-full rounded-xl border border-primary/25 bg-white px-3 py-2.5 text-center text-sm font-semibold text-primary hover:bg-primary/10 transition-all">
             My Favorites
-          </button>
+          </a>
           <button id="myResourcesBtn" type="button"
                   class="hidden w-full rounded-xl border border-tertiary/25 bg-white px-3 py-2.5 text-sm font-semibold text-tertiary hover:bg-tertiary/10 transition-all">
             My Resources
@@ -208,6 +208,20 @@
               <p id="passwordMessage" class="hidden text-xs leading-5"></p>
             </form>
           </div>
+        </div>
+      </section>
+
+      <section id="contributorApplicationPanel" class="hidden bg-surface-card border border-surface-line rounded-2xl p-6 md:p-7 shadow-card profile-enter" style="animation-delay: 250ms;">
+        <div class="flex items-center justify-between gap-3 mb-5">
+          <div>
+            <p class="text-[11px] tracking-[0.2em] uppercase text-primary/80 font-bold mb-1">Contributor Application</p>
+            <h3 class="font-headline text-3xl text-primary">Application Progress</h3>
+          </div>
+          <span id="applicationStatusBadge" class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">No Record</span>
+        </div>
+        <div id="applicationSummaryCard" class="application-summary-card border-surface-line bg-surface-soft text-text-soft">
+          <div class="text-xs uppercase tracking-[0.18em] text-outline">Current Status</div>
+          <p class="mt-2 text-sm leading-6">You have not submitted a contributor application yet.</p>
         </div>
       </section>
 

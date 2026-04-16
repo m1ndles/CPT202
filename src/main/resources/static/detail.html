@@ -112,6 +112,7 @@
     getSessionUser,
     incrementView,
     logout,
+    toggleResourceFavorite,
     toggleLike
   } from './js/heritage-data.js';
 
@@ -162,6 +163,19 @@
   function renderDetail(data) {
     document.title = `${data.title} - Jiangsu Heritage Discovery Platform`;
 
+    const favoriteButton = `
+      <button
+        id="favoriteBtn"
+        type="button"
+        class="inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all ${data.favoritedByMe ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100' : 'border-surface-line bg-white text-text-soft hover:border-primary/25 hover:bg-primary/5 hover:text-primary'} disabled:cursor-not-allowed disabled:opacity-60"
+        ${sessionUser.guest ? 'disabled title="Log in with a registered account to save favorites"' : ''}
+      >
+        <span class="material-symbols-outlined text-lg" ${data.favoritedByMe ? "style=\"font-variation-settings: 'FILL' 1;\"" : ''}>favorite</span>
+        <span id="favoriteBtnLabel">${data.favoritedByMe ? 'Saved' : 'Save'}</span>
+        <span id="favoriteBtnCount" class="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold">${data.favoriteCount}</span>
+      </button>
+    `;
+
     const filesHtml = data.files && data.files.length ? `
       <div class="mt-8">
         <h3 class="flex items-center gap-2 text-lg font-bold text-primary mb-4">
@@ -209,8 +223,13 @@
           </div>
         </div>
         <div class="p-6 md:p-8">
-          <h1 class="font-headline text-2xl md:text-3xl font-bold text-text-main mb-1">${escapeHtml(data.title)}</h1>
-          <div class="text-text-soft text-sm italic mb-4">${escapeHtml(data.titleEn || '')}</div>
+          <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div class="min-w-0 flex-1">
+              <h1 class="font-headline text-2xl md:text-3xl font-bold text-text-main mb-1">${escapeHtml(data.title)}</h1>
+              <div class="text-text-soft text-sm italic mb-4">${escapeHtml(data.titleEn || '')}</div>
+            </div>
+            ${favoriteButton}
+          </div>
           <div class="flex flex-wrap items-center gap-4 text-sm text-text-soft mb-6">
             <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">location_on</span>${escapeHtml(data.place)}</span>
             <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">visibility</span>${data.viewCount} views</span>
@@ -247,6 +266,48 @@
     `;
 
     document.getElementById('commentSection').classList.remove('hidden');
+  }
+
+  function updateFavoriteButton() {
+    const button = document.getElementById('favoriteBtn');
+    const label = document.getElementById('favoriteBtnLabel');
+    const count = document.getElementById('favoriteBtnCount');
+    const icon = button?.querySelector('.material-symbols-outlined');
+
+    if (!button || !label || !count || !icon || !resource) {
+      return;
+    }
+
+    button.className = `inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+      resource.favoritedByMe
+        ? 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+        : 'border-surface-line bg-white text-text-soft hover:border-primary/25 hover:bg-primary/5 hover:text-primary'
+    } disabled:cursor-not-allowed disabled:opacity-60`;
+    label.textContent = resource.favoritedByMe ? 'Saved' : 'Save';
+    count.textContent = String(resource.favoriteCount || 0);
+    icon.setAttribute('style', resource.favoritedByMe ? "font-variation-settings: 'FILL' 1;" : '');
+  }
+
+  function bindFavoriteButton() {
+    const button = document.getElementById('favoriteBtn');
+    if (!button || sessionUser.guest) {
+      return;
+    }
+
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        const result = await toggleResourceFavorite(resourceId);
+        resource.favoritedByMe = result.favoritedByMe;
+        resource.favoriteCount = result.favoriteCount;
+        updateFavoriteButton();
+        showNotice(result.message || (resource.favoritedByMe ? 'Resource saved to favorites.' : 'Resource removed from favorites.'));
+      } catch (error) {
+        showNotice(error.message || 'Failed to update favorite.', true);
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   function renderCommentForm() {
@@ -438,6 +499,7 @@
       const viewResult = await incrementView(resourceId);
       resource.viewCount = viewResult.viewCount;
       renderDetail(resource);
+      bindFavoriteButton();
       renderCommentForm();
       bindCommentForm();
       bindCommonEvents();

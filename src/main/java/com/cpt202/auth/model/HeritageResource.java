@@ -18,6 +18,8 @@ public record HeritageResource(
         String trackingId,
         String status,
         int viewCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long ownerUserId,
+        String ownerUsername
 ) {
 }

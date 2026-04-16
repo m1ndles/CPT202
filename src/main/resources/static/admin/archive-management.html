@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive Management | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/archive-management.css">
+</head>
+<body data-page="archive">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <p class="eyebrow">Archive</p>
+            <h1>Archive Management</h1>
+            <p class="hero-text">Inspect archived resources, understand archive reasons, and restore items that should return to the active publication lifecycle.</p>
+            <div class="queue-summary">
+                <strong id="archivedCountText">0 archived resources</strong>
+                <p>Search, filter, and open any archived record before restoring it.</p>
+            </div>
+        </div>
+        <div class="hero-aside">
+            <span>Archived resources</span>
+            <strong id="archivedCount">0</strong>
+        </div>
+    </section>
+
+    <section class="toolbar panel archive-toolbar">
+        <div class="field-group grow">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="search" placeholder="Search by title, contributor, category, or archive reason">
+        </div>
+        <div class="field-group">
+            <label for="categoryFilter">Category</label>
+            <select id="categoryFilter"></select>
+        </div>
+        <div class="field-group">
+            <label for="sortSelect">Archive date</label>
+            <select id="sortSelect">
+                <option value="desc">Newest first</option>
+                <option value="asc">Oldest first</option>
+            </select>
+        </div>
+        <button id="clearFiltersButton" class="secondary-button toolbar-button" type="button">Clear Filters</button>
+    </section>
+
+    <section class="panel list-panel">
+        <div class="section-head">
+            <div>
+                <p class="eyebrow">Archived Resources</p>
+                <h2>Resources hidden from public visibility</h2>
+            </div>
+            <button id="refreshButton" class="secondary-button" type="button">Refresh Archive</button>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Resource</th>
+                    <th>Contributor</th>
+                    <th>Category</th>
+                    <th>Archived Date</th>
+                    <th>Archived By</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="archiveTableBody"></tbody>
+            </table>
+        </div>
+        <div id="emptyState" class="empty-state" hidden>
+            <h3>No archived resources match your current filters.</h3>
+        </div>
+    </section>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/archive-management.js"></script>
+</body>
+</html>

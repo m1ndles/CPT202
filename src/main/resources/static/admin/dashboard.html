@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/dashboard.css">
+</head>
+<body data-page="dashboard">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <section class="dashboard-insight-grid">
+        <article class="panel insight-card contribution-card" id="contributionPanel">
+            <div class="insight-header">
+                <div>
+                    <p class="eyebrow">Contribution</p>
+                    <h2 id="contributionTitle">Contributor analytics</h2>
+                    <p id="contributionSubtitle" class="insight-subtitle">Application growth and expertise mix</p>
+                </div>
+                <div class="insight-headline">
+                    <span id="contributionHeadlineLabel">Total contributor applications</span>
+                    <strong id="contributionHeadlineValue">0</strong>
+                    <small id="contributionAccentValue">0 / 0</small>
+                </div>
+            </div>
+
+            <div class="insight-body">
+                <section class="chart-card trend-card">
+                    <div class="chart-head">
+                        <h3>Application Trend</h3>
+                        <span>Past 6 weeks</span>
+                    </div>
+                    <div id="contributionTrendChart" class="line-chart"></div>
+                </section>
+
+                <section class="chart-card breakdown-card">
+                    <div class="chart-head">
+                        <h3>Field Mix</h3>
+                        <span>Top expertise fields</span>
+                    </div>
+                    <div class="breakdown-content">
+                        <div id="contributionBreakdownChart" class="donut-chart"></div>
+                        <div id="contributionBreakdownLegend" class="chart-legend"></div>
+                    </div>
+                </section>
+
+                <section class="chart-card todo-card">
+                    <div class="chart-head">
+                        <h3>Contribution Todo</h3>
+                        <span>What needs attention</span>
+                    </div>
+                    <ul id="contributionTodoList" class="todo-list"></ul>
+                </section>
+            </div>
+        </article>
+
+        <article class="panel insight-card resource-card" id="resourcePanel">
+            <div class="insight-header">
+                <div>
+                    <p class="eyebrow">Resource</p>
+                    <h2 id="resourceTitle">Resource analytics</h2>
+                    <p id="resourceSubtitle" class="insight-subtitle">Submission growth and moderation mix</p>
+                </div>
+                <div class="insight-headline">
+                    <span id="resourceHeadlineLabel">Total resource submissions</span>
+                    <strong id="resourceHeadlineValue">0</strong>
+                    <small id="resourceAccentValue">0 / 0</small>
+                </div>
+            </div>
+
+            <div class="insight-body">
+                <section class="chart-card trend-card">
+                    <div class="chart-head">
+                        <h3>Submission Trend</h3>
+                        <span>Past 6 weeks</span>
+                    </div>
+                    <div id="resourceTrendChart" class="bar-chart"></div>
+                </section>
+
+                <section class="chart-card breakdown-card">
+                    <div class="chart-head">
+                        <h3>Category Mix</h3>
+                        <span>Top resource categories</span>
+                    </div>
+                    <div class="breakdown-content">
+                        <div id="resourceBreakdownChart" class="bar-breakdown"></div>
+                        <div id="resourceBreakdownLegend" class="chart-legend compact"></div>
+                    </div>
+                </section>
+
+                <section class="chart-card todo-card">
+                    <div class="chart-head">
+                        <h3>Resource Todo</h3>
+                        <span>What needs attention</span>
+                    </div>
+                    <ul id="resourceTodoList" class="todo-list"></ul>
+                </section>
+            </div>
+        </article>
+    </section>
+
+    <section class="overview-grid dashboard-overview-grid">
+        <article class="panel overview-card">
+            <p class="eyebrow">Contributor Approval Overview</p>
+            <h2>Permission entry workflow</h2>
+            <div class="overview-metrics">
+                <div><span>Pending applications</span><strong id="pendingApplications">0</strong></div>
+                <div><span>Latest applicant</span><strong id="latestApplicant">-</strong></div>
+            </div>
+            <p>Review whether a user should become a contributor before they can submit heritage resources.</p>
+            <a class="primary-button" href="/admin/contributor-approval-list.html">Open Contributor Approval</a>
+        </article>
+
+        <article class="panel overview-card">
+            <p class="eyebrow">Resource Review Overview</p>
+            <h2>Content publication workflow</h2>
+            <div class="overview-metrics">
+                <div><span>Pending resources</span><strong id="pendingResources">0</strong></div>
+                <div><span>Latest submitted resource</span><strong id="latestResource">-</strong></div>
+            </div>
+            <p>Review submitted resource content, publication readiness, and visibility before release.</p>
+            <a class="primary-button" href="/admin/resource-review-list.html">Open Resource Review</a>
+        </article>
+
+        <article class="panel overview-card">
+            <p class="eyebrow">Taxonomy Overview</p>
+            <h2>Category and tag administration</h2>
+            <div class="overview-metrics">
+                <div><span>Active categories</span><strong id="activeCategories">0</strong></div>
+                <div><span>Active tags</span><strong id="activeTags">0</strong></div>
+                <div><span>Latest update</span><strong id="latestTaxonomy">-</strong></div>
+            </div>
+            <p>Maintain the category and tag system that powers resource submission, filtering, and review context.</p>
+            <a class="primary-button" href="/admin/category-management.html">Open Taxonomy Admin</a>
+        </article>
+
+        <article class="panel overview-card">
+            <p class="eyebrow">Archive Overview</p>
+            <h2>Published resource lifecycle</h2>
+            <div class="overview-metrics">
+                <div><span>Archived resources</span><strong id="archivedResources">0</strong></div>
+                <div><span>Latest archived resource</span><strong id="latestArchive">-</strong></div>
+            </div>
+            <p>Review archived records, inspect archive reasons, and restore resources when they should re-enter the active lifecycle.</p>
+            <a class="primary-button" href="/admin/archive-management.html">Open Archive Management</a>
+        </article>
+
+        <article class="panel overview-card history-overview-card">
+            <p class="eyebrow">History Overview</p>
+            <h2>Recent admin activity</h2>
+            <div class="history-preview" id="historyPreview"></div>
+            <a class="secondary-button button-link" href="/admin/history-log.html">Open History Log</a>
+        </article>
+    </section>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/dashboard.js"></script>
+</body>
+</html>

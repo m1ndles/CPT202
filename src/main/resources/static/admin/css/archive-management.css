@@ -1,0 +1,111 @@
+.archive-toolbar {
+    grid-template-columns: minmax(0, 2fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr) auto;
+}
+
+.list-panel {
+    padding: 24px 28px;
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.compact-action {
+    min-height: 38px;
+    padding: 9px 12px;
+    font-size: 0.8rem;
+}
+
+.archive-detail-panel h1 {
+    max-width: 18ch;
+}
+
+.archive-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.archive-info-grid span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.archive-content-panel .content-stack {
+    display: grid;
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.detail-box {
+    padding: 24px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(31, 42, 36, 0.1);
+    box-shadow: 0 10px 26px rgba(57, 67, 59, 0.08);
+}
+
+.text-box {
+    min-height: 160px;
+    display: grid;
+    gap: 16px;
+    align-content: start;
+}
+
+.archive-decision-panel {
+    display: grid;
+    gap: 16px;
+}
+
+.sidebar-meta {
+    display: grid;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.74);
+    border: 1px solid rgba(31, 42, 36, 0.1);
+}
+
+.sidebar-meta span {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.visibility-pill {
+    display: inline-flex;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(236, 228, 216, 0.9);
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.74rem;
+}
+
+.archive-decision-panel {
+    position: sticky;
+    top: 24px;
+}
+
+@media (max-width: 1080px) {
+    .archive-decision-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 900px) {
+    .archive-toolbar,
+    .archive-info-grid {
+        grid-template-columns: 1fr;
+    }
+}

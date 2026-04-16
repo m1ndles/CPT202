@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taxonomy Admin | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/category-management.css">
+</head>
+<body data-page="taxonomy">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <p class="eyebrow">Taxonomy Admin</p>
+            <h1>Category and Tag Management</h1>
+            <p class="hero-text">Maintain the taxonomy system that shapes resource submission, moderation filters, and public browsing structure.</p>
+        </div>
+        <div class="hero-aside taxonomy-aside">
+            <div>
+                <span>Active categories</span>
+                <strong id="activeCategoryCount">0</strong>
+            </div>
+            <div>
+                <span>Active tags</span>
+                <strong id="activeTagCount">0</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel taxonomy-panel">
+        <div class="taxonomy-tabbar" role="tablist" aria-label="Taxonomy sections">
+            <button id="categoriesTab" class="taxonomy-tab active" type="button" role="tab" aria-selected="true" aria-controls="categoriesPanel">Categories</button>
+            <button id="tagsTab" class="taxonomy-tab" type="button" role="tab" aria-selected="false" aria-controls="tagsPanel">Tags</button>
+        </div>
+
+        <section id="categoriesPanel" class="taxonomy-section" role="tabpanel">
+            <section class="toolbar panel taxonomy-toolbar inner-toolbar">
+                <div class="field-group grow">
+                    <label for="categorySearchInput">Search categories</label>
+                    <input id="categorySearchInput" type="search" placeholder="Search by category name or description">
+                </div>
+                <div class="field-group">
+                    <label for="categoryStatusFilter">Status</label>
+                    <select id="categoryStatusFilter">
+                        <option value="All">All</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+                <button id="clearCategoryFiltersButton" class="secondary-button toolbar-button" type="button">Clear Filters</button>
+            </section>
+
+            <main class="management-layout">
+                <section class="panel list-panel">
+                    <div class="section-head">
+                        <div>
+                            <p class="eyebrow">Category List</p>
+                            <h2>Active and inactive categories</h2>
+                        </div>
+                        <button id="refreshCategoriesButton" class="secondary-button" type="button">Refresh Categories</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Updated</th>
+                                <th>Resource Count</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody id="categoryTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="categoryEmptyState" class="empty-state" hidden>
+                        <h3>No categories match your current filters.</h3>
+                    </div>
+                </section>
+
+                <aside class="panel editor-panel">
+                    <p class="eyebrow">Category Editor</p>
+                    <h2 id="categoryEditorTitle">Add Category</h2>
+                    <form id="categoryForm" class="editor-form">
+                        <div class="field-group">
+                            <label for="categoryNameInput">Category name</label>
+                            <input id="categoryNameInput" name="name" type="text" maxlength="60" placeholder="Enter category name" required>
+                        </div>
+                        <div class="field-group">
+                            <label for="categoryDescriptionInput">Description</label>
+                            <textarea id="categoryDescriptionInput" name="description" rows="5" placeholder="Describe what kinds of heritage resources belong in this category." required></textarea>
+                        </div>
+                        <div class="action-stack">
+                            <button class="primary-button" type="submit">Save Category</button>
+                            <button class="secondary-button" type="button" id="resetCategoryButton">Reset Form</button>
+                        </div>
+                        <p id="categoryFeedbackMessage" class="feedback-message"></p>
+                    </form>
+                </aside>
+            </main>
+        </section>
+
+        <section id="tagsPanel" class="taxonomy-section" role="tabpanel" hidden>
+            <section class="toolbar panel taxonomy-toolbar inner-toolbar">
+                <div class="field-group grow">
+                    <label for="tagSearchInput">Search tags</label>
+                    <input id="tagSearchInput" type="search" placeholder="Search by tag name or description">
+                </div>
+                <div class="field-group">
+                    <label for="tagStatusFilter">Status</label>
+                    <select id="tagStatusFilter">
+                        <option value="All">All</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                    </select>
+                </div>
+                <button id="clearTagFiltersButton" class="secondary-button toolbar-button" type="button">Clear Filters</button>
+            </section>
+
+            <main class="management-layout">
+                <section class="panel list-panel">
+                    <div class="section-head">
+                        <div>
+                            <p class="eyebrow">Tag List</p>
+                            <h2>Active and inactive tags</h2>
+                        </div>
+                        <button id="refreshTagsButton" class="secondary-button" type="button">Refresh Tags</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>Tag</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Updated</th>
+                                <th>Usage Count</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody id="tagTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="tagEmptyState" class="empty-state" hidden>
+                        <h3>No tags match your current filters.</h3>
+                    </div>
+                </section>
+
+                <aside class="panel editor-panel">
+                    <p class="eyebrow">Tag Editor</p>
+                    <h2 id="tagEditorTitle">Add Tag</h2>
+                    <form id="tagForm" class="editor-form">
+                        <div class="field-group">
+                            <label for="tagNameInput">Tag name</label>
+                            <input id="tagNameInput" name="name" type="text" maxlength="60" placeholder="Enter tag name" required>
+                        </div>
+                        <div class="field-group">
+                            <label for="tagDescriptionInput">Description</label>
+                            <textarea id="tagDescriptionInput" name="description" rows="5" placeholder="Describe what this tag signals in resource content." required></textarea>
+                        </div>
+                        <div class="action-stack">
+                            <button class="primary-button" type="submit">Save Tag</button>
+                            <button class="secondary-button" type="button" id="resetTagButton">Reset Form</button>
+                        </div>
+                        <p id="tagFeedbackMessage" class="feedback-message"></p>
+                    </form>
+                </aside>
+            </main>
+        </section>
+    </section>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/category-management.js"></script>
+</body>
+</html>

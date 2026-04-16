@@ -64,6 +64,21 @@ export function updateEmail(payload) {
   });
 }
 
+export function getCurrentContributorApplication() {
+  return request('/api/contributor-applications/current');
+}
+
+export function getMyContributorApplications() {
+  return request('/api/contributor-applications/mine');
+}
+
+export function submitContributorApplication(formData) {
+  return request('/api/contributor-applications', {
+    method: 'POST',
+    body: formData
+  });
+}
+
 export function logout() {
   return request('/api/auth/logout', { method: 'POST' });
 }
@@ -79,8 +94,42 @@ export function getResources(filters = {}) {
   return request(`/api/resources?${params.toString()}`);
 }
 
+export function getMyResources(status = "") {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return request(query ? `/api/resources/mine?${query}` : "/api/resources/mine");
+}
+
+export function getMyFavoriteResources() {
+  return request("/api/resources/favorites");
+}
+
+export function deleteMyResource(resourceId) {
+  return request(`/api/resources/${resourceId}`, {
+    method: 'DELETE'
+  });
+}
+
+export function getOwnedDraft(resourceId) {
+  return request(`/api/resources/draft/${resourceId}`);
+}
+
 export function getResourceById(resourceId) {
   return request(`/api/resources/${resourceId}`);
+}
+
+export function toggleResourceFavorite(resourceId) {
+  return request(`/api/resources/${resourceId}/favorite`, {
+    method: 'POST'
+  });
+}
+
+export function submitResourceAppeal(resourceId, content) {
+  return request(`/api/resources/${resourceId}/appeals`, {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  });
 }
 
 export function getCategories() {

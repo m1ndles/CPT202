@@ -1,6 +1,7 @@
 package com.cpt202.auth.repository;
 
 import com.cpt202.auth.dto.ResourceDetail;
+import com.cpt202.auth.dto.MyResourceItemResponse;
 import com.cpt202.auth.model.HeritageResource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -63,6 +64,52 @@ public class ResourceRepository {
                 id
         );
         return results.stream().findFirst();
+    }
+
+    public Optional<HeritageResource> findAnyByIdAndOwner(Long id, Long ownerUserId) {
+        List<HeritageResource> results = jdbcTemplate.query(
+                "SELECT * FROM heritage_resources WHERE id = ? AND owner_user_id = ?",
+                resourceRowMapper(),
+                id,
+                ownerUserId
+        );
+        return results.stream().findFirst();
+    }
+
+    public List<HeritageResource> findAllResources() {
+        return jdbcTemplate.query(
+                "SELECT * FROM heritage_resources ORDER BY created_at DESC, id DESC",
+                resourceRowMapper()
+        );
+    }
+
+    public List<HeritageResource> findByOwner(Long ownerUserId, String status) {
+        StringBuilder sql = new StringBuilder("SELECT * FROM heritage_resources WHERE owner_user_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(ownerUserId);
+
+        if (hasText(status)) {
+            sql.append(" AND status = ?");
+            params.add(status.trim().toUpperCase(Locale.ROOT));
+        }
+
+        sql.append(" ORDER BY created_at DESC, id DESC");
+        return jdbcTemplate.query(sql.toString(), resourceRowMapper(), params.toArray());
+    }
+
+    public List<HeritageResource> findFavoritesByUser(Long userId) {
+        return jdbcTemplate.query(
+                """
+                SELECT r.*
+                FROM resource_favorites f
+                INNER JOIN heritage_resources r ON r.id = f.resource_id
+                WHERE f.user_id = ?
+                  AND r.status = 'APPROVED'
+                ORDER BY f.created_at DESC, r.id DESC
+                """,
+                resourceRowMapper(),
+                userId
+        );
     }
 
     public List<String> findCategories() {
@@ -132,8 +179,8 @@ public class ResourceRepository {
             var statement = connection.prepareStatement(
                     """
                     INSERT INTO heritage_resources
-                    (title, title_en, category, period, place, description, thumbnail, copyright, tracking_id, status, view_count, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (title, title_en, category, period, place, description, thumbnail, copyright, tracking_id, status, view_count, created_at, owner_user_id, owner_username)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     new String[]{"id"}
             );
@@ -149,6 +196,12 @@ public class ResourceRepository {
             statement.setString(10, resource.status());
             statement.setInt(11, resource.viewCount());
             statement.setTimestamp(12, resource.createdAt() == null ? null : Timestamp.valueOf(resource.createdAt()));
+            if (resource.ownerUserId() == null) {
+                statement.setObject(13, null);
+            } else {
+                statement.setLong(13, resource.ownerUserId());
+            }
+            statement.setString(14, resource.ownerUsername());
             return statement;
         }, keyHolder);
 
@@ -170,7 +223,9 @@ public class ResourceRepository {
                 resource.trackingId(),
                 resource.status(),
                 resource.viewCount(),
-                resource.createdAt()
+                resource.createdAt(),
+                resource.ownerUserId(),
+                resource.ownerUsername()
         );
     }
 
@@ -178,7 +233,7 @@ public class ResourceRepository {
         jdbcTemplate.update(
                 """
                 UPDATE heritage_resources
-                SET title = ?, title_en = ?, category = ?, period = ?, place = ?, description = ?, thumbnail = ?, copyright = ?, tracking_id = ?, status = ?, view_count = ?
+                SET title = ?, title_en = ?, category = ?, period = ?, place = ?, description = ?, thumbnail = ?, copyright = ?, tracking_id = ?, status = ?, view_count = ?, owner_user_id = ?, owner_username = ?
                 WHERE id = ?
                 """,
                 resource.title(),
@@ -192,6 +247,8 @@ public class ResourceRepository {
                 resource.trackingId(),
                 resource.status(),
                 resource.viewCount(),
+                resource.ownerUserId(),
+                resource.ownerUsername(),
                 resource.id()
         );
         return resource;
@@ -277,6 +334,52 @@ public class ResourceRepository {
         }
     }
 
+    public void deleteResource(Long resourceId, Long ownerUserId) {
+        jdbcTemplate.update(
+                "DELETE FROM heritage_resources WHERE id = ? AND owner_user_id = ?",
+                resourceId,
+                ownerUserId
+        );
+    }
+
+    public int countFavoritesByResourceId(Long resourceId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM resource_favorites WHERE resource_id = ?",
+                Integer.class,
+                resourceId
+        );
+        return count == null ? 0 : count;
+    }
+
+    public boolean isFavoritedByUser(Long resourceId, Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM resource_favorites WHERE resource_id = ? AND user_id = ?",
+                Integer.class,
+                resourceId,
+                userId
+        );
+        return count != null && count > 0;
+    }
+
+    public void addFavorite(Long resourceId, Long userId) {
+        jdbcTemplate.update(
+                "INSERT IGNORE INTO resource_favorites (resource_id, user_id) VALUES (?, ?)",
+                resourceId,
+                userId
+        );
+    }
+
+    public void removeFavorite(Long resourceId, Long userId) {
+        jdbcTemplate.update(
+                "DELETE FROM resource_favorites WHERE resource_id = ? AND user_id = ?",
+                resourceId,
+                userId
+        );
+    }
+
     private void appendFilters(StringBuilder sql, List<Object> params,
                                String keyword, String category, String place) {
         sql.append(" WHERE r.status = 'APPROVED'");
@@ -335,7 +438,9 @@ public class ResourceRepository {
                 rs.getString("tracking_id"),
                 rs.getString("status"),
                 rs.getInt("view_count"),
-                rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toLocalDateTime()
+                rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toLocalDateTime(),
+                rs.getObject("owner_user_id") == null ? null : rs.getLong("owner_user_id"),
+                rs.getString("owner_username")
         );
     }
 
