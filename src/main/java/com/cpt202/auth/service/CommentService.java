@@ -77,6 +77,28 @@ public class CommentService {
         return toResponse(updated);
     }
 
+    @Transactional
+    public void deleteComment(Long commentId, Long userId, UserRole role) {
+        if (role == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
+        }
+        if (userId == null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You do not have permission to delete comments.");
+        }
+
+        CommentViewRow comment = commentRepository.findViewById(commentId, userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Comment not found."));
+
+        boolean adminCanDelete = role == UserRole.ADMIN;
+        boolean contributorOwnComment = role == UserRole.CONTRIBUTOR && userId.equals(comment.userId());
+
+        if (!adminCanDelete && !contributorOwnComment) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You do not have permission to delete this comment.");
+        }
+
+        commentRepository.delete(commentId);
+    }
+
     private void ensureResourceExists(Long resourceId) {
         if (resourceRepository.findById(resourceId).isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Resource not found.");
@@ -102,6 +124,14 @@ public class CommentService {
     }
 
     private CommentResponse toResponse(CommentViewRow row) {
+        boolean canDelete = false;
+        UserRole viewerRole = row.viewerRole() == null ? null : UserRole.fromDatabaseValue(row.viewerRole());
+        if (viewerRole == UserRole.ADMIN) {
+            canDelete = true;
+        } else if (viewerRole == UserRole.CONTRIBUTOR && row.viewerUserId() != null) {
+            canDelete = row.viewerUserId().equals(row.userId());
+        }
+
         return new CommentResponse(
                 row.id(),
                 row.username(),
@@ -109,7 +139,8 @@ public class CommentService {
                 row.content(),
                 formatDateTime(row.createdAt()),
                 row.likes(),
-                row.likedByMe()
+                row.likedByMe(),
+                canDelete
         );
     }
 

@@ -4,6 +4,9 @@ import com.cpt202.auth.dto.CommentResponse;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.service.CommentService;
 import jakarta.servlet.http.HttpSession;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +28,12 @@ public class CommentController {
     @PostMapping("/{commentId}/like")
     public CommentResponse toggleLike(@PathVariable Long commentId, HttpSession session) {
         return commentService.toggleLike(commentId, currentUserId(session), currentRole(session));
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<Map<String, String>> deleteComment(@PathVariable Long commentId, HttpSession session) {
+        commentService.deleteComment(commentId, currentUserId(session), currentRole(session));
+        return ResponseEntity.ok(Map.of("message", "Comment deleted."));
     }
 
     private Long currentUserId(HttpSession session) {

@@ -107,6 +107,7 @@
 <script type="module">
   import {
     addComment,
+    deleteComment,
     getComments,
     getResourceById,
     getSessionUser,
@@ -348,7 +349,7 @@
           <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}</span>
         </div>
         <div class="text-text-main text-sm leading-7 mb-4">${escapeHtml(comment.content)}</div>
-        <div class="flex items-center">
+        <div class="flex items-center gap-2">
           <button
             class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
             data-comment-id="${comment.id}"
@@ -357,6 +358,15 @@
             <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
             ${comment.likes}
           </button>
+          ${comment.canDelete ? `
+            <button
+              class="delete-comment-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100"
+              data-comment-id="${comment.id}"
+            >
+              <span class="material-symbols-outlined text-base">delete</span>
+              Remove
+            </button>
+          ` : ''}
         </div>
       </div>
     `).join('');
@@ -375,6 +385,21 @@
         } catch (error) {
           button.disabled = false;
           showNotice(error.message || 'Failed to update like.', true);
+        }
+      });
+    });
+
+    list.querySelectorAll('.delete-comment-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        if (!window.confirm('Delete this comment?')) return;
+        button.disabled = true;
+        try {
+          await deleteComment(button.dataset.commentId);
+          await loadComments(true);
+          showNotice('Comment deleted.');
+        } catch (error) {
+          button.disabled = false;
+          showNotice(error.message || 'Failed to delete comment.', true);
         }
       });
     });

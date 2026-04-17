@@ -87,7 +87,7 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 LocalDateTime.now().minusDays(8)
         );
 
-        ensureResource(
+        ensureResourceByTitle(
                 contributor,
                 "REJECTED",
                 "Yixing Kiln Workshop Ledger",
@@ -100,6 +100,36 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 trackingIdFor(contributor.id(), "REJECTED"),
                 0,
                 LocalDateTime.now().minusDays(5)
+        );
+
+        ensureResourceByTitle(
+                contributor,
+                "REJECTED",
+                "Nantong Indigo Print Pattern Register",
+                "Second demo rejection case used to test the revise-and-resubmit workflow with a separate rejected contributor record.",
+                "Traditional Craft",
+                "Nantong",
+                "Republic Era",
+                "indigo,dyeing,pattern register",
+                "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=1200&q=80",
+                trackingIdFor(contributor.id(), "REJECTED") + "-2",
+                0,
+                LocalDateTime.now().minusDays(6)
+        );
+
+        ensureResourceByTitle(
+                contributor,
+                "REJECTED",
+                "Wuxi Clay Figurine Workshop Inventory",
+                "Third demo rejection case for testing multiple rejected submissions and resubmission handling from the contributor workspace.",
+                "Traditional Craft",
+                "Wuxi",
+                "Mid 20th Century",
+                "clay figurine,inventory,folk craft",
+                "https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=80",
+                trackingIdFor(contributor.id(), "REJECTED") + "-3",
+                0,
+                LocalDateTime.now().minusDays(7)
         );
 
         seedRejectedRevisionContext(contributor);
@@ -119,6 +149,48 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                                 LocalDateTime createdAt) {
         List<HeritageResource> existing = resourceRepository.findByOwner(contributor.id(), status);
         if (!existing.isEmpty()) {
+            return;
+        }
+
+        HeritageResource resource = new HeritageResource(
+                null,
+                title,
+                null,
+                category,
+                period,
+                place,
+                description,
+                thumbnail,
+                "Demo contributor dataset",
+                trackingId,
+                status,
+                viewCount,
+                createdAt,
+                contributor.id(),
+                contributor.username()
+        );
+
+        HeritageResource saved = resourceRepository.insert(resource);
+        resourceRepository.replaceTags(saved.id(), splitTags(tags));
+    }
+
+    private void ensureResourceByTitle(UserAccount contributor,
+                                       String status,
+                                       String title,
+                                       String description,
+                                       String category,
+                                       String place,
+                                       String period,
+                                       String tags,
+                                       String thumbnail,
+                                       String trackingId,
+                                       int viewCount,
+                                       LocalDateTime createdAt) {
+        boolean exists = resourceRepository.findByOwner(contributor.id(), status).stream()
+                .anyMatch(resource -> title.equalsIgnoreCase(resource.title()));
+        boolean trackingIdExists = trackingId != null && !trackingId.isBlank() && resourceRepository.findAllResources().stream()
+                .anyMatch(resource -> trackingId.equalsIgnoreCase(resource.trackingId()));
+        if (exists || trackingIdExists) {
             return;
         }
 

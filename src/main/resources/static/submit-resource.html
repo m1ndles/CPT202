@@ -77,21 +77,6 @@
       background-color: rgba(238, 245, 242, 0.9) !important;
     }
 
-    .appeal-bubble {
-      border: 1px solid #dbe9e3;
-      border-radius: 18px;
-      padding: 14px 16px;
-      background: #f8fbfa;
-    }
-
-    .appeal-bubble.contributor {
-      background: #fffdf7;
-      border-color: #eadfc6;
-    }
-
-    .appeal-bubble.system {
-      background: #eef5f2;
-    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -222,37 +207,6 @@
       </section>
     </form>
 
-    <section id="revisionContextSection" class="hidden mt-6 warm-panel overflow-hidden rounded-[22px]">
-      <div class="warm-panel-header px-6 py-4">
-        <h2 class="text-lg font-semibold text-slate-900">Review Feedback and Conversation</h2>
-      </div>
-      <div class="grid gap-6 p-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
-          <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-red-700">Reviewer Feedback</div>
-            <p id="revisionFeedbackText" class="mt-3 text-sm leading-7 text-red-700">No reviewer feedback is currently stored for this resource.</p>
-          </div>
-          <div class="mt-5">
-            <div class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Appeal Thread</div>
-            <div id="revisionAppealList" class="space-y-3"></div>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <div id="appealFormCard" class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <label for="appealInput" class="mb-2 block text-sm font-medium text-slate-700">Message to Admin</label>
-            <textarea id="appealInput" rows="6" maxlength="1000" placeholder="Explain what has been revised or add clarification for the review team." class="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500"></textarea>
-            <button id="sendAppealBtn" type="button" class="mt-4 rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700">Send Message</button>
-            <p id="appealStatus" class="hidden mt-3 rounded-xl border px-4 py-3 text-sm"></p>
-          </div>
-
-          <div id="appealReadonlyCard" class="hidden rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            <div class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Appeal Status</div>
-            <p id="appealReadonlyText" class="mt-3">Appeal messages are not available for this resource right now.</p>
-          </div>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white shadow-lg">

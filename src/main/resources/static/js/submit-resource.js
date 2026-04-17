@@ -1,4 +1,4 @@
-import { getSessionUser, logout, submitResourceAppeal } from './heritage-data.js';
+import { getSessionUser, logout } from './heritage-data.js';
 
 const form = document.getElementById('resourceForm');
 const saveText = document.getElementById('saveText');
@@ -22,48 +22,88 @@ const uploadedFilesTitle = document.getElementById('uploadedFilesTitle');
 const uploadError = document.getElementById('uploadError');
 const hiddenTags = document.getElementById('hiddenTags');
 const attachmentNames = document.getElementById('attachmentNames');
-const revisionContextSection = document.getElementById('revisionContextSection');
-const revisionFeedbackText = document.getElementById('revisionFeedbackText');
-const revisionAppealList = document.getElementById('revisionAppealList');
-const appealFormCard = document.getElementById('appealFormCard');
-const appealReadonlyCard = document.getElementById('appealReadonlyCard');
-const appealReadonlyText = document.getElementById('appealReadonlyText');
-const appealInput = document.getElementById('appealInput');
-const sendAppealBtn = document.getElementById('sendAppealBtn');
-const appealStatus = document.getElementById('appealStatus');
-
 const attachments = [];
 const tags = [];
 const AUTOSAVE_DELAY_MS = 3000;
-const ACTIVE_DRAFT_STORAGE_KEY = 'resource-submission-active-draft';
+const UNSAVED_RESOURCE_STORAGE_KEY = 'resource-submission-unsaved';
 
 let autosaveTimer = null;
 let autosaveEnabled = true;
-let saveInFlight = false;
-let pendingAutosave = false;
 let readOnlyMode = false;
-let currentRevisionContext = {
-  rejectionComments: '',
-  appealMessages: [],
-  canSendAppeal: false,
-  status: ''
-};
 
 function setSaveState(text) {
   saveText.textContent = text;
 }
 
-function setAppealStatus(message, isError = false) {
-  if (!message) {
-    appealStatus.textContent = '';
-    appealStatus.className = 'hidden mt-3 rounded-xl border px-4 py-3 text-sm';
+function isNewDraftFlow() {
+  return !resourceIdInput.value;
+}
+
+function buildUnsavedSnapshot() {
+  return {
+    title: document.getElementById('title').value.trim(),
+    description: document.getElementById('description').value.trim(),
+    category: document.getElementById('category').value,
+    period: document.getElementById('period').value.trim(),
+    place: document.getElementById('place').value.trim(),
+    thumbnail: document.getElementById('thumbnail').value.trim(),
+    copyright: document.getElementById('copyright').value.trim(),
+    tags: [...tags]
+  };
+}
+
+function hasUnsavedSnapshotContent(snapshot) {
+  if (!snapshot) return false;
+  return Boolean(
+    snapshot.title ||
+    snapshot.description ||
+    snapshot.category ||
+    snapshot.period ||
+    snapshot.place ||
+    snapshot.thumbnail ||
+    snapshot.copyright ||
+    (Array.isArray(snapshot.tags) && snapshot.tags.length)
+  );
+}
+
+function persistUnsavedSnapshot() {
+  if (!isNewDraftFlow() || readOnlyMode) {
     return;
   }
+  const snapshot = buildUnsavedSnapshot();
+  if (!hasUnsavedSnapshotContent(snapshot)) {
+    localStorage.removeItem(UNSAVED_RESOURCE_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(UNSAVED_RESOURCE_STORAGE_KEY, JSON.stringify(snapshot));
+}
 
-  appealStatus.textContent = message;
-  appealStatus.className = isError
-    ? 'mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600'
-    : 'mt-3 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-700';
+function clearUnsavedSnapshot() {
+  localStorage.removeItem(UNSAVED_RESOURCE_STORAGE_KEY);
+}
+
+function syncDraftUrl(id = '') {
+  const url = new URL(window.location.href);
+  if (id) {
+    url.searchParams.set('draftId', String(id));
+  } else {
+    url.searchParams.delete('draftId');
+  }
+  window.history.replaceState({}, '', url);
+}
+
+function applyUnsavedSnapshot(snapshot) {
+  document.getElementById('title').value = snapshot.title || '';
+  document.getElementById('description').value = snapshot.description || '';
+  document.getElementById('category').value = snapshot.category || '';
+  document.getElementById('period').value = snapshot.period || '';
+  document.getElementById('place').value = snapshot.place || '';
+  document.getElementById('thumbnail').value = snapshot.thumbnail || '';
+  document.getElementById('copyright').value = snapshot.copyright || '';
+  tags.length = 0;
+  (snapshot.tags || []).forEach(tag => tags.push(tag));
+  renderAllTags();
+  updateHiddenValues();
 }
 
 function setReadOnlyMode(enabled, options = {}) {
@@ -84,8 +124,6 @@ function setReadOnlyMode(enabled, options = {}) {
   submitBtn.disabled = enabled;
   confirmSubmitBtn.disabled = enabled;
   retrySaveBtn.disabled = enabled;
-  appealInput.disabled = enabled || !currentRevisionContext.canSendAppeal;
-  sendAppealBtn.disabled = enabled || !currentRevisionContext.canSendAppeal;
 
   if (enabled) {
     closeModal();
@@ -128,6 +166,11 @@ function setSubmitMessage(message, isError = false) {
     submitMessage.textContent = '';
     submitMessage.className = 'mt-4 hidden rounded-2xl border px-4 py-3 text-sm';
     return;
+  }
+
+  const normalizedMessage = String(message);
+  if (normalizedMessage.includes('50 saved drafts')) {
+    message = 'Draft box is full. You can keep up to 50 saved drafts. Please delete an older draft in My Resources before creating a new one.';
   }
 
   submitMessage.textContent = message;
@@ -181,17 +224,6 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function labelForRole(role) {
-  switch (String(role || '').toUpperCase()) {
-    case 'ADMIN':
-      return 'Admin';
-    case 'SYSTEM':
-      return 'System';
-    default:
-      return 'Contributor';
-  }
-}
-
 function buildTagChip(value, list, render) {
   const chip = document.createElement('span');
   chip.className = 'inline-flex items-center gap-1 rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-700';
@@ -209,6 +241,7 @@ function buildTagChip(value, list, render) {
       updateHiddenValues();
       render();
       setSaveState('Unsaved changes');
+      persistUnsavedSnapshot();
     }
   });
 
@@ -251,6 +284,7 @@ function bindTagInput(inputId, values) {
     updateHiddenValues();
     renderAllTags();
     setSaveState('Unsaved changes');
+    persistUnsavedSnapshot();
   });
 }
 
@@ -318,6 +352,7 @@ function renderAttachments() {
         attachments.splice(index, 1);
         updateHiddenValues();
         renderAttachments();
+        persistUnsavedSnapshot();
         return;
       }
       try {
@@ -329,6 +364,7 @@ function renderAttachments() {
         updateHiddenValues();
         renderAttachments();
         setUploadError('');
+        persistUnsavedSnapshot();
       } catch (error) {
         setUploadError('Failed to remove attachment.');
       }
@@ -344,87 +380,6 @@ function syncAttachments(list) {
   list.forEach(item => attachments.push(item));
   updateHiddenValues();
   renderAttachments();
-}
-
-function renderAppealThread(messages) {
-  if (!Array.isArray(messages) || !messages.length) {
-    revisionAppealList.innerHTML = `
-      <div class="appeal-bubble system">
-        <div class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Conversation Timeline</div>
-        <p class="mt-3 text-sm leading-7 text-slate-600">No conversation messages have been sent for this resource yet.</p>
-      </div>
-    `;
-    return;
-  }
-
-  revisionAppealList.innerHTML = messages.map(item => {
-    const role = String(item.senderRole || '').toLowerCase() || 'contributor';
-    return `
-      <article class="appeal-bubble ${escapeHtml(role)}">
-        <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.14em] text-slate-500">
-          <strong class="text-slate-700">${escapeHtml(item.senderName || labelForRole(item.senderRole))}</strong>
-          <span>${escapeHtml(labelForRole(item.senderRole))}</span>
-          <span>${escapeHtml(item.createdAt || '')}</span>
-        </div>
-        <p class="mt-3 text-sm leading-7 text-slate-700">${escapeHtml(item.content || '')}</p>
-      </article>
-    `;
-  }).join('');
-}
-
-function hideRevisionContext() {
-  currentRevisionContext = {
-    rejectionComments: '',
-    appealMessages: [],
-    canSendAppeal: false,
-    status: currentRevisionContext.status || ''
-  };
-  revisionContextSection.classList.add('hidden');
-  revisionFeedbackText.textContent = 'No reviewer feedback is currently stored for this resource.';
-  revisionAppealList.innerHTML = '';
-  appealFormCard.classList.add('hidden');
-  appealReadonlyCard.classList.add('hidden');
-  appealInput.value = '';
-  setAppealStatus('');
-}
-
-function renderRevisionContext(data = {}) {
-  const feedback = String(data.rejectionComments || '').trim();
-  const appealMessages = Array.isArray(data.appealMessages) ? data.appealMessages : [];
-  const canSendAppeal = Boolean(data.canSendAppeal);
-  const status = String(data.status || '').toUpperCase();
-  const hasContext = Boolean(feedback) || appealMessages.length || canSendAppeal;
-
-  currentRevisionContext = {
-    rejectionComments: feedback,
-    appealMessages,
-    canSendAppeal,
-    status
-  };
-
-  if (!hasContext) {
-    hideRevisionContext();
-    return;
-  }
-
-  revisionContextSection.classList.remove('hidden');
-  revisionFeedbackText.textContent = feedback || 'No reviewer feedback is currently stored for this resource.';
-  renderAppealThread(appealMessages);
-  setAppealStatus('');
-
-  if (canSendAppeal) {
-    appealFormCard.classList.remove('hidden');
-    appealReadonlyCard.classList.add('hidden');
-  } else {
-    appealFormCard.classList.add('hidden');
-    appealReadonlyCard.classList.remove('hidden');
-    appealReadonlyText.textContent = status === 'PENDING'
-      ? 'This conversation becomes read-only while the resource is under review.'
-      : 'This resource is not currently open for new conversation messages.';
-  }
-
-  appealInput.disabled = readOnlyMode || !canSendAppeal;
-  sendAppealBtn.disabled = readOnlyMode || !canSendAppeal;
 }
 
 function validateUploadFile(file) {
@@ -631,24 +586,14 @@ function applySavedDraft(data) {
   (data.tags || []).forEach(tag => tags.push(tag));
   renderAllTags();
   syncAttachments(data.attachments || []);
-  renderRevisionContext(data);
+  clearUnsavedSnapshot();
+  syncDraftUrl(data.id);
   setReadOnlyMode(data.status === 'PENDING', { trackingId: data.trackingId || '' });
-}
-
-function persistDraftIdentity(id) {
-  if (!id) {
-    return;
-  }
-  localStorage.setItem(ACTIVE_DRAFT_STORAGE_KEY, String(id));
-  const url = new URL(window.location.href);
-  url.searchParams.set('draftId', String(id));
-  window.history.replaceState({}, '', url);
 }
 
 async function loadDraft(id) {
   const data = await requestJson(`/api/resources/draft/${id}`, null, { method: 'GET' });
   applySavedDraft(data);
-  persistDraftIdentity(data.id);
   setSaveState(data.status === 'PENDING' ? 'Pending Review' : `Last saved at ${formatSavedTime(data.savedAt)}`);
   hideSaveError();
 }
@@ -670,20 +615,20 @@ async function saveDraft({ showToastMessage = true } = {}) {
 
   hideSaveError();
   saveDraftBtn.disabled = true;
-  saveInFlight = true;
   setSubmitMessage('');
   setSaveState('Saving draft...');
 
   try {
     const result = await requestJson('/api/resources/draft', payload);
     resourceIdInput.value = result?.id ?? '';
-    persistDraftIdentity(result?.id);
+    clearUnsavedSnapshot();
+    syncDraftUrl(result?.id);
     if (showToastMessage) {
-      showToast(result?.message || 'Draft created successfully.');
+      showToast(result?.message || 'Draft saved to My Resources.');
       setSubmitMessage(
         result?.draftId
-          ? `${result.message || 'Draft created successfully.'} Draft ID: ${result.draftId}`
-          : (result?.message || 'Draft created successfully.')
+          ? `${result.message || 'Draft saved to My Resources.'} Draft ID: ${result.draftId}`
+          : (result?.message || 'Draft saved to My Resources.')
       );
     }
     setSaveState(`Last saved at ${formatSavedTime(result?.savedAt)}`);
@@ -697,11 +642,6 @@ async function saveDraft({ showToastMessage = true } = {}) {
     return null;
   } finally {
     saveDraftBtn.disabled = readOnlyMode;
-    saveInFlight = false;
-    if (pendingAutosave) {
-      pendingAutosave = false;
-      void saveDraft({ showToastMessage: false });
-    }
   }
 }
 
@@ -729,7 +669,7 @@ async function submitForReview() {
     showToast(result?.message || 'Resource submitted for review.');
     closeModal();
     resourceIdInput.value = result?.id ?? resourceIdInput.value;
-    persistDraftIdentity(result?.id);
+    clearUnsavedSnapshot();
     setReadOnlyMode(true, { trackingId: result?.trackingId || '' });
     hideSaveError();
     window.location.href = `/submit-confirmation.html?id=${encodeURIComponent(result?.id ?? '')}&trackingId=${encodeURIComponent(result?.trackingId ?? '')}`;
@@ -772,12 +712,11 @@ form.addEventListener('input', () => {
   hideSaveError();
 
   window.clearTimeout(autosaveTimer);
-  autosaveTimer = window.setTimeout(async () => {
-    if (saveInFlight) {
-      pendingAutosave = true;
-      return;
+  autosaveTimer = window.setTimeout(() => {
+    persistUnsavedSnapshot();
+    if (isNewDraftFlow()) {
+      setSaveState('Unsaved edits backed up locally');
     }
-    await saveDraft({ showToastMessage: false });
   }, AUTOSAVE_DELAY_MS);
 });
 
@@ -795,43 +734,6 @@ retrySaveBtn.addEventListener('click', async () => {
     return;
   }
   await saveDraft({ showToastMessage: false });
-});
-
-sendAppealBtn.addEventListener('click', async () => {
-  if (readOnlyMode) {
-    return;
-  }
-
-  const resourceId = resourceIdInput.value ? Number(resourceIdInput.value) : null;
-  const content = appealInput.value.trim();
-
-  if (!resourceId) {
-    setAppealStatus('Please save this draft before sending a message.', true);
-    return;
-  }
-
-  if (!content) {
-    setAppealStatus('Message content is required.', true);
-    return;
-  }
-
-  sendAppealBtn.disabled = true;
-  setAppealStatus('');
-
-  try {
-    const response = await submitResourceAppeal(resourceId, content);
-    currentRevisionContext = {
-      ...currentRevisionContext,
-      appealMessages: response.appealMessages || currentRevisionContext.appealMessages
-    };
-    renderRevisionContext(currentRevisionContext);
-    appealInput.value = '';
-    setAppealStatus(response.message || 'Message sent to the admin review team.');
-  } catch (error) {
-    setAppealStatus(error.message || 'Failed to send message.', true);
-  } finally {
-    sendAppealBtn.disabled = readOnlyMode || !currentRevisionContext.canSendAppeal;
-  }
 });
 
 logoutBtn.addEventListener('click', async () => {
@@ -878,7 +780,6 @@ fileInput.addEventListener('change', event => {
 bindTagInput('tagInput', tags);
 renderAllTags();
 renderAttachments();
-hideRevisionContext();
 
 window.addEventListener('beforeunload', () => {
   window.clearTimeout(autosaveTimer);
@@ -891,21 +792,33 @@ window.addEventListener('beforeunload', () => {
   }
 
   const url = new URL(window.location.href);
-  const draftId = url.searchParams.get('draftId') || localStorage.getItem(ACTIVE_DRAFT_STORAGE_KEY);
-  if (!draftId) {
+  const draftId = url.searchParams.get('draftId');
+  if (draftId) {
+    autosaveEnabled = false;
+    try {
+      await loadDraft(draftId);
+      if (!readOnlyMode) {
+        setSubmitMessage('Loaded the selected draft.');
+      }
+    } catch (error) {
+      setSubmitMessage(error.message || 'Failed to load draft.', true);
+    } finally {
+      autosaveEnabled = true;
+    }
     return;
   }
 
-  autosaveEnabled = false;
   try {
-    await loadDraft(draftId);
-    if (!readOnlyMode) {
-      setSubmitMessage('Loaded the latest saved draft.');
+    const rawSnapshot = localStorage.getItem(UNSAVED_RESOURCE_STORAGE_KEY);
+    const snapshot = rawSnapshot ? JSON.parse(rawSnapshot) : null;
+    if (hasUnsavedSnapshotContent(snapshot)) {
+      applyUnsavedSnapshot(snapshot);
+      setSubmitMessage('Recovered unsaved local edits from this browser. Use Save Draft if you want to add this resource to My Resources.');
+      setSaveState('Recovered unsaved local edits');
     }
   } catch (error) {
-    localStorage.removeItem(ACTIVE_DRAFT_STORAGE_KEY);
-    setSubmitMessage(error.message || 'Failed to load draft.', true);
-  } finally {
-    autosaveEnabled = true;
+    clearUnsavedSnapshot();
   }
+
+  autosaveEnabled = true;
 })();

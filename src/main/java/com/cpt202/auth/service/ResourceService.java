@@ -30,6 +30,7 @@ public class ResourceService {
 
     private static final int DEFAULT_PAGE_SIZE = 6;
     private static final int MAX_PAGE_SIZE = 50;
+    private static final int MAX_DRAFTS_PER_USER = 50;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final Set<String> MY_RESOURCE_STATUSES = Set.of("DRAFT", "PENDING", "APPROVED", "REJECTED");
 
@@ -204,6 +205,12 @@ public class ResourceService {
             HeritageResource saved = resourceRepository.updateDraft(updated);
             resourceRepository.replaceTags(saved.id(), normalizeTags(dto.tags()));
             return saved;
+        }
+
+        long draftCount = resourceRepository.countByOwnerAndStatus(ownerUserId, "DRAFT");
+        if (draftCount >= MAX_DRAFTS_PER_USER) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "You can keep up to 50 saved drafts. Please delete an older draft before creating a new one.");
         }
 
         HeritageResource resource = new HeritageResource(

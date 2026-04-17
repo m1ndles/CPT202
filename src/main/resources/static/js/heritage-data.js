@@ -158,3 +158,7 @@ export function addComment(resourceId, content) {
 export function toggleLike(commentId) {
   return request(`/api/comments/${commentId}/like`, { method: 'POST' });
 }
+
+export function deleteComment(commentId) {
+  return request(`/api/comments/${commentId}`, { method: 'DELETE' });
+}

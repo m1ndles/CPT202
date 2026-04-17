@@ -97,6 +97,16 @@ public class ResourceRepository {
         return jdbcTemplate.query(sql.toString(), resourceRowMapper(), params.toArray());
     }
 
+    public long countByOwnerAndStatus(Long ownerUserId, String status) {
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM heritage_resources WHERE owner_user_id = ? AND status = ?",
+                Long.class,
+                ownerUserId,
+                status == null ? null : status.trim().toUpperCase(Locale.ROOT)
+        );
+        return count == null ? 0 : count;
+    }
+
     public List<HeritageResource> findFavoritesByUser(Long userId) {
         return jdbcTemplate.query(
                 """

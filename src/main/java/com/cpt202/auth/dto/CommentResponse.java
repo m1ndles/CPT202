@@ -10,6 +10,7 @@ public record CommentResponse(
         String content,
         String createdAt,
         int likes,
-        boolean likedByMe
+        boolean likedByMe,
+        boolean canDelete
 ) {
 }

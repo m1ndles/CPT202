@@ -40,6 +40,8 @@ public class CommentRepository {
     public List<CommentViewRow> findByResourceId(Long resourceId, Long viewerId, int offset, int limit) {
         return jdbcTemplate.query(
                 "SELECT c.id, c.resource_id, c.user_id, c.content, c.created_at, u.username, u.role, "
+                        + "? AS viewer_user_id, "
+                        + "(SELECT role FROM users WHERE id = ?) AS viewer_role, "
                         + "COUNT(cl.user_id) AS likes, "
                         + "MAX(CASE WHEN cl.user_id = ? THEN 1 ELSE 0 END) AS liked_by_me "
                         + "FROM comments c "
@@ -52,6 +54,8 @@ public class CommentRepository {
                         + "LIMIT ? OFFSET ?",
                 viewRowMapper(),
                 safeViewerId(viewerId),
+                safeViewerId(viewerId),
+                safeViewerId(viewerId),
                 resourceId,
                 limit,
                 offset
@@ -61,6 +65,8 @@ public class CommentRepository {
     public Optional<CommentViewRow> findViewById(Long commentId, Long viewerId) {
         List<CommentViewRow> results = jdbcTemplate.query(
                 "SELECT c.id, c.resource_id, c.user_id, c.content, c.created_at, u.username, u.role, "
+                        + "? AS viewer_user_id, "
+                        + "(SELECT role FROM users WHERE id = ?) AS viewer_role, "
                         + "COUNT(cl.user_id) AS likes, "
                         + "MAX(CASE WHEN cl.user_id = ? THEN 1 ELSE 0 END) AS liked_by_me "
                         + "FROM comments c "
@@ -70,6 +76,8 @@ public class CommentRepository {
                         + "WHERE c.id = ? AND r.status = 'APPROVED' "
                         + "GROUP BY c.id, c.resource_id, c.user_id, c.content, c.created_at, u.username, u.role",
                 viewRowMapper(),
+                safeViewerId(viewerId),
+                safeViewerId(viewerId),
                 safeViewerId(viewerId),
                 commentId
         );
@@ -119,6 +127,10 @@ public class CommentRepository {
         );
     }
 
+    public void delete(Long commentId) {
+        jdbcTemplate.update("DELETE FROM comments WHERE id = ?", commentId);
+    }
+
     private long safeViewerId(Long viewerId) {
         return viewerId == null ? -1L : viewerId;
     }
@@ -132,8 +144,10 @@ public class CommentRepository {
                 rs.getLong("id"),
                 rs.getLong("resource_id"),
                 rs.getLong("user_id"),
+                nullableLong(rs, "viewer_user_id"),
                 rs.getString("username"),
                 rs.getString("role"),
+                rs.getString("viewer_role"),
                 rs.getString("content"),
                 rs.getTimestamp("created_at") == null ? null : rs.getTimestamp("created_at").toLocalDateTime(),
                 rs.getInt("likes"),
@@ -141,12 +155,19 @@ public class CommentRepository {
         );
     }
 
+    private Long nullableLong(ResultSet rs, String column) throws SQLException {
+        long value = rs.getLong(column);
+        return rs.wasNull() || value < 0 ? null : value;
+    }
+
     public record CommentViewRow(
             Long id,
             Long resourceId,
             Long userId,
+            Long viewerUserId,
             String username,
             String role,
+            String viewerRole,
             String content,
             LocalDateTime createdAt,
             int likes,

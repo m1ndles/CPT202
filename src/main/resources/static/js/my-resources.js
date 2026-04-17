@@ -3,6 +3,7 @@ import { deleteMyResource, getMyResources, getSessionUser, logout } from "./heri
 const pageMessage = document.getElementById("pageMessage");
 const userSummary = document.getElementById("userSummary");
 const resourceList = document.getElementById("resourceList");
+const draftLimitNotice = document.getElementById("draftLimitNotice");
 const logoutBtn = document.getElementById("logoutBtn");
 const tabButtons = Array.from(document.querySelectorAll(".status-tab"));
 
@@ -123,6 +124,8 @@ function renderTabs() {
       ? "status-tab rounded-full border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-white transition-all"
       : "status-tab rounded-full border border-surface-line bg-white px-4 py-2 text-sm font-semibold text-text-soft transition-all hover:border-primary/30 hover:text-primary";
   });
+
+  draftLimitNotice.classList.toggle("hidden", !(currentView === "ALL" || currentView === "DRAFT"));
 }
 
 function updateCounts() {

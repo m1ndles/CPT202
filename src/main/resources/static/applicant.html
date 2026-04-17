@@ -120,8 +120,14 @@
 
       <div class="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5">
         <label for="supportingFile" class="block text-sm font-semibold text-primary mb-2">Upload portfolio or supporting file</label>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <label for="supportingFile" class="inline-flex w-fit cursor-pointer items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#2d5648]">
+            Choose File
+          </label>
+          <span id="fileNameLabel" class="text-sm text-text-soft">No file chosen</span>
+        </div>
         <input id="supportingFile" name="supportingFile" type="file" accept="application/pdf,image/png,image/jpeg,image/webp"
-               class="block w-full text-sm text-text-soft file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#2d5648]">
+               class="hidden">
         <p id="fileHint" class="mt-2 text-xs text-outline">PDF, JPG, PNG, WEBP only, max 10MB.</p>
       </div>
 
@@ -168,6 +174,7 @@
   const submitApplicationBtn = document.getElementById('submitApplicationBtn');
   const fileInput = document.getElementById('supportingFile');
   const fileHint = document.getElementById('fileHint');
+  const fileNameLabel = document.getElementById('fileNameLabel');
   const applicationStatus = document.getElementById('applicationStatus');
   const expertiseFieldSelect = document.getElementById('expertiseField');
 
@@ -323,6 +330,7 @@
 
   fileInput.addEventListener('change', () => {
     const file = fileInput.files?.[0];
+    fileNameLabel.textContent = file ? file.name : 'No file chosen';
     fileHint.textContent = file ? `Selected: ${file.name}` : 'PDF, JPG, PNG, WEBP only, max 10MB.';
   });
 
