@@ -2,8 +2,10 @@ package com.cpt202.auth.service;
 
 import com.cpt202.auth.dto.PageResponse;
 import com.cpt202.auth.dto.MyResourceItemResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.ResourceAppealMessageResponse;
 import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
+import com.cpt202.auth.dto.ResourceRevisionCancelRequest;
 import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.dto.ResourceFavoriteResponse;
 import com.cpt202.auth.dto.ResourceSubmissionDto;
@@ -12,6 +14,7 @@ import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.HeritageResource;
 import com.cpt202.auth.repository.AdminArchiveRepository;
 import com.cpt202.auth.repository.ResourceAppealMessageRepository;
+import com.cpt202.auth.repository.ResourceReportRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -37,17 +40,20 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final AdminArchiveRepository adminArchiveRepository;
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
+    private final ResourceReportRepository resourceReportRepository;
     private final DraftAttachmentService draftAttachmentService;
     private final SubmissionEmailService submissionEmailService;
 
     public ResourceService(ResourceRepository resourceRepository,
                            AdminArchiveRepository adminArchiveRepository,
                            ResourceAppealMessageRepository resourceAppealMessageRepository,
+                           ResourceReportRepository resourceReportRepository,
                            DraftAttachmentService draftAttachmentService,
                            SubmissionEmailService submissionEmailService) {
         this.resourceRepository = resourceRepository;
         this.adminArchiveRepository = adminArchiveRepository;
         this.resourceAppealMessageRepository = resourceAppealMessageRepository;
+        this.resourceReportRepository = resourceReportRepository;
         this.draftAttachmentService = draftAttachmentService;
         this.submissionEmailService = submissionEmailService;
     }
@@ -235,6 +241,65 @@ public class ResourceService {
         return saved;
     }
 
+    public HeritageResource createRevisionDraft(Long resourceId, Long ownerUserId, String ownerUsername) {
+        HeritageResource source = requireOwnedResource(resourceId, ownerUserId);
+        String normalizedStatus = String.valueOf(source.status()).toUpperCase(Locale.ROOT);
+        if (!"APPROVED".equals(normalizedStatus) && !"PENDING".equals(normalizedStatus)) {
+            return source;
+        }
+
+        HeritageResource revision = new HeritageResource(
+                source.id(),
+                source.title(),
+                source.titleEn(),
+                source.category(),
+                source.period(),
+                source.place(),
+                source.description(),
+                source.thumbnail(),
+                source.copyright(),
+                source.trackingId(),
+                "DRAFT",
+                source.viewCount(),
+                source.createdAt(),
+                source.ownerUserId(),
+                normalizeOwnerUsername(source.ownerUsername(), ownerUsername)
+        );
+        return resourceRepository.updateDraft(revision);
+    }
+
+    public HeritageResource cancelRevisionDraft(Long resourceId,
+                                                Long ownerUserId,
+                                                String ownerUsername,
+                                                ResourceRevisionCancelRequest request) {
+        HeritageResource existing = requireOwnedResource(resourceId, ownerUserId);
+        String restoreStatus = hasText(request.restoreStatus()) ? request.restoreStatus().trim().toUpperCase(Locale.ROOT) : "";
+        if (!"APPROVED".equals(restoreStatus) && !"PENDING".equals(restoreStatus)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only published or pending resources can be restored.");
+        }
+
+        HeritageResource restored = new HeritageResource(
+                existing.id(),
+                hasText(request.title()) ? request.title().trim() : existing.title(),
+                trimToNull(request.titleEn()),
+                hasText(request.category()) ? request.category().trim() : existing.category(),
+                trimToNull(request.period()),
+                hasText(request.place()) ? request.place().trim() : existing.place(),
+                hasText(request.description()) ? request.description().trim() : existing.description(),
+                trimToNull(request.thumbnail()),
+                trimToNull(request.copyright()),
+                existing.trackingId(),
+                restoreStatus,
+                existing.viewCount(),
+                existing.createdAt(),
+                existing.ownerUserId(),
+                normalizeOwnerUsername(existing.ownerUsername(), ownerUsername)
+        );
+        HeritageResource saved = resourceRepository.updateDraft(restored);
+        resourceRepository.replaceTags(saved.id(), normalizeTags(request.tags()));
+        return saved;
+    }
+
     public HeritageResource getOwnedDraft(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         if (!isDraftLikeStatus(resource.status())) {
@@ -337,6 +402,52 @@ public class ResourceService {
         );
     }
 
+    public MessageThreadSubmissionResponse submitReport(Long resourceId,
+                                                        Long reporterUserId,
+                                                        String senderName,
+                                                        String content) {
+        if (reporterUserId == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
+        }
+        HeritageResource resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
+        String normalizedContent = trimToNull(content);
+        if (!hasText(normalizedContent)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Report content is required.");
+        }
+        if (normalizedContent.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Report content must be 1000 characters or fewer.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        ResourceReportRepository.ResourceReportThreadRecord thread = resourceReportRepository
+                .findByResourceIdAndReporterUserId(resource.id(), reporterUserId)
+                .orElseGet(() -> {
+                    Long threadId = resourceReportRepository.createThread(
+                            resource.id(),
+                            reporterUserId,
+                            normalizeOwnerUsername(senderName),
+                            "OPEN",
+                            now
+                    );
+                    return resourceReportRepository.findById(threadId)
+                            .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create report thread."));
+                });
+        resourceReportRepository.insertMessage(
+                thread.id(),
+                "USER",
+                normalizeOwnerUsername(senderName),
+                normalizedContent,
+                now
+        );
+        resourceReportRepository.updateThreadStatus(thread.id(), "OPEN", now);
+
+        return new MessageThreadSubmissionResponse(
+                "Report sent to the admin team.",
+                resourceReportRepository.findMessagesByThreadId(thread.id())
+        );
+    }
+
     public void sendSubmissionConfirmation(String email, HeritageResource resource) {
         if (!hasText(email) || resource == null) {
             return;
@@ -366,6 +477,12 @@ public class ResourceService {
                                     List<ResourceAppealMessageResponse> appealMessages,
                                     boolean canSendAppeal,
                                     Long currentUserId) {
+        List<ResourceAppealMessageResponse> reportMessages = currentUserId == null
+                ? List.of()
+                : resourceReportRepository.findByResourceIdAndReporterUserId(resource.id(), currentUserId)
+                .map(thread -> resourceReportRepository.findMessagesByThreadId(thread.id()))
+                .orElse(List.of());
+        boolean canSendReport = currentUserId != null;
         return new ResourceDetail(
                 resource.id(),
                 resource.title(),
@@ -385,6 +502,8 @@ public class ResourceService {
                 rejectionComments,
                 appealMessages,
                 canSendAppeal,
+                reportMessages,
+                canSendReport,
                 resourceRepository.findTagsByResourceId(resource.id()),
                 resourceRepository.findFilesByResourceId(resource.id()),
                 resourceRepository.findLinksByResourceId(resource.id())
@@ -434,12 +553,18 @@ public class ResourceService {
 
     private boolean isDraftLikeStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
-        return "DRAFT".equals(normalized) || "PENDING".equals(normalized) || "REJECTED".equals(normalized);
+        return "DRAFT".equals(normalized)
+                || "PENDING".equals(normalized)
+                || "REJECTED".equals(normalized)
+                || "APPROVED".equals(normalized);
     }
 
     private boolean isEditableDraftStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
-        return "DRAFT".equals(normalized) || "REJECTED".equals(normalized);
+        return "DRAFT".equals(normalized)
+                || "REJECTED".equals(normalized)
+                || "PENDING".equals(normalized)
+                || "APPROVED".equals(normalized);
     }
 
     private boolean isResubmittableStatus(String status) {
@@ -452,8 +577,11 @@ public class ResourceService {
     }
 
     private boolean canSendAppeal(HeritageResource resource) {
-        return resource != null
-                && isEditableDraftStatus(resource.status())
+        if (resource == null) {
+            return false;
+        }
+        String normalized = String.valueOf(resource.status()).toUpperCase(Locale.ROOT);
+        return ("DRAFT".equals(normalized) || "REJECTED".equals(normalized))
                 && hasText(loadRevisionFeedback(resource.id()));
     }
 

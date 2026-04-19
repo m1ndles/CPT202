@@ -1,4 +1,4 @@
-import { getSessionUser, logout } from './heritage-data.js';
+import { cancelRevisionDraft, createRevisionDraft, getSessionUser, logout } from './heritage-data.js';
 
 const form = document.getElementById('resourceForm');
 const saveText = document.getElementById('saveText');
@@ -9,6 +9,13 @@ const retrySaveBtn = document.getElementById('retrySaveBtn');
 const resourceIdInput = document.getElementById('resourceId');
 const saveDraftBtn = document.getElementById('saveDraftBtn');
 const submitBtn = document.getElementById('submitBtn');
+const cancelRevisionBtn = document.getElementById('cancelRevisionBtn');
+const pageTitle = document.getElementById('pageTitle');
+const pageSubtitle = document.getElementById('pageSubtitle');
+const footerNote = document.getElementById('footerNote');
+const topBackLink = document.getElementById('topBackLink');
+const topBackLabel = document.getElementById('topBackLabel');
+const myResourcesBackLink = document.getElementById('myResourcesBackLink');
 const confirmModal = document.getElementById('confirmModal');
 const cancelModalBtn = document.getElementById('cancelModalBtn');
 const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
@@ -30,6 +37,44 @@ const UNSAVED_RESOURCE_STORAGE_KEY = 'resource-submission-unsaved';
 let autosaveTimer = null;
 let autosaveEnabled = true;
 let readOnlyMode = false;
+let saveInFlight = false;
+const pageUrl = new URL(window.location.href);
+const revisionSourceStatuses = new Set(['APPROVED', 'PENDING', 'REJECTED']);
+let sourceStatus = String(pageUrl.searchParams.get('sourceStatus') || '').toUpperCase();
+const openedFromReedit = pageUrl.searchParams.get('edit') === '1' || revisionSourceStatuses.has(sourceStatus);
+let revisionMode = false;
+let originalRevisionSnapshot = null;
+
+function refreshPageCopy() {
+  if (!pageTitle || !pageSubtitle || !footerNote) {
+    return;
+  }
+
+  if (revisionMode) {
+    pageTitle.textContent = 'Re-edit Heritage Resource';
+    pageSubtitle.textContent = 'Update the existing resource and submit the revised version back into the review queue.';
+    footerNote.innerHTML = '<span class="font-medium text-primary-600">Note:</span> when you submit these changes, the updated resource returns to the pending review queue.';
+    saveDraftBtn.textContent = 'Save Revision Draft';
+    submitBtn.textContent = 'Resubmit for Review';
+    confirmSubmitBtn.textContent = 'Confirm Resubmission';
+    cancelRevisionBtn?.classList.remove('hidden');
+    if (topBackLink) topBackLink.href = '/my-resources.html';
+    if (topBackLabel) topBackLabel.textContent = 'Back to My Resources';
+    myResourcesBackLink?.classList.remove('hidden');
+    return;
+  }
+
+  pageTitle.textContent = 'Submit Heritage Resource';
+  pageSubtitle.textContent = 'Start a new draft or submit a heritage resource for review.';
+  footerNote.innerHTML = '<span class="font-medium text-primary-600">Note:</span> submitted resources enter the review workflow and cannot be edited during review.';
+  saveDraftBtn.textContent = 'Save Draft';
+  submitBtn.textContent = 'Submit for Review';
+  confirmSubmitBtn.textContent = 'Confirm Submit';
+  cancelRevisionBtn?.classList.add('hidden');
+  if (topBackLink) topBackLink.href = '/index.html';
+  if (topBackLabel) topBackLabel.textContent = 'Back to Jiangsu Heritage Discovery';
+  myResourcesBackLink?.classList.add('hidden');
+}
 
 function setSaveState(text) {
   saveText.textContent = text;
@@ -50,6 +95,34 @@ function buildUnsavedSnapshot() {
     copyright: document.getElementById('copyright').value.trim(),
     tags: [...tags]
   };
+}
+
+function buildRevisionSnapshot(data) {
+  return {
+    restoreStatus: sourceStatus,
+    title: data.title || '',
+    titleEn: data.titleEn || '',
+    category: data.category || '',
+    period: data.period || '',
+    place: data.place || '',
+    tags: Array.isArray(data.tags) ? data.tags.join(',') : (data.tags || ''),
+    description: data.description || '',
+    thumbnail: data.thumbnail || '',
+    copyright: data.copyright || ''
+  };
+}
+
+function viewForStatus(status) {
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'APPROVED') return 'APPROVED';
+  if (normalized === 'PENDING') return 'PENDING';
+  if (normalized === 'REJECTED') return 'REJECTED';
+  if (normalized === 'DRAFT') return 'DRAFT';
+  return 'ALL';
+}
+
+function goToMyResources(status = sourceStatus) {
+  window.location.href = `/my-resources.html?view=${encodeURIComponent(viewForStatus(status))}`;
 }
 
 function hasUnsavedSnapshotContent(snapshot) {
@@ -574,6 +647,13 @@ async function requestJson(url, payload, options = {}) {
 }
 
 function applySavedDraft(data) {
+  if (!sourceStatus) {
+    sourceStatus = String(data.status || '').toUpperCase();
+  }
+  revisionMode = openedFromReedit || revisionSourceStatuses.has(sourceStatus);
+  if (revisionMode && !originalRevisionSnapshot && revisionSourceStatuses.has(sourceStatus)) {
+    originalRevisionSnapshot = buildRevisionSnapshot(data);
+  }
   resourceIdInput.value = data.id ?? '';
   document.getElementById('title').value = data.title || '';
   document.getElementById('description').value = data.description || '';
@@ -588,6 +668,11 @@ function applySavedDraft(data) {
   syncAttachments(data.attachments || []);
   clearUnsavedSnapshot();
   syncDraftUrl(data.id);
+  refreshPageCopy();
+  if (revisionMode) {
+    setReadOnlyMode(false);
+    return;
+  }
   setReadOnlyMode(data.status === 'PENDING', { trackingId: data.trackingId || '' });
 }
 
@@ -596,6 +681,56 @@ async function loadDraft(id) {
   applySavedDraft(data);
   setSaveState(data.status === 'PENDING' ? 'Pending Review' : `Last saved at ${formatSavedTime(data.savedAt)}`);
   hideSaveError();
+}
+
+async function ensureRevisionDraft(id) {
+  if (!openedFromReedit || !id) {
+    return id;
+  }
+  if (sourceStatus !== 'APPROVED' && sourceStatus !== 'PENDING') {
+    return id;
+  }
+  const response = await createRevisionDraft(id);
+  if (!response?.id) {
+    throw new Error('Failed to prepare revision draft.');
+  }
+  return response.id;
+}
+
+async function abandonRevision() {
+  if (!revisionMode) {
+    goToMyResources();
+    return;
+  }
+
+  const confirmed = window.confirm('Abandon this re-edit and return to My Resources? The resource will keep its previous status.');
+  if (!confirmed) {
+    return;
+  }
+
+  const currentId = resourceIdInput.value;
+  if (!currentId || !originalRevisionSnapshot || !['APPROVED', 'PENDING'].includes(sourceStatus)) {
+    goToMyResources(sourceStatus);
+    return;
+  }
+
+  cancelRevisionBtn.disabled = true;
+  saveDraftBtn.disabled = true;
+  submitBtn.disabled = true;
+  setSaveState('Restoring original resource...');
+  setSubmitMessage('');
+
+  try {
+    await cancelRevisionDraft(currentId, originalRevisionSnapshot);
+    showToast(sourceStatus === 'APPROVED' ? 'Re-edit abandoned. Resource remains published.' : 'Re-edit abandoned. Resource remains pending.');
+    goToMyResources(sourceStatus);
+  } catch (error) {
+    setSubmitMessage(error.message || 'Failed to abandon re-edit. Please try again.', true);
+    setSaveState('Restore failed');
+    cancelRevisionBtn.disabled = false;
+    saveDraftBtn.disabled = false;
+    submitBtn.disabled = false;
+  }
 }
 
 async function saveDraft({ showToastMessage = true } = {}) {
@@ -614,6 +749,7 @@ async function saveDraft({ showToastMessage = true } = {}) {
   }
 
   hideSaveError();
+  saveInFlight = true;
   saveDraftBtn.disabled = true;
   setSubmitMessage('');
   setSaveState('Saving draft...');
@@ -624,11 +760,16 @@ async function saveDraft({ showToastMessage = true } = {}) {
     clearUnsavedSnapshot();
     syncDraftUrl(result?.id);
     if (showToastMessage) {
+      const successMessage = revisionMode
+        ? (sourceStatus === 'PENDING' || sourceStatus === 'APPROVED'
+          ? 'Revision draft saved. Submit it when you are ready to send the updated version back for review.'
+          : (result?.message || 'Draft saved to My Resources.'))
+        : (result?.message || 'Draft saved to My Resources.');
       showToast(result?.message || 'Draft saved to My Resources.');
       setSubmitMessage(
         result?.draftId
-          ? `${result.message || 'Draft saved to My Resources.'} Draft ID: ${result.draftId}`
-          : (result?.message || 'Draft saved to My Resources.')
+          ? `${successMessage} Draft ID: ${result.draftId}`
+          : successMessage
       );
     }
     setSaveState(`Last saved at ${formatSavedTime(result?.savedAt)}`);
@@ -641,6 +782,7 @@ async function saveDraft({ showToastMessage = true } = {}) {
     setSaveState('Save failed');
     return null;
   } finally {
+    saveInFlight = false;
     saveDraftBtn.disabled = readOnlyMode;
   }
 }
@@ -666,7 +808,7 @@ async function submitForReview() {
 
   try {
     const result = await requestJson('/api/resources/submit', payload);
-    showToast(result?.message || 'Resource submitted for review.');
+    showToast(revisionMode ? 'Updated resource sent back to review.' : (result?.message || 'Resource submitted for review.'));
     closeModal();
     resourceIdInput.value = result?.id ?? resourceIdInput.value;
     clearUnsavedSnapshot();
@@ -721,11 +863,26 @@ form.addEventListener('input', () => {
 });
 
 saveDraftBtn.addEventListener('click', saveDraft);
+cancelRevisionBtn?.addEventListener('click', abandonRevision);
 submitBtn.addEventListener('click', () => {
   if (readOnlyMode) {
     return;
   }
   openModal();
+});
+topBackLink?.addEventListener('click', event => {
+  if (!revisionMode || !['APPROVED', 'PENDING'].includes(sourceStatus)) {
+    return;
+  }
+  event.preventDefault();
+  abandonRevision();
+});
+myResourcesBackLink?.addEventListener('click', event => {
+  if (!revisionMode || !['APPROVED', 'PENDING'].includes(sourceStatus)) {
+    return;
+  }
+  event.preventDefault();
+  abandonRevision();
 });
 cancelModalBtn.addEventListener('click', closeModal);
 confirmSubmitBtn.addEventListener('click', submitForReview);
@@ -793,12 +950,18 @@ window.addEventListener('beforeunload', () => {
 
   const url = new URL(window.location.href);
   const draftId = url.searchParams.get('draftId');
+  refreshPageCopy();
   if (draftId) {
     autosaveEnabled = false;
     try {
-      await loadDraft(draftId);
+      const resolvedDraftId = await ensureRevisionDraft(draftId);
+      await loadDraft(resolvedDraftId);
       if (!readOnlyMode) {
-        setSubmitMessage('Loaded the selected draft.');
+        setSubmitMessage(
+          revisionMode
+            ? 'Loaded the selected resource for revision. Submit the updated version to place it back in the review queue.'
+            : 'Loaded the selected draft.'
+        );
       }
     } catch (error) {
       setSubmitMessage(error.message || 'Failed to load draft.', true);

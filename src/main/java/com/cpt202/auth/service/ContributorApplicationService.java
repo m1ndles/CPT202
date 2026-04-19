@@ -3,10 +3,13 @@ package com.cpt202.auth.service;
 import com.cpt202.auth.dto.ContributorApplicationRequest;
 import com.cpt202.auth.dto.ContributorApplicationResponse;
 import com.cpt202.auth.dto.ContributorApplicationSummaryResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
+import com.cpt202.auth.dto.ResourceAppealMessageResponse;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserAccount;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.repository.AdminActivityRepository;
+import com.cpt202.auth.repository.ContributorApplicationAppealMessageRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import com.cpt202.auth.repository.UserRepository;
@@ -37,15 +40,18 @@ public class ContributorApplicationService {
     private static final Path APPLICATION_UPLOAD_DIR = Path.of("uploads", "applications");
 
     private final ContributorApplicationRepository contributorApplicationRepository;
+    private final ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
     private final AdminActivityRepository adminActivityRepository;
 
     public ContributorApplicationService(ContributorApplicationRepository contributorApplicationRepository,
+                                         ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository,
                                          ResourceRepository resourceRepository,
                                          UserRepository userRepository,
                                          AdminActivityRepository adminActivityRepository) {
         this.contributorApplicationRepository = contributorApplicationRepository;
+        this.contributorApplicationAppealMessageRepository = contributorApplicationAppealMessageRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.adminActivityRepository = adminActivityRepository;
@@ -53,7 +59,9 @@ public class ContributorApplicationService {
 
     public ContributorApplicationResponse getCurrentApplication(Long userId) {
         requireEligibleUser(userId);
-        return contributorApplicationRepository.findLatestByUserId(userId).orElse(null);
+        return contributorApplicationRepository.findLatestByUserId(userId)
+                .map(this::enrichApplication)
+                .orElse(null);
     }
 
     public List<ContributorApplicationSummaryResponse> getMyApplications(Long userId) {
@@ -98,6 +106,7 @@ public class ContributorApplicationService {
 
     public ContributorApplicationResponse getApplicationDetail(Long applicationId) {
         return contributorApplicationRepository.findById(applicationId)
+                .map(this::enrichApplication)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contributor application not found."));
     }
 
@@ -144,6 +153,68 @@ public class ContributorApplicationService {
                 normalizedComments
         );
         return getApplicationDetail(applicationId);
+    }
+
+    @Transactional
+    public MessageThreadSubmissionResponse submitAppeal(Long userId, String content) {
+        UserAccount user = requireEligibleUser(userId);
+        ContributorApplicationResponse application = contributorApplicationRepository.findLatestByUserId(user.id())
+                .map(this::enrichApplication)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contributor application not found."));
+        if (!application.canSendAppeal()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This application is not currently available for appeal messages.");
+        }
+
+        String normalizedContent = normalizeMessageContent(content);
+        contributorApplicationAppealMessageRepository.insert(
+                application.id(),
+                "APPLICANT",
+                user.username(),
+                normalizedContent,
+                LocalDateTime.now()
+        );
+        adminActivityRepository.insert(
+                "contributor appeal submitted",
+                "Contributor",
+                application.fullName(),
+                user.username(),
+                LocalDateTime.now(),
+                normalizedContent
+        );
+        return new MessageThreadSubmissionResponse(
+                "Appeal message sent to the admin team.",
+                contributorApplicationAppealMessageRepository.findByApplicationId(application.id())
+        );
+    }
+
+    @Transactional
+    public MessageThreadSubmissionResponse replyToAppeal(Long applicationId, String operatorName, String content) {
+        ContributorApplicationResponse application = getApplicationDetail(applicationId);
+        if (!"REJECTED".equalsIgnoreCase(application.status())
+                && application.appealMessages().isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This application does not currently have an appeal thread.");
+        }
+
+        String normalizedContent = normalizeMessageContent(content);
+        contributorApplicationAppealMessageRepository.insert(
+                application.id(),
+                "ADMIN",
+                operator(operatorName),
+                normalizedContent,
+                LocalDateTime.now()
+        );
+        adminActivityRepository.insert(
+                "contributor appeal replied",
+                "Contributor",
+                application.fullName(),
+                operator(operatorName),
+                LocalDateTime.now(),
+                normalizedContent
+        );
+        return new MessageThreadSubmissionResponse(
+                "Reply sent to the applicant.",
+                contributorApplicationAppealMessageRepository.findByApplicationId(application.id())
+        );
     }
 
     private void requirePending(ContributorApplicationResponse application) {
@@ -222,6 +293,17 @@ public class ContributorApplicationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private String normalizeMessageContent(String content) {
+        String normalized = normalizeText(content);
+        if (normalized == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required.");
+        }
+        if (normalized.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message must be 1000 characters or fewer.");
+        }
+        return normalized;
+    }
+
     private String normalizeExpertiseField(String value) {
         String normalized = normalizeText(value);
         List<String> categories = resourceRepository.findCategories();
@@ -234,6 +316,29 @@ public class ContributorApplicationService {
     private String operator(String operatorName) {
         String normalized = normalizeText(operatorName);
         return normalized == null ? "Admin Console" : normalized;
+    }
+
+    private ContributorApplicationResponse enrichApplication(ContributorApplicationResponse application) {
+        List<ResourceAppealMessageResponse> appealMessages = contributorApplicationAppealMessageRepository.findByApplicationId(application.id());
+        boolean canSendAppeal = "REJECTED".equalsIgnoreCase(application.status());
+        return new ContributorApplicationResponse(
+                application.id(),
+                application.userId(),
+                application.username(),
+                application.email(),
+                application.fullName(),
+                application.expertiseField(),
+                application.motivationStatement(),
+                application.portfolioLink(),
+                application.status(),
+                application.rejectionComments(),
+                application.submittedAt(),
+                application.reviewedAt(),
+                application.attachmentName(),
+                application.attachmentUrl(),
+                appealMessages,
+                canSendAppeal
+        );
     }
 
     private record StoredFile(String originalName, String url) {

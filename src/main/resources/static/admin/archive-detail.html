@@ -34,14 +34,37 @@
                 <div class="archive-info-grid">
                     <div><span>Category</span><strong id="archiveCategory"></strong></div>
                     <div><span>Contributor</span><strong id="archiveContributor"></strong></div>
+                    <div><span>Place</span><strong id="archivePlace"></strong></div>
+                    <div><span>Tracking ID</span><strong id="archiveTrackingId"></strong></div>
                     <div><span>Archive status</span><strong><span id="archiveStatus" class="status-badge">ARCHIVED</span></strong></div>
                 </div>
             </section>
 
             <section class="panel archive-content-panel">
-                <p class="eyebrow">Archived Resource Record</p>
-                <h2>Publication history and metadata</h2>
+                <p class="eyebrow">Archived Resource Detail</p>
+                <h2>Resource content and publication metadata</h2>
                 <div class="content-stack">
+                    <article class="detail-box archive-resource-preview">
+                        <div id="archiveThumbnail" class="archive-thumbnail"></div>
+                        <div>
+                            <span class="meta-label">Resource description</span>
+                            <p id="archiveDescription"></p>
+                        </div>
+                    </article>
+                    <article class="detail-box archive-metadata-card">
+                        <div>
+                            <span class="meta-label">Tags</span>
+                            <div id="archiveTags" class="archive-tag-list"></div>
+                        </div>
+                        <div>
+                            <span class="meta-label">File attachment</span>
+                            <p id="archiveFileMeta"></p>
+                        </div>
+                        <div>
+                            <span class="meta-label">External reference</span>
+                            <p id="archiveLinkMeta"></p>
+                        </div>
+                    </article>
                     <article class="detail-box text-box">
                         <span class="meta-label">Original metadata</span>
                         <p id="originalMetadata"></p>
@@ -62,9 +85,10 @@
                     <div><span>Archived by</span><strong id="archivedBy"></strong></div>
                     <div><span>Archived at</span><strong id="archivedAt"></strong></div>
                 </div>
-                <div class="visibility-pill">Visibility: hidden</div>
-                <article class="detail-box text-box">
-                    <span class="meta-label">Archive reason</span>
+                <div id="lifecycleNotice" class="lifecycle-notice">Archived resources are hidden from public discovery and remain available here for audit or restoration.</div>
+                <article class="detail-box archive-reason-card">
+                    <span class="meta-label">Decision basis</span>
+                    <h3>Archive reason</h3>
                     <p id="archiveReason"></p>
                 </article>
                 <div class="action-stack">

@@ -2,12 +2,15 @@ package com.cpt202.auth.service;
 
 import com.cpt202.auth.dto.ContributorApplicationResponse;
 import com.cpt202.auth.dto.ContributorApplicationSummaryResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.ResourceAppealMessageResponse;
 import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
 import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.dto.admin.AdminActionResponse;
 import com.cpt202.auth.dto.admin.AdminArchiveItemResponse;
 import com.cpt202.auth.dto.admin.AdminCategoryItemResponse;
+import com.cpt202.auth.dto.admin.AdminComplaintDetailResponse;
+import com.cpt202.auth.dto.admin.AdminComplaintItemResponse;
 import com.cpt202.auth.dto.admin.AdminDashboardSummaryResponse;
 import com.cpt202.auth.dto.admin.AdminDashboardSummaryResponse.AdminDashboardBreakdownItem;
 import com.cpt202.auth.dto.admin.AdminDashboardSummaryResponse.AdminDashboardInsightSection;
@@ -23,8 +26,12 @@ import com.cpt202.auth.model.HeritageResource;
 import com.cpt202.auth.repository.AdminActivityRepository;
 import com.cpt202.auth.repository.AdminArchiveRepository;
 import com.cpt202.auth.repository.AdminTaxonomyRepository;
+import com.cpt202.auth.repository.CommentRepository;
+import com.cpt202.auth.repository.CommentReportRepository;
+import com.cpt202.auth.repository.ContributorApplicationAppealMessageRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
 import com.cpt202.auth.repository.ResourceAppealMessageRepository;
+import com.cpt202.auth.repository.ResourceReportRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,6 +58,10 @@ public class AdminConsoleService {
     private final ContributorApplicationService contributorApplicationService;
     private final ResourceRepository resourceRepository;
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
+    private final CommentRepository commentRepository;
+    private final CommentReportRepository commentReportRepository;
+    private final ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository;
+    private final ResourceReportRepository resourceReportRepository;
     private final AdminTaxonomyRepository adminTaxonomyRepository;
     private final AdminArchiveRepository adminArchiveRepository;
     private final AdminActivityRepository adminActivityRepository;
@@ -59,6 +70,10 @@ public class AdminConsoleService {
                                ContributorApplicationService contributorApplicationService,
                                ResourceRepository resourceRepository,
                                ResourceAppealMessageRepository resourceAppealMessageRepository,
+                               CommentRepository commentRepository,
+                               CommentReportRepository commentReportRepository,
+                               ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository,
+                               ResourceReportRepository resourceReportRepository,
                                AdminTaxonomyRepository adminTaxonomyRepository,
                                AdminArchiveRepository adminArchiveRepository,
                                AdminActivityRepository adminActivityRepository) {
@@ -66,6 +81,10 @@ public class AdminConsoleService {
         this.contributorApplicationService = contributorApplicationService;
         this.resourceRepository = resourceRepository;
         this.resourceAppealMessageRepository = resourceAppealMessageRepository;
+        this.commentRepository = commentRepository;
+        this.commentReportRepository = commentReportRepository;
+        this.contributorApplicationAppealMessageRepository = contributorApplicationAppealMessageRepository;
+        this.resourceReportRepository = resourceReportRepository;
         this.adminTaxonomyRepository = adminTaxonomyRepository;
         this.adminArchiveRepository = adminArchiveRepository;
         this.adminActivityRepository = adminActivityRepository;
@@ -297,17 +316,30 @@ public class AdminConsoleService {
         return resourceRepository.findAllResources().stream()
                 .filter(resource -> isReviewQueueStatus(resource.status()))
                 .sorted(Comparator.comparing(HeritageResource::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(resource -> new AdminResourceReviewItemResponse(
-                        resource.id(),
-                        resource.title(),
-                        contributorLabel(resource),
-                        resource.category(),
-                        resource.place(),
-                        formatDate(resource.createdAt()),
-                        mapReviewStatus(resource.status()),
-                        defaultImage(resource.thumbnail())
-                ))
+                .map(this::toReviewItemResponse)
                 .toList();
+    }
+
+    private AdminResourceReviewItemResponse toReviewItemResponse(HeritageResource resource) {
+        List<ResourceAppealMessageResponse> appealMessages = resourceAppealMessageRepository.findByResourceId(resource.id());
+        ResourceAppealMessageResponse latestAppeal = appealMessages.isEmpty()
+                ? null
+                : appealMessages.get(appealMessages.size() - 1);
+
+        return new AdminResourceReviewItemResponse(
+                resource.id(),
+                resource.title(),
+                contributorLabel(resource),
+                resource.category(),
+                resource.place(),
+                formatDate(resource.createdAt()),
+                mapReviewStatus(resource.status()),
+                defaultImage(resource.thumbnail()),
+                appealMessages.size(),
+                latestAppeal == null ? "" : latestAppeal.senderRole(),
+                latestAppeal == null ? "" : latestAppeal.createdAt(),
+                latestAppeal == null ? "" : preview(latestAppeal.content())
+        );
     }
 
     public AdminResourceReviewDetailResponse getResourceReviewDetail(Long resourceId) {
@@ -381,6 +413,133 @@ public class AdminConsoleService {
                 "Reply sent to the contributor.",
                 resourceAppealMessageRepository.findByResourceId(resource.id())
         );
+    }
+
+    public List<AdminComplaintItemResponse> getComplaintItems() {
+        List<AdminComplaintItemResponse> items = new ArrayList<>();
+
+        contributorApplicationRepository.findAllApplications().forEach(summary -> {
+            List<ResourceAppealMessageResponse> messages = contributorApplicationAppealMessageRepository.findByApplicationId(summary.id());
+            if (messages.isEmpty()) {
+                return;
+            }
+            ResourceAppealMessageResponse latestMessage = messages.get(messages.size() - 1);
+            items.add(new AdminComplaintItemResponse(
+                    summary.id(),
+                    "CONTRIBUTOR_APPEAL",
+                    summary.fullName() + " contributor appeal",
+                    summary.expertiseField(),
+                    "ADMIN".equalsIgnoreCase(latestMessage.senderRole()) ? "REPLIED" : "OPEN",
+                    summary.username(),
+                    summary.submittedAt(),
+                    latestMessage.createdAt(),
+                    preview(latestMessage.content()),
+                    "Open application",
+                    "/admin/contributor-approval-detail.html?id=" + summary.id()
+            ));
+        });
+
+        resourceReportRepository.findAll().forEach(thread -> {
+            List<ResourceAppealMessageResponse> messages = resourceReportRepository.findMessagesByThreadId(thread.id());
+            ResourceAppealMessageResponse latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            items.add(new AdminComplaintItemResponse(
+                    thread.id(),
+                    "RESOURCE_REPORT",
+                    thread.resourceTitle() + " report",
+                    thread.resourceTitle(),
+                    normalizeReportThreadStatus(thread.status()),
+                    thread.reporterName(),
+                    formatDateTime(thread.createdAt()),
+                    formatDateTime(thread.updatedAt()),
+                    preview(latestMessage == null ? "" : latestMessage.content()),
+                    "Open resource",
+                    "/admin/resource-review-detail.html?id=" + thread.resourceId()
+            ));
+        });
+
+        commentReportRepository.findAll().forEach(thread -> {
+            List<ResourceAppealMessageResponse> messages = commentReportRepository.findMessagesByThreadId(thread.id());
+            ResourceAppealMessageResponse latestMessage = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            items.add(new AdminComplaintItemResponse(
+                    thread.id(),
+                    "COMMENT_REPORT",
+                    "Comment report · " + thread.resourceTitle(),
+                    thread.commentAuthor(),
+                    normalizeReportThreadStatus(thread.status()),
+                    thread.reporterName(),
+                    formatDateTime(thread.createdAt()),
+                    formatDateTime(thread.updatedAt()),
+                    preview(latestMessage == null ? "" : latestMessage.content()),
+                    "Open resource",
+                    "/detail.html?id=" + thread.resourceId()
+            ));
+        });
+
+        return items.stream()
+                .sorted(Comparator.comparing((AdminComplaintItemResponse item) -> parseDateTime(item.updatedAt()))
+                        .reversed())
+                .toList();
+    }
+
+    public AdminComplaintDetailResponse getComplaintDetail(String complaintType, Long complaintId) {
+        return switch (normalizeComplaintType(complaintType)) {
+            case "CONTRIBUTOR_APPEAL" -> getContributorAppealDetail(complaintId);
+            case "RESOURCE_REPORT" -> getResourceReportDetail(complaintId);
+            case "COMMENT_REPORT" -> getCommentReportDetail(complaintId);
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported complaint type.");
+        };
+    }
+
+    @Transactional
+    public MessageThreadSubmissionResponse replyToComplaint(String complaintType,
+                                                            Long complaintId,
+                                                            String operatorName,
+                                                            String content) {
+        return switch (normalizeComplaintType(complaintType)) {
+            case "CONTRIBUTOR_APPEAL" -> contributorApplicationService.replyToAppeal(complaintId, operatorName, content);
+            case "RESOURCE_REPORT" -> replyToResourceReport(complaintId, operatorName, content);
+            case "COMMENT_REPORT" -> throw new ApiException(HttpStatus.BAD_REQUEST, "Comment reports do not support admin replies yet.");
+            default -> throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported complaint type.");
+        };
+    }
+
+    @Transactional
+    public AdminActionResponse reopenReportedResource(Long threadId, String operatorName) {
+        ResourceReportRepository.ResourceReportThreadRecord thread = resourceReportRepository.findById(threadId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found."));
+        HeritageResource resource = resourceRepository.findAnyById(thread.resourceId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
+        if (!"APPROVED".equalsIgnoreCase(resource.status())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only published resources can be reopened for review.");
+        }
+
+        updateResourceStatus(resource, "PENDING");
+        resourceReportRepository.updateThreadStatus(thread.id(), "IN_REVIEW", LocalDateTime.now());
+        adminActivityRepository.insert(
+                "reported resource reopened",
+                "Resource",
+                resource.title(),
+                operator(operatorName),
+                LocalDateTime.now(),
+                "Reopened from the complaint inbox for another moderation review."
+        );
+        return new AdminActionResponse("Reported resource moved back into the review queue.");
+    }
+
+    @Transactional
+    public AdminActionResponse deleteReportedComment(Long threadId, String operatorName) {
+        CommentReportRepository.CommentReportThreadRecord thread = commentReportRepository.findById(threadId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found."));
+        commentRepository.delete(thread.commentId());
+        adminActivityRepository.insert(
+                "reported comment deleted",
+                "Comment",
+                preview(thread.commentContent()),
+                operator(operatorName),
+                LocalDateTime.now(),
+                "Deleted from the complaint inbox after moderator review."
+        );
+        return new AdminActionResponse("Reported comment deleted.");
     }
 
     @Transactional
@@ -558,20 +717,38 @@ public class AdminConsoleService {
 
     public List<AdminArchiveItemResponse> getArchiveItems() {
         return adminArchiveRepository.findAll().stream()
-                .map(record -> new AdminArchiveItemResponse(
-                        record.id(),
-                        record.resourceId(),
-                        record.title(),
-                        valueOrFallback(record.contributorLabel(), "Contributor"),
-                        record.category(),
-                        formatDate(record.archivedAt()),
-                        record.archivedBy(),
-                        valueOrFallback(record.archiveReason(), "No archive reason was recorded."),
-                        "ARCHIVED",
-                        valueOrFallback(record.publicationHistory(), "No publication history available."),
-                        valueOrFallback(record.originalMetadata(), "No original metadata available.")
-                ))
+                .map(this::toArchiveItemResponse)
                 .toList();
+    }
+
+    private AdminArchiveItemResponse toArchiveItemResponse(AdminArchiveRepository.ArchiveRecord record) {
+        List<ResourceRepository.AttachmentRecord> attachments = resourceRepository.findDraftAttachments(record.resourceId());
+        List<ResourceDetail.LinkItem> links = resourceRepository.findLinksByResourceId(record.resourceId());
+        ResourceRepository.AttachmentRecord firstFile = attachments.isEmpty() ? null : attachments.get(0);
+        ResourceDetail.LinkItem firstLink = links.isEmpty() ? null : links.get(0);
+
+        return new AdminArchiveItemResponse(
+                record.id(),
+                record.resourceId(),
+                record.title(),
+                valueOrFallback(record.contributorLabel(), "Contributor"),
+                record.category(),
+                valueOrFallback(record.place(), "Place not recorded"),
+                valueOrFallback(record.trackingId(), "No tracking ID"),
+                resourceRepository.findTagsByResourceId(record.resourceId()),
+                firstFile == null ? "" : valueOrFallback(firstFile.name(), "Attached file"),
+                firstFile == null ? "" : valueOrFallback(firstFile.url(), ""),
+                firstLink == null ? "" : valueOrFallback(firstLink.label(), "External reference"),
+                firstLink == null ? "" : valueOrFallback(firstLink.url(), ""),
+                valueOrFallback(record.description(), "No archived description available."),
+                valueOrFallback(record.thumbnailUrl(), "/review/images/resource-placeholder.svg"),
+                formatDate(record.archivedAt()),
+                record.archivedBy(),
+                valueOrFallback(record.archiveReason(), "No archive reason was recorded."),
+                "ARCHIVED",
+                valueOrFallback(record.publicationHistory(), "No publication history available."),
+                valueOrFallback(record.originalMetadata(), "No original metadata available.")
+        );
     }
 
     public AdminArchiveItemResponse getArchiveDetail(Long archiveId) {
@@ -579,6 +756,29 @@ public class AdminConsoleService {
                 .filter(item -> Objects.equals(item.id(), archiveId))
                 .findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Archive record not found."));
+    }
+
+    @Transactional
+    public AdminActionResponse archiveApprovedResource(Long resourceId, String archiveReason, String operatorName) {
+        HeritageResource resource = resourceRepository.findAnyById(resourceId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
+        if (!"APPROVED".equalsIgnoreCase(resource.status())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only published resources can be archived.");
+        }
+
+        String normalizedReason = requireText(archiveReason, "Archive reason is required.");
+        updateResourceStatus(resource, "ARCHIVED");
+        adminArchiveRepository.upsert(
+                resource.id(),
+                contributorLabel(resource),
+                operator(operatorName),
+                normalizedReason,
+                "Archived from published state by an administrator.",
+                buildSubmissionMetadata(resource),
+                LocalDateTime.now()
+        );
+        recordHistory("resource archived", "Archive", resource.title(), operatorName, normalizedReason);
+        return new AdminActionResponse("Resource archived successfully.");
     }
 
     @Transactional
@@ -606,6 +806,117 @@ public class AdminConsoleService {
                         record.details()
                 ))
                 .toList();
+    }
+
+    private AdminComplaintDetailResponse getContributorAppealDetail(Long applicationId) {
+        ContributorApplicationResponse application = contributorApplicationService.getApplicationDetail(applicationId);
+        if (application.appealMessages().isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found.");
+        }
+        ResourceAppealMessageResponse latestMessage = application.appealMessages().get(application.appealMessages().size() - 1);
+        return new AdminComplaintDetailResponse(
+                application.id(),
+                "CONTRIBUTOR_APPEAL",
+                application.fullName() + " contributor appeal",
+                application.expertiseField(),
+                application.status(),
+                "ADMIN".equalsIgnoreCase(latestMessage.senderRole()) ? "REPLIED" : "OPEN",
+                application.username(),
+                application.submittedAt(),
+                latestMessage.createdAt(),
+                "Use this thread to answer the rejected contributor applicant and guide the next revision.",
+                "Open application",
+                "/admin/contributor-approval-detail.html?id=" + application.id(),
+                true,
+                false,
+                false,
+                application.appealMessages()
+        );
+    }
+
+    private AdminComplaintDetailResponse getResourceReportDetail(Long threadId) {
+        ResourceReportRepository.ResourceReportThreadRecord thread = resourceReportRepository.findById(threadId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found."));
+        List<ResourceAppealMessageResponse> messages = resourceReportRepository.findMessagesByThreadId(thread.id());
+        return new AdminComplaintDetailResponse(
+                thread.id(),
+                "RESOURCE_REPORT",
+                thread.resourceTitle() + " report",
+                thread.resourceTitle(),
+                mapReviewStatus(thread.resourceStatus()),
+                normalizeReportThreadStatus(thread.status()),
+                thread.reporterName(),
+                formatDateTime(thread.createdAt()),
+                formatDateTime(thread.updatedAt()),
+                "Review the report, reply to the reporter, and reopen the resource if it should re-enter moderation.",
+                "Open resource",
+                "/admin/resource-review-detail.html?id=" + thread.resourceId(),
+                true,
+                "APPROVED".equalsIgnoreCase(thread.resourceStatus()),
+                false,
+                messages
+        );
+    }
+
+    private AdminComplaintDetailResponse getCommentReportDetail(Long threadId) {
+        CommentReportRepository.CommentReportThreadRecord thread = commentReportRepository.findById(threadId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found."));
+        List<ResourceAppealMessageResponse> messages = commentReportRepository.findMessagesByThreadId(thread.id());
+        return new AdminComplaintDetailResponse(
+                thread.id(),
+                "COMMENT_REPORT",
+                "Comment report · " + thread.resourceTitle(),
+                thread.commentAuthor(),
+                mapReviewStatus(thread.resourceStatus()),
+                normalizeReportThreadStatus(thread.status()),
+                thread.reporterName(),
+                formatDateTime(thread.createdAt()),
+                formatDateTime(thread.updatedAt()),
+                "Review the reported comment and delete it if the content should be removed.",
+                "Open resource",
+                "/detail.html?id=" + thread.resourceId(),
+                false,
+                false,
+                true,
+                messages
+        );
+    }
+
+    private MessageThreadSubmissionResponse replyToResourceReport(Long threadId,
+                                                                 String operatorName,
+                                                                 String content) {
+        ResourceReportRepository.ResourceReportThreadRecord thread = resourceReportRepository.findById(threadId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Complaint thread not found."));
+        String normalizedContent = requireText(content, "Reply message content is required.");
+        if (normalizedContent.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Reply message must be 1000 characters or fewer.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        resourceReportRepository.insertMessage(
+                thread.id(),
+                "ADMIN",
+                operator(operatorName),
+                normalizedContent,
+                now
+        );
+        resourceReportRepository.updateThreadStatus(
+                thread.id(),
+                "IN_REVIEW".equalsIgnoreCase(thread.status()) ? "IN_REVIEW" : "REPLIED",
+                now
+        );
+        adminActivityRepository.insert(
+                "resource report replied",
+                "Resource",
+                thread.resourceTitle(),
+                operator(operatorName),
+                now,
+                normalizedContent
+        );
+        return new MessageThreadSubmissionResponse(
+                "Reply sent to the reporter.",
+                resourceReportRepository.findMessagesByThreadId(thread.id())
+        );
     }
 
     private void seedHistoryIfEmpty() {
@@ -763,6 +1074,27 @@ public class AdminConsoleService {
 
     private String operator(String operatorName) {
         return hasText(operatorName) ? operatorName.trim() : SYSTEM_OPERATOR;
+    }
+
+    private String normalizeComplaintType(String complaintType) {
+        return hasText(complaintType) ? complaintType.trim().toUpperCase(Locale.ROOT) : "";
+    }
+
+    private String normalizeReportThreadStatus(String status) {
+        return switch (String.valueOf(status).toUpperCase(Locale.ROOT)) {
+            case "REPLIED" -> "REPLIED";
+            case "IN_REVIEW" -> "IN_REVIEW";
+            case "RESOLVED" -> "RESOLVED";
+            default -> "OPEN";
+        };
+    }
+
+    private String preview(String value) {
+        if (!hasText(value)) {
+            return "No message preview available.";
+        }
+        String trimmed = value.trim();
+        return trimmed.length() > 100 ? trimmed.substring(0, 97) + "..." : trimmed;
     }
 
     private String requireText(String value, String message) {

@@ -100,6 +100,82 @@ public class SchemaMigrationRunner implements CommandLineRunner {
                 )
                 """
         );
+        createTableIfMissing(
+                "comment_report_threads",
+                """
+                CREATE TABLE comment_report_threads (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    comment_id BIGINT NOT NULL,
+                    reporter_user_id BIGINT NOT NULL,
+                    reporter_name VARCHAR(120) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_comment_report_thread (comment_id, reporter_user_id),
+                    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+                    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+        );
+        createTableIfMissing(
+                "comment_report_messages",
+                """
+                CREATE TABLE comment_report_messages (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    thread_id BIGINT NOT NULL,
+                    sender_role VARCHAR(20) NOT NULL,
+                    sender_name VARCHAR(120) NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (thread_id) REFERENCES comment_report_threads(id) ON DELETE CASCADE
+                )
+                """
+        );
+        createTableIfMissing(
+                "contributor_application_appeal_messages",
+                """
+                CREATE TABLE contributor_application_appeal_messages (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    application_id BIGINT NOT NULL,
+                    sender_role VARCHAR(20) NOT NULL,
+                    sender_name VARCHAR(120) NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (application_id) REFERENCES contributor_applications(id) ON DELETE CASCADE
+                )
+                """
+        );
+        createTableIfMissing(
+                "resource_report_threads",
+                """
+                CREATE TABLE resource_report_threads (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    resource_id BIGINT NOT NULL,
+                    reporter_user_id BIGINT NOT NULL,
+                    reporter_name VARCHAR(120) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_resource_report_thread (resource_id, reporter_user_id),
+                    FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE,
+                    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+        );
+        createTableIfMissing(
+                "resource_report_messages",
+                """
+                CREATE TABLE resource_report_messages (
+                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                    thread_id BIGINT NOT NULL,
+                    sender_role VARCHAR(20) NOT NULL,
+                    sender_name VARCHAR(120) NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (thread_id) REFERENCES resource_report_threads(id) ON DELETE CASCADE
+                )
+                """
+        );
     }
 
     private void addColumnIfMissing(String tableName, String columnName, String ddl) {

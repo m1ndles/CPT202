@@ -25,7 +25,7 @@ function formatDate(value) {
 
 function renderFilters(fields) {
     expertiseFilter.innerHTML = fields.map((field) => `
-        <option value="${field}" ${field === state.expertise ? "selected" : ""}>${field}</option>
+        <option value="${field}" ${field === state.expertise ? "selected" : ""}>${field === "All" ? "All expertise fields" : field}</option>
     `).join("");
 }
 

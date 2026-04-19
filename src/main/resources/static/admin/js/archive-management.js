@@ -29,7 +29,7 @@ function formatDate(value) {
 
 function renderCategories(categories) {
     categoryFilter.innerHTML = categories.map((category) => `
-        <option value="${category}" ${category === state.category ? "selected" : ""}>${category}</option>
+        <option value="${category}" ${category === state.category ? "selected" : ""}>${category === "All" ? "All categories" : category}</option>
     `).join("");
 }
 

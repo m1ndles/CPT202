@@ -1,5 +1,6 @@
 import {
     approveResourceReview,
+    archiveResourceReview,
     getResourceReviewDetail,
     rejectResourceReview,
     sendResourceReviewReply
@@ -29,6 +30,7 @@ const visibilityPill = document.getElementById("visibilityPill");
 const rejectionCommentsInput = document.getElementById("rejectionComments");
 const approveButton = document.getElementById("approveButton");
 const rejectButton = document.getElementById("rejectButton");
+const archiveButton = document.getElementById("archiveButton");
 const feedbackMessage = document.getElementById("feedbackMessage");
 const existingRejectionBlock = document.getElementById("existingRejectionBlock");
 const existingRejectionComments = document.getElementById("existingRejectionComments");
@@ -38,6 +40,10 @@ const appealReplyInput = document.getElementById("appealReplyInput");
 const sendAppealReplyButton = document.getElementById("sendAppealReplyButton");
 const appealReplyStatus = document.getElementById("appealReplyStatus");
 const workflowNotice = document.getElementById("workflowNotice");
+const archiveModal = document.getElementById("archiveModal");
+const archiveReasonInput = document.getElementById("archiveReasonInput");
+const archiveModalFeedback = document.getElementById("archiveModalFeedback");
+const confirmArchiveButton = document.getElementById("confirmArchiveButton");
 let currentDetail = null;
 
 function formatDate(value) {
@@ -56,6 +62,11 @@ function setFeedback(message = "", type = "") {
 function setAppealReplyStatus(message = "", type = "") {
     appealReplyStatus.textContent = message;
     appealReplyStatus.className = `feedback-message ${type}`.trim();
+}
+
+function setArchiveModalFeedback(message = "", type = "") {
+    archiveModalFeedback.textContent = message;
+    archiveModalFeedback.className = `feedback-message ${type}`.trim();
 }
 
 function escapeHtml(value) {
@@ -136,7 +147,14 @@ function renderWorkflowNotice(status) {
     if (status === "APPROVED") {
         workflowNotice.hidden = false;
         workflowNotice.className = "workflow-notice locked";
-        workflowNotice.textContent = "This resource has already been approved and is no longer in the active moderation queue.";
+        workflowNotice.textContent = "This resource has already been approved. You can archive it from the controls below if it should be removed from the public lifecycle.";
+        return;
+    }
+
+    if (status === "ARCHIVED") {
+        workflowNotice.hidden = false;
+        workflowNotice.className = "workflow-notice locked";
+        workflowNotice.textContent = "This resource has been archived and is hidden from the public lifecycle. Restore it from Archive Management if it should become active again.";
         return;
     }
 
@@ -195,9 +213,12 @@ function renderDetail(detail) {
     renderWorkflowNotice(detail.status);
 
     const reviewable = detail.status === "PENDING_REVIEW";
+    const archivable = detail.status === "APPROVED";
     approveButton.disabled = !reviewable;
     rejectButton.disabled = !reviewable;
     rejectionCommentsInput.disabled = !reviewable;
+    archiveButton.hidden = !archivable;
+    archiveButton.disabled = !archivable;
 
     if (detail.rejectionComments) {
         existingRejectionBlock.hidden = false;
@@ -205,6 +226,19 @@ function renderDetail(detail) {
     } else {
         existingRejectionBlock.hidden = true;
     }
+}
+
+function openArchiveModal() {
+    archiveReasonInput.value = "";
+    setArchiveModalFeedback("");
+    archiveModal.hidden = false;
+    archiveReasonInput.focus();
+}
+
+function closeArchiveModal() {
+    archiveModal.hidden = true;
+    archiveReasonInput.value = "";
+    setArchiveModalFeedback("");
 }
 
 async function loadDetail() {
@@ -242,6 +276,43 @@ rejectButton.addEventListener("click", async () => {
         setFeedback(response.message, "success");
     } catch (error) {
         setFeedback(error.message || "Failed to reject resource.", "error");
+    }
+});
+
+archiveButton?.addEventListener("click", () => {
+    if (currentDetail?.status !== "APPROVED") {
+        return;
+    }
+    openArchiveModal();
+});
+
+confirmArchiveButton?.addEventListener("click", async () => {
+    const archiveReason = archiveReasonInput.value.trim();
+    if (!archiveReason) {
+        setArchiveModalFeedback("Archive reason is required.", "error");
+        return;
+    }
+
+    confirmArchiveButton.disabled = true;
+    archiveButton.disabled = true;
+    setArchiveModalFeedback("");
+
+    try {
+        const response = await archiveResourceReview(resourceId, archiveReason);
+        closeArchiveModal();
+        renderDetail(response.resource);
+        setFeedback(response.message || "Resource archived successfully.", "success");
+    } catch (error) {
+        setArchiveModalFeedback(error.message || "Failed to archive resource.", "error");
+        archiveButton.disabled = false;
+    } finally {
+        confirmArchiveButton.disabled = false;
+    }
+});
+
+archiveModal?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-archive-cancel]")) {
+        closeArchiveModal();
     }
 });
 

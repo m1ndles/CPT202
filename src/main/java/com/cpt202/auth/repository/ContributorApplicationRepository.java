@@ -195,7 +195,9 @@ public class ContributorApplicationRepository {
                 format(rs.getTimestamp("submitted_at")),
                 format(rs.getTimestamp("reviewed_at")),
                 rs.getString("attachment_name"),
-                rs.getString("attachment_url")
+                rs.getString("attachment_url"),
+                List.of(),
+                false
         );
     }
 

@@ -1,5 +1,7 @@
 package com.cpt202.auth.dto;
 
+import java.util.List;
+
 public record ContributorApplicationResponse(
         Long id,
         Long userId,
@@ -14,6 +16,8 @@ public record ContributorApplicationResponse(
         String submittedAt,
         String reviewedAt,
         String attachmentName,
-        String attachmentUrl
+        String attachmentUrl,
+        List<ResourceAppealMessageResponse> appealMessages,
+        boolean canSendAppeal
 ) {
 }

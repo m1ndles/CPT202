@@ -1,5 +1,6 @@
 package com.cpt202.auth.controller;
 
+import com.cpt202.auth.dto.ContributorEngagementResponse;
 import com.cpt202.auth.dto.SessionUserResponse;
 import com.cpt202.auth.dto.UpdateEmailRequest;
 import com.cpt202.auth.dto.UpdatePasswordRequest;
@@ -30,6 +31,11 @@ public class ProfileController {
     @GetMapping
     public SessionUserResponse getProfile(HttpSession session) {
         return profileService.getProfile(currentUserId(session));
+    }
+
+    @GetMapping("/engagement")
+    public ContributorEngagementResponse getContributorEngagement(HttpSession session) {
+        return profileService.getContributorEngagement(currentUserId(session));
     }
 
     @PutMapping

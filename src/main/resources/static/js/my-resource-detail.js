@@ -54,19 +54,25 @@ const STATUS_CONFIG = {
     label: "Pending Review",
     badgeClass: "status-pending",
     view: "pending",
-    note: "This submission is currently with the moderation team. While it is under review, the editor stays read-only.",
-    summary: "The best next step is to wait for review results, or go back to My Resources to check other submissions."
+    note: "This submission is already in the moderation queue. You can reopen it, revise the content, and send the updated version back into review.",
+    summary: "Re-edit the submission if you need to adjust the content before the admin team finishes review.",
+    primaryAction(id) {
+      return {
+        label: "Re-edit Submission",
+        href: `/submit-resource.html?draftId=${encodeURIComponent(id)}&edit=1&sourceStatus=PENDING`
+      };
+    }
   },
   APPROVED: {
     label: "Published",
     badgeClass: "status-published",
     view: "approved",
-    note: "This resource is already published in the public discovery area. You can open the public page to see what visitors see.",
-    summary: "Review the published result here, or open the public-facing detail page.",
+    note: "This resource is currently public. If you reopen it for revision, the updated version will go back through review before it is published again.",
+    summary: "You can inspect the public page, or reopen the editor to prepare an updated version for review.",
     primaryAction(id) {
       return {
-        label: "Open Public Page",
-        href: `/detail.html?id=${encodeURIComponent(id)}`
+        label: "Re-edit Resource",
+        href: `/submit-resource.html?draftId=${encodeURIComponent(id)}&edit=1&sourceStatus=APPROVED`
       };
     }
   },
@@ -79,7 +85,7 @@ const STATUS_CONFIG = {
     primaryAction(id) {
       return {
         label: "Revise and Resubmit",
-        href: `/submit-resource.html?draftId=${encodeURIComponent(id)}`
+        href: `/submit-resource.html?draftId=${encodeURIComponent(id)}&edit=1&sourceStatus=REJECTED`
       };
     }
   }
@@ -282,6 +288,22 @@ function renderActions(id, status) {
     `);
   }
 
+  if (status === "APPROVED") {
+    buttons.push(`
+      <a class="action-button action-secondary" href="/detail.html?id=${encodeURIComponent(id)}">
+        Open Public Page
+      </a>
+    `);
+  }
+
+  if (status === "REJECTED") {
+    buttons.push(`
+      <a class="action-button action-secondary" href="#appealSection">
+        Message Admin
+      </a>
+    `);
+  }
+
   buttons.push(`
     <a class="action-button action-secondary" href="/my-resources.html?view=${encodeURIComponent(config.view)}">
       Back to My Resources
@@ -366,6 +388,9 @@ async function init() {
 
     const data = await loadResourceDetail();
     renderResource(data, sessionUser);
+    if (window.location.hash === "#appealSection") {
+      appealSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     showNotice("");
   } catch (error) {
     if (error.status === 401) {

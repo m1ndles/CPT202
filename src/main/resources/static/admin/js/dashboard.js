@@ -1,4 +1,4 @@
-import { getDashboardSummary } from "/admin/js/api.js";
+import { getComplaintInbox, getDashboardSummary } from "/admin/js/api.js";
 
 const attentionCount = document.getElementById("attentionCount");
 const summaryGrid = document.getElementById("summaryGrid");
@@ -11,6 +11,8 @@ const activeTags = document.getElementById("activeTags");
 const latestTaxonomy = document.getElementById("latestTaxonomy");
 const archivedResources = document.getElementById("archivedResources");
 const latestArchive = document.getElementById("latestArchive");
+const openComplaints = document.getElementById("openComplaints");
+const latestComplaint = document.getElementById("latestComplaint");
 const historyPreview = document.getElementById("historyPreview");
 
 const sectionBindings = {
@@ -483,4 +485,23 @@ async function loadDashboard() {
     }
 }
 
+async function loadComplaintOverview() {
+    if (!openComplaints || !latestComplaint) {
+        return;
+    }
+
+    try {
+        const data = await getComplaintInbox();
+        const items = Array.isArray(data.items) ? data.items : [];
+        const openItems = items.filter((item) => !["RESOLVED", "CLOSED"].includes(String(item.status || "").toUpperCase()));
+        openComplaints.textContent = String(openItems.length);
+        latestComplaint.textContent = openItems[0]?.title || items[0]?.title || "No complaints yet";
+    } catch (error) {
+        console.error("Failed to load complaint overview.", error);
+        openComplaints.textContent = "0";
+        latestComplaint.textContent = "Unable to load complaint inbox";
+    }
+}
+
 loadDashboard();
+loadComplaintOverview();

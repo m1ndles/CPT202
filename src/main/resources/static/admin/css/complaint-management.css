@@ -1,0 +1,237 @@
+.complaint-toolbar {
+    grid-template-columns: minmax(0, 2fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr) auto;
+}
+
+.complaint-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.3fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.complaint-list-panel,
+.complaint-detail-panel {
+    padding: 24px;
+    min-width: 0;
+}
+
+.complaint-list {
+    display: grid;
+    gap: 12px;
+}
+
+.complaint-item {
+    display: grid;
+    gap: 10px;
+    padding: 16px 18px;
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.74);
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.complaint-item:hover,
+.complaint-item.is-active {
+    border-color: rgba(17, 94, 89, 0.24);
+    box-shadow: 0 10px 26px rgba(57, 67, 59, 0.08);
+    transform: translateY(-1px);
+}
+
+.complaint-item-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+}
+
+.complaint-item h3,
+.thread-message strong,
+.complaint-meta strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.complaint-type-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.complaint-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(17, 94, 89, 0.08);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.reply-state-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.reply-state-pill.needs-reply,
+.reply-state-text.needs-reply {
+    color: #9a4d06;
+}
+
+.reply-state-pill.needs-reply {
+    background: #fff2d9;
+    border-color: #f0cf8a;
+}
+
+.reply-state-pill.is-replied,
+.reply-state-text.is-replied {
+    color: var(--accent);
+}
+
+.reply-state-pill.is-replied {
+    background: var(--accent-soft);
+    border-color: rgba(17, 94, 89, 0.18);
+}
+
+.reply-state-pill.is-reviewing,
+.reply-state-text.is-reviewing {
+    color: #31566f;
+}
+
+.reply-state-pill.is-reviewing {
+    background: #e4eef6;
+    border-color: #bfd4e6;
+}
+
+.complaint-preview {
+    margin: 0;
+    font-size: 0.84rem;
+}
+
+.complaint-meta {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.74);
+    border: 1px solid rgba(31, 42, 36, 0.08);
+}
+
+.complaint-meta-row {
+    display: grid;
+    gap: 4px;
+}
+
+.detail-helper {
+    margin: 14px 0 0;
+}
+
+.complaint-action-link {
+    margin-top: 16px;
+}
+
+#reopenButton {
+    margin-top: 12px;
+}
+
+.message-thread {
+    display: grid;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.thread-empty {
+    padding: 18px;
+    border-radius: 20px;
+    border: 1px dashed var(--line);
+    background: rgba(255, 255, 255, 0.58);
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.thread-message {
+    padding: 16px 18px;
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.thread-message.user,
+.thread-message.applicant {
+    background: #fbf6ee;
+    border-color: #e7d8c0;
+}
+
+.thread-message.admin {
+    background: #eef5f2;
+    border-color: rgba(55, 103, 87, 0.24);
+}
+
+.thread-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.thread-meta strong {
+    color: var(--ink);
+    font-size: 0.76rem;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.thread-body {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--ink);
+}
+
+.reply-card {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 22px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+@media (max-width: 1100px) {
+    .complaint-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .complaint-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .complaint-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .complaint-list-panel,
+    .complaint-detail-panel {
+        padding: 20px;
+    }
+}

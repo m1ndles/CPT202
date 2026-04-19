@@ -1,8 +1,10 @@
 import {
   getCurrentContributorApplication,
+  getProfileEngagement,
   getProfile,
   getMyContributorApplications,
   logout,
+  submitContributorApplicationAppeal,
   updateEmail,
   updatePassword,
   updateProfile,
@@ -36,6 +38,9 @@ const roleBadge = document.getElementById("roleBadge");
 const roleDescription = document.getElementById("roleDescription");
 const uploadResourceBtn = document.getElementById("uploadResourceBtn");
 const uploadResourceDesc = document.getElementById("uploadResourceDesc");
+const engagementPanel = document.getElementById("engagementPanel");
+const engagementChart = document.getElementById("engagementChart");
+const engagementTotalLikes = document.getElementById("engagementTotalLikes");
 const emailForm = document.getElementById("emailForm");
 const newEmailInput = document.getElementById("newEmail");
 const emailCurrentPasswordInput = document.getElementById("emailCurrentPassword");
@@ -49,6 +54,208 @@ const submitPasswordBtn = document.getElementById("submitPasswordBtn");
 const passwordMessage = document.getElementById("passwordMessage");
 let currentAvatarUrl = "";
 let canUploadResource = false;
+let currentContributorApplication = null;
+
+function renderContributorEngagement(data) {
+  if (!engagementPanel || !engagementChart || !engagementTotalLikes) {
+    return;
+  }
+
+  const points = Array.isArray(data?.dailyReceivedLikes) ? data.dailyReceivedLikes : [];
+  const totalLikes = Number(data?.totalReceivedLikes || 0);
+  engagementTotalLikes.textContent = String(totalLikes);
+
+  if (!points.length) {
+    engagementPanel.classList.remove("hidden");
+    engagementChart.innerHTML = `
+      <div class="rounded-xl border border-dashed border-surface-line bg-white px-4 py-8 text-center text-sm text-text-soft">
+        No public likes have been recorded for your resources yet.
+      </div>
+    `;
+    return;
+  }
+
+  const normalizedPoints = points.map((item) => ({
+    date: item.date || "",
+    label: item.label || "",
+    count: Number(item.count || 0)
+  }));
+  const maxValue = Math.max(...normalizedPoints.map((item) => item.count), 1);
+  const bestDay = normalizedPoints.reduce(
+    (best, item) => item.count > best.count ? item : best,
+    normalizedPoints[0]
+  );
+  const width = 920;
+  const height = 260;
+  const paddingLeft = 58;
+  const paddingRight = 24;
+  const paddingTop = 24;
+  const paddingBottom = 52;
+  const chartWidth = width - paddingLeft - paddingRight;
+  const chartHeight = height - paddingTop - paddingBottom;
+  const xStep = normalizedPoints.length > 1 ? chartWidth / (normalizedPoints.length - 1) : 0;
+  const linePath = normalizedPoints.map((item, index) => {
+    const x = paddingLeft + xStep * index;
+    const y = paddingTop + chartHeight - (item.count / maxValue) * chartHeight;
+    return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+  }).join(" ");
+  const areaPath = `${linePath} L ${paddingLeft + xStep * (normalizedPoints.length - 1)} ${paddingTop + chartHeight} L ${paddingLeft} ${paddingTop + chartHeight} Z`;
+  const yTicks = Array.from({ length: 4 }, (_, index) => {
+    const value = Math.round((maxValue / 3) * (3 - index));
+    const y = paddingTop + (chartHeight / 3) * index;
+    return { value, y };
+  });
+
+  engagementPanel.classList.remove("hidden");
+  engagementChart.innerHTML = `
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
+      <div class="rounded-xl bg-white px-3 py-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3 px-2">
+          <div>
+            <div class="text-xs uppercase tracking-[0.18em] text-outline">Trend</div>
+            <div class="text-sm text-text-soft">X-axis: month/day, Y-axis: likes received</div>
+          </div>
+          <div class="rounded-full bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+            Total likes: ${totalLikes}
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <svg viewBox="0 0 ${width} ${height}" class="min-w-[760px] w-full h-[280px]" aria-label="Contributor likes trend chart">
+            ${yTicks.map((tick) => `
+              <g>
+                <line x1="${paddingLeft}" y1="${tick.y}" x2="${width - paddingRight}" y2="${tick.y}" stroke="rgba(112, 121, 116, 0.15)" stroke-width="1" />
+                <text x="${paddingLeft - 12}" y="${tick.y + 4}" text-anchor="end" font-size="11" fill="#707974">${tick.value}</text>
+              </g>
+            `).join("")}
+            <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${width - paddingRight}" y2="${paddingTop + chartHeight}" stroke="rgba(55, 103, 87, 0.22)" stroke-width="1.5" />
+            <path d="${areaPath}" fill="rgba(55, 103, 87, 0.10)"></path>
+            <path d="${linePath}" fill="none" stroke="#376757" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+            ${normalizedPoints.map((item, index) => {
+              const x = paddingLeft + xStep * index;
+              const y = paddingTop + chartHeight - (item.count / maxValue) * chartHeight;
+              return `
+                <g>
+                  <circle cx="${x}" cy="${y}" r="4.5" fill="#376757"></circle>
+                  <circle cx="${x}" cy="${y}" r="9" fill="transparent">
+                    <title>${escapeHtml(item.date)}: ${item.count} likes</title>
+                  </circle>
+                  <text x="${x}" y="${paddingTop + chartHeight + 22}" text-anchor="middle" font-size="11" fill="#707974">${escapeHtml(item.label)}</text>
+                </g>
+              `;
+            }).join("")}
+          </svg>
+        </div>
+      </div>
+      <div class="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 text-sm text-text-soft">
+        <div class="text-[11px] uppercase tracking-[0.18em] text-outline">Highlights</div>
+        <div class="mt-3 space-y-3">
+          <div>
+            <div class="font-semibold text-text-main">Best Day</div>
+            <div>${escapeHtml(bestDay.date || "-")} with ${bestDay.count} likes</div>
+          </div>
+          <div>
+            <div class="font-semibold text-text-main">Range</div>
+            <div>Last ${normalizedPoints.length} days of public saves on your resources</div>
+          </div>
+          <div>
+            <div class="font-semibold text-text-main">Total</div>
+            <div>${totalLikes} likes collected across all your resources</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadContributorEngagementSafely() {
+  try {
+    const engagement = await getProfileEngagement();
+    renderContributorEngagement(engagement);
+  } catch (error) {
+    engagementPanel?.classList.remove("hidden");
+    if (engagementChart) {
+      engagementChart.innerHTML = `
+        <div class="rounded-xl border border-dashed border-surface-line bg-white px-4 py-8 text-center text-sm text-text-soft">
+          We could not load your likes trend right now.
+        </div>
+      `;
+    }
+    if (engagementTotalLikes) {
+      engagementTotalLikes.textContent = "0";
+    }
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderApplicationAppealMessages(messages) {
+  if (!Array.isArray(messages) || !messages.length) {
+    return `
+      <div class="rounded-xl border border-surface-line bg-white/70 px-4 py-4 text-sm text-text-soft">
+        No appeal messages have been sent yet.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="space-y-3">
+      ${messages.map((item) => {
+        const isAdmin = String(item.senderRole || "").toUpperCase() === "ADMIN";
+        return `
+          <article class="rounded-xl border px-4 py-4 ${isAdmin ? "border-primary/15 bg-primary/5" : "border-red-200 bg-red-50/70"}">
+            <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-outline">
+              <span>${escapeHtml(item.createdAt || "")}</span>
+              <strong class="text-text-main tracking-normal normal-case">${escapeHtml(item.senderName || "")}</strong>
+            </div>
+            <p class="mt-2 text-sm leading-6 text-text-main">${escapeHtml(item.content || "")}</p>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function bindApplicationAppealComposer(application) {
+  const button = document.getElementById("applicationAppealSendBtn");
+  const input = document.getElementById("applicationAppealInput");
+  const status = document.getElementById("applicationAppealStatus");
+  if (!button || !input || !status || !application?.canSendAppeal) {
+    return;
+  }
+
+  button.addEventListener("click", async () => {
+    const content = input.value.trim();
+    if (!content) {
+      status.textContent = "Appeal message content is required.";
+      status.className = "mt-3 text-xs leading-5 text-red-700";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = "";
+    try {
+      const response = await submitContributorApplicationAppeal(content);
+      currentContributorApplication = {
+        ...application,
+        appealMessages: response.messages || application.appealMessages
+      };
+      renderContributorApplicationSummary(currentContributorApplication);
+      showMessage(response.message || "Appeal message sent.", "success");
+    } catch (error) {
+      status.textContent = error.message || "Failed to send appeal message.";
+      status.className = "mt-3 text-xs leading-5 text-red-700";
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
 
 function renderContributorApplicationSummary(application) {
   if (!contributorApplicationPanel || !applicationSummaryCard || !applicationStatusBadge) {
@@ -56,6 +263,7 @@ function renderContributorApplicationSummary(application) {
   }
 
   contributorApplicationPanel.classList.remove("hidden");
+  currentContributorApplication = application;
 
   if (!application) {
     applicationStatusBadge.textContent = "No Record";
@@ -95,6 +303,28 @@ function renderContributorApplicationSummary(application) {
   const linkRow = link
     ? `<a class="font-semibold underline" href="${link}" target="_blank" rel="noreferrer">Open supporting link</a>`
     : "<div>No supporting link attached.</div>";
+  const appealThread = status === "REJECTED"
+    ? `
+      <div class="mt-4 border-t border-current/15 pt-4">
+        <div class="text-xs uppercase tracking-[0.18em] opacity-80 mb-3">Appeal Thread</div>
+        ${renderApplicationAppealMessages(application.appealMessages || [])}
+        ${application.canSendAppeal ? `
+          <div class="mt-4 space-y-3">
+            <textarea id="applicationAppealInput" rows="4" maxlength="1000"
+              placeholder="Explain your qualifications, supplementary evidence, or why you would like the admin team to reconsider."
+              class="w-full rounded-xl border border-surface-line bg-white px-3 py-3 text-sm leading-6 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"></textarea>
+            <button id="applicationAppealSendBtn" type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2d5648] transition-all">
+              Send Appeal Message
+            </button>
+            <p id="applicationAppealStatus" class="mt-3 text-xs leading-5 text-text-soft"></p>
+          </div>
+        ` : `
+          <p class="mt-4 text-xs leading-5">This application is no longer accepting appeal messages.</p>
+        `}
+      </div>
+    `
+    : "";
 
   applicationStatusBadge.textContent = statusLabel;
   applicationStatusBadge.className = badgeClass;
@@ -110,7 +340,12 @@ function renderContributorApplicationSummary(application) {
       ${feedbackRow}
       ${linkRow}
     </div>
+    ${appealThread}
   `;
+
+  if (status === "REJECTED") {
+    bindApplicationAppealComposer(application);
+  }
 }
 
 function showMessage(message, type = "info") {
@@ -295,6 +530,7 @@ async function loadProfile() {
     }
     applyProfileToUI(user);
     if (user.role === "USER") {
+      engagementPanel?.classList.add("hidden");
       const currentApplication = await getCurrentContributorApplication();
       renderContributorApplicationSummary(currentApplication || null);
     } else if (user.role === "CONTRIBUTOR") {
@@ -307,8 +543,14 @@ async function loadProfile() {
         portfolioLink: "",
         attachmentUrl: ""
       });
+      await loadContributorEngagementSafely();
     } else {
       renderContributorApplicationSummary(null);
+      if (user.role === "ADMIN") {
+        await loadContributorEngagementSafely();
+      } else {
+        engagementPanel?.classList.add("hidden");
+      }
     }
   } catch (error) {
     if (error.status === 401) {

@@ -1,11 +1,15 @@
 package com.cpt202.auth.service;
 
+import com.cpt202.auth.dto.ContributorEngagementResponse;
+import com.cpt202.auth.dto.DailyMetricPoint;
 import com.cpt202.auth.dto.SessionUserResponse;
 import com.cpt202.auth.dto.UpdateEmailRequest;
 import com.cpt202.auth.dto.UpdatePasswordRequest;
 import com.cpt202.auth.dto.UpdateProfileRequest;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserAccount;
+import com.cpt202.auth.model.UserRole;
+import com.cpt202.auth.repository.ResourceRepository;
 import com.cpt202.auth.repository.UserRepository;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,15 +33,21 @@ public class ProfileService {
             "image/webp"
     );
     private static final Path AVATAR_UPLOAD_DIR = Path.of("uploads", "avatars");
+    private static final int DEFAULT_ENGAGEMENT_DAYS = 14;
 
     private final UserRepository userRepository;
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
+    private final ResourceRepository resourceRepository;
 
-    public ProfileService(UserRepository userRepository, AuthService authService, PasswordEncoder passwordEncoder) {
+    public ProfileService(UserRepository userRepository,
+                          AuthService authService,
+                          PasswordEncoder passwordEncoder,
+                          ResourceRepository resourceRepository) {
         this.userRepository = userRepository;
         this.authService = authService;
         this.passwordEncoder = passwordEncoder;
+        this.resourceRepository = resourceRepository;
     }
 
     public SessionUserResponse getProfile(Long userId) {
@@ -134,6 +144,20 @@ public class ProfileService {
 
         userRepository.updateEmail(user.id(), normalizedEmail);
         return authService.getSessionUser(user.id(), user.role());
+    }
+
+    public ContributorEngagementResponse getContributorEngagement(Long userId) {
+        UserAccount user = requireUser(userId);
+        if (user.role() != UserRole.CONTRIBUTOR && user.role() != UserRole.ADMIN) {
+            return new ContributorEngagementResponse(0, java.util.List.of());
+        }
+
+        int totalReceivedLikes = resourceRepository.countFavoritesReceivedByOwner(user.id());
+        java.util.List<DailyMetricPoint> trend = resourceRepository.findDailyFavoritesReceivedByOwner(
+                user.id(),
+                DEFAULT_ENGAGEMENT_DAYS
+        );
+        return new ContributorEngagementResponse(totalReceivedLikes, trend);
     }
 
     private UserAccount requireUser(Long userId) {

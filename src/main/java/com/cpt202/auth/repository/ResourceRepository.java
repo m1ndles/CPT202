@@ -2,10 +2,12 @@ package com.cpt202.auth.repository;
 
 import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.dto.MyResourceItemResponse;
+import com.cpt202.auth.dto.DailyMetricPoint;
 import com.cpt202.auth.model.HeritageResource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -344,6 +346,25 @@ public class ResourceRepository {
         }
     }
 
+    public void copyFiles(Long sourceResourceId, Long targetResourceId) {
+        findDraftAttachments(sourceResourceId).forEach(item -> jdbcTemplate.update(
+                "INSERT INTO heritage_resource_files (resource_id, name, type, url) VALUES (?, ?, ?, ?)",
+                targetResourceId,
+                item.name(),
+                item.type(),
+                item.url()
+        ));
+    }
+
+    public void copyLinks(Long sourceResourceId, Long targetResourceId) {
+        findLinksByResourceId(sourceResourceId).forEach(item -> jdbcTemplate.update(
+                "INSERT INTO heritage_resource_links (resource_id, label, url) VALUES (?, ?, ?)",
+                targetResourceId,
+                item.label(),
+                item.url()
+        ));
+    }
+
     public void deleteResource(Long resourceId, Long ownerUserId) {
         jdbcTemplate.update(
                 "DELETE FROM heritage_resources WHERE id = ? AND owner_user_id = ?",
@@ -388,6 +409,65 @@ public class ResourceRepository {
                 resourceId,
                 userId
         );
+    }
+
+    public int countFavoritesReceivedByOwner(Long ownerUserId) {
+        Integer total = jdbcTemplate.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM resource_favorites f
+                INNER JOIN heritage_resources r ON r.id = f.resource_id
+                WHERE r.owner_user_id = ?
+                """,
+                Integer.class,
+                ownerUserId
+        );
+        return total == null ? 0 : total;
+    }
+
+    public List<DailyMetricPoint> findDailyFavoritesReceivedByOwner(Long ownerUserId, int days) {
+        int safeDays = Math.max(days, 1);
+        LocalDate startDate = LocalDate.now().minusDays(safeDays - 1L);
+
+        List<DailyMetricPoint> rawPoints = jdbcTemplate.query(
+                """
+                SELECT
+                    DATE(f.created_at) AS date_value,
+                    COUNT(*) AS like_count
+                FROM resource_favorites f
+                INNER JOIN heritage_resources r ON r.id = f.resource_id
+                WHERE r.owner_user_id = ?
+                  AND DATE(f.created_at) >= ?
+                GROUP BY DATE(f.created_at)
+                ORDER BY DATE(f.created_at)
+                """,
+                (rs, rowNum) -> {
+                    LocalDate date = rs.getDate("date_value").toLocalDate();
+                    return new DailyMetricPoint(
+                            date.toString(),
+                            date.getMonthValue() + "/" + date.getDayOfMonth(),
+                            rs.getInt("like_count")
+                    );
+                },
+                ownerUserId,
+                java.sql.Date.valueOf(startDate)
+        );
+
+        java.util.Map<LocalDate, Integer> countsByDate = new java.util.LinkedHashMap<>();
+        for (DailyMetricPoint point : rawPoints) {
+            countsByDate.put(LocalDate.parse(point.date()), point.count());
+        }
+
+        List<DailyMetricPoint> fullSeries = new ArrayList<>();
+        for (int i = 0; i < safeDays; i++) {
+            LocalDate current = startDate.plusDays(i);
+            fullSeries.add(new DailyMetricPoint(
+                    current.toString(),
+                    current.getMonthValue() + "/" + current.getDayOfMonth(),
+                    countsByDate.getOrDefault(current, 0)
+            ));
+        }
+        return fullSeries;
     }
 
     private void appendFilters(StringBuilder sql, List<Object> params,

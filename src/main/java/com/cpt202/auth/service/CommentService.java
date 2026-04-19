@@ -1,12 +1,15 @@
 package com.cpt202.auth.service;
 
 import com.cpt202.auth.dto.CommentResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.PageResponse;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.repository.CommentRepository;
 import com.cpt202.auth.repository.CommentRepository.CommentViewRow;
+import com.cpt202.auth.repository.CommentReportRepository;
 import com.cpt202.auth.repository.ResourceRepository;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -24,10 +27,14 @@ public class CommentService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final CommentRepository commentRepository;
+    private final CommentReportRepository commentReportRepository;
     private final ResourceRepository resourceRepository;
 
-    public CommentService(CommentRepository commentRepository, ResourceRepository resourceRepository) {
+    public CommentService(CommentRepository commentRepository,
+                          CommentReportRepository commentReportRepository,
+                          ResourceRepository resourceRepository) {
         this.commentRepository = commentRepository;
+        this.commentReportRepository = commentReportRepository;
         this.resourceRepository = resourceRepository;
     }
 
@@ -99,6 +106,54 @@ public class CommentService {
         commentRepository.delete(commentId);
     }
 
+    @Transactional
+    public MessageThreadSubmissionResponse submitReport(Long commentId,
+                                                        Long userId,
+                                                        UserRole role,
+                                                        String username,
+                                                        String content) {
+        ensureLikePermission(userId, role);
+        CommentViewRow comment = commentRepository.findViewById(commentId, userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Comment not found."));
+
+        String normalizedContent = content == null ? "" : content.trim();
+        if (normalizedContent.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Report content is required.");
+        }
+        if (normalizedContent.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Report content must be 1000 characters or fewer.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        CommentReportRepository.CommentReportThreadRecord thread = commentReportRepository
+                .findByCommentIdAndReporterUserId(comment.id(), userId)
+                .orElseGet(() -> {
+                    Long threadId = commentReportRepository.createThread(
+                            comment.id(),
+                            userId,
+                            normalizeUsername(username),
+                            "OPEN",
+                            now
+                    );
+                    return commentReportRepository.findById(threadId)
+                            .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create report thread."));
+                });
+
+        commentReportRepository.insertMessage(
+                thread.id(),
+                "USER",
+                normalizeUsername(username),
+                normalizedContent,
+                now
+        );
+        commentReportRepository.updateThreadStatus(thread.id(), "OPEN", now);
+
+        return new MessageThreadSubmissionResponse(
+                "Comment report sent to the admin team.",
+                commentReportRepository.findMessagesByThreadId(thread.id())
+        );
+    }
+
     private void ensureResourceExists(Long resourceId) {
         if (resourceRepository.findById(resourceId).isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Resource not found.");
@@ -157,5 +212,9 @@ public class CommentService {
 
     private String formatDateTime(java.time.LocalDateTime value) {
         return value == null ? "" : DATE_TIME_FORMATTER.format(value);
+    }
+
+    private String normalizeUsername(String username) {
+        return username == null || username.isBlank() ? "Registered User" : username.trim();
     }
 }

@@ -24,6 +24,8 @@ public record ResourceDetail(
         String rejectionComments,
         List<ResourceAppealMessageResponse> appealMessages,
         boolean canSendAppeal,
+        List<ResourceAppealMessageResponse> reportMessages,
+        boolean canSendReport,
         List<String> tags,
         List<FileItem> files,
         List<LinkItem> links

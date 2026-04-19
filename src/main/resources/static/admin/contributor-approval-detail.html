@@ -56,6 +56,22 @@
                     </article>
                 </div>
             </section>
+
+            <section class="panel">
+                <p class="eyebrow">Appeal Thread</p>
+                <h2>Conversation with applicant</h2>
+                <p class="appeal-helper">When an applicant replies after rejection, continue the conversation here so the full appeal context stays in one place.</p>
+                <div id="appealThreadList" class="appeal-thread-list"></div>
+                <div id="appealReplyCard" class="appeal-reply-card" hidden>
+                    <label class="textarea-label" for="appealReplyInput">Reply to Applicant</label>
+                    <p class="decision-helper">Your message will be visible on the applicant's profile page.</p>
+                    <textarea id="appealReplyInput" rows="5" maxlength="1000" placeholder="Write a follow-up reply for the applicant here."></textarea>
+                    <div class="action-stack">
+                        <button id="sendAppealReplyButton" class="primary-button" type="button">Send Reply</button>
+                    </div>
+                    <p id="appealReplyStatus" class="feedback-message"></p>
+                </div>
+            </section>
         </section>
 
         <aside class="detail-sidebar">
