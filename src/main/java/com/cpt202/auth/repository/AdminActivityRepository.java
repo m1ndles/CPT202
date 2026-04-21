@@ -8,15 +8,24 @@ import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+/**
+ * Admin activity history data access.
+ */
 @Repository
 public class AdminActivityRepository {
 
+    /**
+     * JDBC helper used for history queries and inserts.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public AdminActivityRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Inserts a new admin activity history record.
+     */
     public void insert(String actionType,
                        String targetType,
                        String targetName,
@@ -38,6 +47,9 @@ public class AdminActivityRepository {
         );
     }
 
+    /**
+     * Returns all admin activity history rows.
+     */
     public List<ActivityRecord> findAll() {
         return jdbcTemplate.query(
                 """
@@ -49,11 +61,17 @@ public class AdminActivityRepository {
         );
     }
 
+    /**
+     * Returns the total number of admin history rows.
+     */
     public long count() {
         Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM admin_activity_history", Long.class);
         return count == null ? 0 : count;
     }
 
+    /**
+     * Maps a result row into an activity record.
+     */
     private ActivityRecord mapRecord(ResultSet rs, int rowNum) throws SQLException {
         Timestamp createdAt = rs.getTimestamp("created_at");
         return new ActivityRecord(
@@ -67,6 +85,17 @@ public class AdminActivityRepository {
         );
     }
 
+    /**
+     * Immutable admin activity history row.
+     *
+     * @param id history id
+     * @param actionType action type label
+     * @param targetType target entity type
+     * @param targetName target display name
+     * @param operatorName operator who performed the action
+     * @param createdAt action time
+     * @param details action details
+     */
     public record ActivityRecord(
             Long id,
             String actionType,

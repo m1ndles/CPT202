@@ -27,12 +27,34 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class DraftAttachmentService {
 
+    /**
+     * Maximum upload size for a draft attachment.
+     */
     private static final long MAX_FILE_SIZE = 10L * 1024L * 1024L;
+
+    /**
+     * Supported draft attachment extensions.
+     */
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "pdf", "mp3", "wav");
+
+    /**
+     * Extensions treated as image attachments.
+     */
     private static final Set<String> IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
+
+    /**
+     * Resource statuses that may expose draft-style attachments.
+     */
     private static final Set<String> VIEWABLE_STATUSES = Set.of("DRAFT", "PENDING", "REJECTED");
 
+    /**
+     * Repository used to link stored files with resources.
+     */
     private final ResourceRepository resourceRepository;
+
+    /**
+     * Absolute upload directory for stored attachment files.
+     */
     private final Path uploadDir;
 
     public DraftAttachmentService(
@@ -44,6 +66,9 @@ public class DraftAttachmentService {
         Files.createDirectories(this.uploadDir);
     }
 
+    /**
+     * Stores an uploaded file and links it to the target draft.
+     */
     public DraftAttachmentResponse uploadDraftAttachment(Long draftId, MultipartFile file) {
         HeritageResource draft = requireEditableDraft(draftId);
 
@@ -78,6 +103,9 @@ public class DraftAttachmentService {
         return new DraftAttachmentResponse(attachmentId, originalName, fileType, accessUrl);
     }
 
+    /**
+     * Deletes a stored draft attachment and its database record.
+     */
     public void removeDraftAttachment(Long draftId, Long attachmentId) {
         HeritageResource draft = requireEditableDraft(draftId);
 
@@ -88,6 +116,9 @@ public class DraftAttachmentService {
         resourceRepository.deleteAttachment(draft.id(), attachmentId);
     }
 
+    /**
+     * Loads a stored attachment as a Spring resource.
+     */
     public Resource loadAttachment(String storedName) {
         Path file = uploadDir.resolve(storedName).normalize();
         if (!file.startsWith(uploadDir) || !Files.exists(file)) {
@@ -96,6 +127,9 @@ public class DraftAttachmentService {
         return new FileSystemResource(file);
     }
 
+    /**
+     * Detects the content type for a stored attachment.
+     */
     public String detectContentType(String storedName) {
         try {
             String probe = Files.probeContentType(uploadDir.resolve(storedName));
@@ -105,6 +139,9 @@ public class DraftAttachmentService {
         }
     }
 
+    /**
+     * Returns all attachments linked to a draft-like resource.
+     */
     public List<DraftAttachmentResponse> getDraftAttachments(Long resourceId) {
         requireViewableDraftLikeResource(resourceId);
         return resourceRepository.findDraftAttachments(resourceId).stream()
@@ -112,11 +149,17 @@ public class DraftAttachmentService {
                 .toList();
     }
 
+    /**
+     * Removes every stored file attached to the given resource.
+     */
     public void removeStoredFilesForResource(Long resourceId) {
         resourceRepository.findDraftAttachments(resourceId)
                 .forEach(attachment -> deleteStoredFile(attachment.url()));
     }
 
+    /**
+     * Ensures the target resource is editable as a draft.
+     */
     private HeritageResource requireEditableDraft(Long draftId) {
         HeritageResource resource = resourceRepository.findAnyById(draftId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Draft not found."));
@@ -127,6 +170,9 @@ public class DraftAttachmentService {
         return resource;
     }
 
+    /**
+     * Ensures the target resource can expose draft attachments.
+     */
     private void requireViewableDraftLikeResource(Long resourceId) {
         HeritageResource resource = resourceRepository.findAnyById(resourceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Draft not found."));
@@ -135,6 +181,9 @@ public class DraftAttachmentService {
         }
     }
 
+    /**
+     * Removes a stored attachment file from disk.
+     */
     private void deleteStoredFile(String url) {
         String prefix = "/api/resources/files/";
         if (url == null || !url.startsWith(prefix)) {
@@ -148,6 +197,9 @@ public class DraftAttachmentService {
         }
     }
 
+    /**
+     * Returns the lowercase extension for a file name.
+     */
     private String getExtension(String fileName) {
         int index = fileName.lastIndexOf('.');
         if (index < 0 || index == fileName.length() - 1) {
@@ -156,6 +208,9 @@ public class DraftAttachmentService {
         return fileName.substring(index + 1).toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Maps an extension to the attachment type used by the API.
+     */
     private String resolveFileType(String extension) {
         if (IMAGE_EXTENSIONS.contains(extension)) {
             return "image";

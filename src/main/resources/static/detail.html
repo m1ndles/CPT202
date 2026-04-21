@@ -107,10 +107,13 @@
 <script type="module">
   import {
     addComment,
+    deleteComment,
     getComments,
     getResourceById,
     getSessionUser,
     incrementView,
+    replyToComment,
+    updateComment,
     logout,
     toggleResourceFavorite,
     toggleLike
@@ -124,6 +127,7 @@
   let commentPage = 1;
   let totalCommentPages = 0;
   let loadedComments = [];
+  const expandedReplyParents = new Set();
 
   function slugifyCategory(value) {
     return `cat-${value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
@@ -325,6 +329,80 @@
     readonly.classList.add('hidden');
   }
 
+  function renderCommentCard(comment) {
+    const isReply = comment.parentId != null;
+    const expanded = isReply && expandedReplyParents.has(Number(comment.parentId));
+    const hiddenAttr = isReply && !expanded ? 'hidden' : '';
+    const replyDataAttr = isReply ? `data-reply-of="${comment.parentId}"` : '';
+    const wrapperClasses = isReply
+      ? `reply-card ml-8 sm:ml-12 bg-surface-soft border border-surface-line rounded-2xl p-4 shadow-sm ${hiddenAttr}`
+      : 'bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card';
+    const deletedContentClass = comment.deleted ? 'italic text-text-soft' : 'text-text-main';
+    const editedLabel = comment.edited
+      ? `<span class="text-xs text-outline ml-2">(edited ${escapeHtml(comment.updatedAt || '')})</span>`
+      : '';
+
+    const likeButton = comment.deleted ? '' : `
+      <button
+        class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
+        data-comment-id="${comment.id}"
+        ${sessionUser.guest ? 'disabled title="Log in to like comments"' : ''}
+      >
+        <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
+        ${comment.likes}
+      </button>`;
+
+    const replyButton = comment.canReply ? `
+      <button class="reply-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-text-soft hover:bg-primary/10 hover:text-primary"
+              data-comment-id="${comment.id}">
+        <span class="material-symbols-outlined text-base">reply</span>
+        Reply
+      </button>` : '';
+
+    const parentExpanded = !isReply && expandedReplyParents.has(Number(comment.id));
+    const replyCountBadge = (!isReply && comment.replyCount > 0) ? `
+      <button type="button" class="reply-toggle inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full hover:bg-primary/20"
+              data-parent-id="${comment.id}" aria-expanded="${parentExpanded}">
+        <span class="material-symbols-outlined text-sm">${parentExpanded ? 'expand_less' : 'expand_more'}</span>
+        ${parentExpanded ? 'Hide' : 'Show'} ${comment.replyCount} ${comment.replyCount === 1 ? 'reply' : 'replies'}
+      </button>` : '';
+
+    const editButton = comment.canEdit ? `
+      <button class="edit-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-text-soft hover:bg-primary/10 hover:text-primary"
+              data-comment-id="${comment.id}">
+        <span class="material-symbols-outlined text-base">edit</span>
+        Edit
+      </button>` : '';
+
+    const deleteButton = comment.canDelete ? `
+      <button class="delete-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 hover:bg-red-50"
+              data-comment-id="${comment.id}">
+        <span class="material-symbols-outlined text-base">delete</span>
+        Delete
+      </button>` : '';
+
+    return `
+      <div class="${wrapperClasses} comment-card" data-comment-id="${comment.id}" ${replyDataAttr}>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold text-primary">${escapeHtml(comment.username)}</span>
+            <span class="px-2 py-0.5 bg-primary/80 text-white text-[10px] font-bold rounded-full uppercase">${escapeHtml(comment.role)}</span>
+            ${replyCountBadge}
+          </div>
+          <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}${editedLabel}</span>
+        </div>
+        <div class="comment-body ${deletedContentClass} text-sm leading-7 mb-4" data-role="body">${escapeHtml(comment.content)}</div>
+        <div class="flex flex-wrap items-center gap-2">
+          ${likeButton}
+          ${replyButton}
+          ${editButton}
+          ${deleteButton}
+        </div>
+        <div class="comment-reply-slot hidden mt-4" data-role="reply-slot"></div>
+      </div>
+    `;
+  }
+
   function renderComments() {
     const list = document.getElementById('commentList');
     const empty = document.getElementById('commentEmpty');
@@ -338,28 +416,7 @@
     }
 
     empty.classList.add('hidden');
-    list.innerHTML = loadedComments.map(comment => `
-      <div class="bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-          <div class="flex items-center gap-2">
-            <span class="font-semibold text-primary">${escapeHtml(comment.username)}</span>
-            <span class="px-2 py-0.5 bg-primary/80 text-white text-[10px] font-bold rounded-full uppercase">${escapeHtml(comment.role)}</span>
-          </div>
-          <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}</span>
-        </div>
-        <div class="text-text-main text-sm leading-7 mb-4">${escapeHtml(comment.content)}</div>
-        <div class="flex items-center">
-          <button
-            class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
-            data-comment-id="${comment.id}"
-            ${sessionUser.guest ? 'disabled title="Log in to like comments"' : ''}
-          >
-            <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
-            ${comment.likes}
-          </button>
-        </div>
-      </div>
-    `).join('');
+    list.innerHTML = loadedComments.map(renderCommentCard).join('');
 
     loadMoreBtn.classList.toggle('hidden', commentPage >= totalCommentPages);
 
@@ -369,7 +426,7 @@
         button.disabled = true;
         try {
           const updated = await toggleLike(button.dataset.commentId);
-          loadedComments = loadedComments.map(comment => comment.id === updated.id ? updated : comment);
+          replaceCommentInPlace(updated);
           renderComments();
           showNotice('');
         } catch (error) {
@@ -378,6 +435,194 @@
         }
       });
     });
+
+    list.querySelectorAll('.reply-btn').forEach(button => {
+      button.addEventListener('click', () => openReplyComposer(button.dataset.commentId));
+    });
+
+    list.querySelectorAll('.edit-btn').forEach(button => {
+      button.addEventListener('click', () => openEditComposer(button.dataset.commentId));
+    });
+
+    list.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', () => confirmDeleteComment(button.dataset.commentId));
+    });
+
+    list.querySelectorAll('.reply-toggle').forEach(button => {
+      button.addEventListener('click', () => {
+        const parentId = Number(button.dataset.parentId);
+        const expanding = !expandedReplyParents.has(parentId);
+        if (expanding) {
+          expandedReplyParents.add(parentId);
+        } else {
+          expandedReplyParents.delete(parentId);
+        }
+        renderComments();
+        if (expanding) {
+          requestAnimationFrame(() => {
+            const parentCard = document.querySelector(`.comment-card[data-comment-id="${parentId}"]`);
+            if (parentCard) {
+              parentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        }
+      });
+    });
+  }
+
+  function replaceCommentInPlace(updated) {
+    loadedComments = loadedComments.map(comment => comment.id === updated.id ? updated : comment);
+  }
+
+  function insertReplyAfterParent(parentId, reply) {
+    const index = loadedComments.findIndex(comment => comment.id === Number(parentId) || comment.id === parentId);
+    if (index < 0) {
+      loadedComments = [...loadedComments, reply];
+      return;
+    }
+    let insertAt = index + 1;
+    while (insertAt < loadedComments.length && loadedComments[insertAt].parentId != null) {
+      insertAt += 1;
+    }
+    loadedComments = [
+      ...loadedComments.slice(0, insertAt),
+      reply,
+      ...loadedComments.slice(insertAt)
+    ];
+  }
+
+  function removeComment(commentId) {
+    loadedComments = loadedComments.filter(comment => comment.id !== commentId && comment.parentId !== commentId);
+  }
+
+  function openReplyComposer(commentId) {
+    const card = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
+    if (!card) return;
+    const slot = card.querySelector('[data-role="reply-slot"]');
+    slot.innerHTML = `
+      <textarea class="reply-input w-full min-h-[80px] p-3 bg-surface-soft border border-surface-line rounded-xl text-sm"
+                maxlength="500" placeholder="Reply to this comment"></textarea>
+      <div class="flex items-center gap-2 mt-2">
+        <button class="reply-submit px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-[#2d5648]">Post reply</button>
+        <button class="reply-cancel px-4 py-2 bg-surface-soft text-text-soft rounded-xl text-sm">Cancel</button>
+        <span class="reply-error text-sm text-red-600 hidden"></span>
+      </div>
+    `;
+    slot.classList.remove('hidden');
+    const input = slot.querySelector('.reply-input');
+    const submit = slot.querySelector('.reply-submit');
+    const cancel = slot.querySelector('.reply-cancel');
+    const errorLabel = slot.querySelector('.reply-error');
+    input.focus();
+
+    cancel.addEventListener('click', () => {
+      slot.innerHTML = '';
+      slot.classList.add('hidden');
+    });
+
+    submit.addEventListener('click', async () => {
+      const content = input.value.trim();
+      errorLabel.classList.add('hidden');
+      if (!content) {
+        errorLabel.textContent = 'Reply cannot be empty.';
+        errorLabel.classList.remove('hidden');
+        return;
+      }
+      submit.disabled = true;
+      try {
+        const reply = await replyToComment(commentId, content);
+        insertReplyAfterParent(Number(commentId), reply);
+        expandedReplyParents.add(Number(commentId));
+        renderComments();
+        showNotice('Reply posted.');
+      } catch (error) {
+        submit.disabled = false;
+        errorLabel.textContent = error.message || 'Failed to post reply.';
+        errorLabel.classList.remove('hidden');
+      }
+    });
+  }
+
+  function openEditComposer(commentId) {
+    const card = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
+    if (!card) return;
+    const numericId = Number(commentId);
+    const existing = loadedComments.find(comment => comment.id === numericId);
+    if (!existing) return;
+
+    const body = card.querySelector('[data-role="body"]');
+    const original = existing.content;
+    body.innerHTML = `
+      <textarea class="edit-input w-full min-h-[80px] p-3 bg-surface-soft border border-surface-line rounded-xl text-sm"
+                maxlength="500">${escapeHtml(original)}</textarea>
+      <div class="flex items-center gap-2 mt-2">
+        <button class="edit-save px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-[#2d5648]">Save</button>
+        <button class="edit-cancel px-4 py-2 bg-surface-soft text-text-soft rounded-xl text-sm">Cancel</button>
+        <span class="edit-error text-sm text-red-600 hidden"></span>
+      </div>
+    `;
+    const input = body.querySelector('.edit-input');
+    const save = body.querySelector('.edit-save');
+    const cancel = body.querySelector('.edit-cancel');
+    const errorLabel = body.querySelector('.edit-error');
+    input.focus();
+
+    cancel.addEventListener('click', () => {
+      renderComments();
+    });
+
+    save.addEventListener('click', async () => {
+      const content = input.value.trim();
+      errorLabel.classList.add('hidden');
+      if (!content) {
+        errorLabel.textContent = 'Comment cannot be empty.';
+        errorLabel.classList.remove('hidden');
+        return;
+      }
+      if (content === original) {
+        renderComments();
+        return;
+      }
+      save.disabled = true;
+      try {
+        const updated = await updateComment(commentId, content);
+        replaceCommentInPlace(updated);
+        renderComments();
+        showNotice('Comment updated.');
+      } catch (error) {
+        save.disabled = false;
+        errorLabel.textContent = error.message || 'Failed to update comment.';
+        errorLabel.classList.remove('hidden');
+      }
+    });
+  }
+
+  async function confirmDeleteComment(commentId) {
+    if (!window.confirm('Delete this comment? Replies from others will remain visible.')) {
+      return;
+    }
+    try {
+      await deleteComment(commentId);
+      const numericId = Number(commentId);
+      const existing = loadedComments.find(comment => comment.id === numericId);
+      if (existing && loadedComments.some(comment => comment.parentId === numericId)) {
+        replaceCommentInPlace({
+          ...existing,
+          content: '[Deleted]',
+          deleted: true,
+          canEdit: false,
+          canDelete: false,
+          canReply: false,
+          likedByMe: false
+        });
+      } else {
+        removeComment(numericId);
+      }
+      renderComments();
+      showNotice('Comment deleted.');
+    } catch (error) {
+      showNotice(error.message || 'Failed to delete comment.', true);
+    }
   }
 
   async function loadComments(reset = false) {

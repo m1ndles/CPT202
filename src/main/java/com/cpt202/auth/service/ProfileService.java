@@ -19,19 +19,44 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Profile management business logic.
+ */
 @Service
 public class ProfileService {
 
+    /**
+     * Maximum avatar file size in bytes.
+     */
     private static final long MAX_AVATAR_BYTES = 2L * 1024 * 1024;
+
+    /**
+     * Supported avatar content types.
+     */
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
             "image/png",
             "image/webp"
     );
+
+    /**
+     * Storage directory for uploaded avatars.
+     */
     private static final Path AVATAR_UPLOAD_DIR = Path.of("uploads", "avatars");
 
+    /**
+     * Repository used to load and update users.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Authentication service used to rebuild session-facing profile data.
+     */
     private final AuthService authService;
+
+    /**
+     * Password encoder used to validate and update passwords.
+     */
     private final PasswordEncoder passwordEncoder;
 
     public ProfileService(UserRepository userRepository, AuthService authService, PasswordEncoder passwordEncoder) {
@@ -40,11 +65,17 @@ public class ProfileService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Returns the current user's profile.
+     */
     public SessionUserResponse getProfile(Long userId) {
         UserAccount user = requireUser(userId);
         return authService.getSessionUser(user.id(), user.role());
     }
 
+    /**
+     * Updates the current user's profile fields.
+     */
     public SessionUserResponse updateProfile(Long userId, UpdateProfileRequest request) {
         UserAccount user = requireUser(userId);
 
@@ -60,6 +91,9 @@ public class ProfileService {
         return authService.getSessionUser(user.id(), user.role());
     }
 
+    /**
+     * Uploads and stores a new avatar image.
+     */
     public SessionUserResponse uploadAvatar(Long userId, MultipartFile file) {
         UserAccount user = requireUser(userId);
 
@@ -101,6 +135,9 @@ public class ProfileService {
         return authService.getSessionUser(user.id(), user.role());
     }
 
+    /**
+     * Updates the current user's password.
+     */
     public void updatePassword(Long userId, UpdatePasswordRequest request) {
         UserAccount user = requireUser(userId);
 
@@ -116,6 +153,9 @@ public class ProfileService {
         userRepository.updatePasswordHash(user.id(), encoded);
     }
 
+    /**
+     * Updates the current user's email address.
+     */
     public SessionUserResponse updateEmail(Long userId, UpdateEmailRequest request) {
         UserAccount user = requireUser(userId);
 
@@ -136,6 +176,9 @@ public class ProfileService {
         return authService.getSessionUser(user.id(), user.role());
     }
 
+    /**
+     * Loads the current user or throws an authentication error.
+     */
     private UserAccount requireUser(Long userId) {
         if (userId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
@@ -145,6 +188,9 @@ public class ProfileService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
     }
 
+    /**
+     * Trims a nullable text value and converts blanks to null.
+     */
     private String normalizeText(String value) {
         if (value == null) {
             return null;

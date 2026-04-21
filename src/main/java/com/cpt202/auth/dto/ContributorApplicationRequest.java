@@ -3,6 +3,14 @@ package com.cpt202.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Contributor application submission payload.
+ *
+ * @param fullName applicant full name
+ * @param expertiseField selected expertise field
+ * @param motivationStatement applicant motivation statement
+ * @param portfolioLink optional portfolio link
+ */
 public record ContributorApplicationRequest(
         @NotBlank(message = "Full name is required.")
         @Size(max = 120, message = "Full name must be 120 characters or fewer.")

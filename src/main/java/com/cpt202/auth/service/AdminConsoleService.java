@@ -40,19 +40,60 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Business logic for administrator review and dashboard workflows.
+ */
 @Service
 public class AdminConsoleService {
 
+    /**
+     * Formatter used for date-only values in admin responses.
+     */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /**
+     * Formatter used for date-time values in admin responses.
+     */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+
+    /**
+     * Default operator name for system-seeded history entries.
+     */
     private static final String SYSTEM_OPERATOR = "Admin Console";
 
+    /**
+     * Repository used to load contributor applications.
+     */
     private final ContributorApplicationRepository contributorApplicationRepository;
+
+    /**
+     * Service used to approve or reject contributor applications.
+     */
     private final ContributorApplicationService contributorApplicationService;
+
+    /**
+     * Repository used to load and update resources.
+     */
     private final ResourceRepository resourceRepository;
+
+    /**
+     * Repository used to manage appeal conversations.
+     */
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
+
+    /**
+     * Repository used to manage categories and tags.
+     */
     private final AdminTaxonomyRepository adminTaxonomyRepository;
+
+    /**
+     * Repository used to manage archive records.
+     */
     private final AdminArchiveRepository adminArchiveRepository;
+
+    /**
+     * Repository used to record admin activity history.
+     */
     private final AdminActivityRepository adminActivityRepository;
 
     public AdminConsoleService(ContributorApplicationRepository contributorApplicationRepository,
@@ -71,6 +112,9 @@ public class AdminConsoleService {
         this.adminActivityRepository = adminActivityRepository;
     }
 
+    /**
+     * Imports categories and tags from existing data when the taxonomy is empty.
+     */
     @Transactional
     public void initializeTaxonomyIfEmpty() {
         if (adminTaxonomyRepository.countCategories() == 0) {
@@ -104,6 +148,9 @@ public class AdminConsoleService {
         }
     }
 
+    /**
+     * Builds the administrator dashboard summary.
+     */
     public AdminDashboardSummaryResponse getDashboardSummary() {
         initializeTaxonomyIfEmpty();
 
@@ -293,6 +340,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Returns the current resource moderation queue.
+     */
     public List<AdminResourceReviewItemResponse> getResourceReviewList() {
         return resourceRepository.findAllResources().stream()
                 .filter(resource -> isReviewQueueStatus(resource.status()))
@@ -310,6 +360,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Returns the full review detail for a resource.
+     */
     public AdminResourceReviewDetailResponse getResourceReviewDetail(Long resourceId) {
         HeritageResource resource = resourceRepository.findAnyById(resourceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
@@ -349,6 +402,9 @@ public class AdminConsoleService {
         );
     }
 
+    /**
+     * Sends an administrator reply in a resource appeal thread.
+     */
     @Transactional
     public ResourceAppealSubmissionResponse submitResourceReviewReply(Long resourceId,
                                                                      String operatorName,
@@ -383,6 +439,9 @@ public class AdminConsoleService {
         );
     }
 
+    /**
+     * Approves a pending resource review.
+     */
     @Transactional
     public AdminActionResponse approveResourceReview(Long resourceId, String operatorName) {
         HeritageResource resource = requirePendingResource(resourceId);
@@ -393,6 +452,9 @@ public class AdminConsoleService {
         return new AdminActionResponse("Resource approved and moved into public visible status.");
     }
 
+    /**
+     * Rejects a pending resource review and records revision feedback.
+     */
     @Transactional
     public AdminActionResponse rejectResourceReview(Long resourceId, String rejectionComments, String operatorName) {
         HeritageResource resource = requirePendingResource(resourceId);
@@ -411,6 +473,9 @@ public class AdminConsoleService {
         return new AdminActionResponse("Resource rejected and returned for revision.");
     }
 
+    /**
+     * Returns the managed category list.
+     */
     public List<AdminCategoryItemResponse> getCategories() {
         initializeTaxonomyIfEmpty();
         Map<String, Long> resourceCounts = resourceRepository.findAllResources().stream()
@@ -429,6 +494,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Creates a managed category.
+     */
     @Transactional
     public AdminCategoryItemResponse createCategory(AdminTaxonomyRequest request, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -447,6 +515,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create category."));
     }
 
+    /**
+     * Updates an existing managed category.
+     */
     @Transactional
     public AdminCategoryItemResponse updateCategory(Long categoryId, AdminTaxonomyRequest request, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -468,6 +539,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update category."));
     }
 
+    /**
+     * Toggles the active status of a managed category.
+     */
     @Transactional
     public AdminCategoryItemResponse toggleCategoryStatus(Long categoryId, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -483,6 +557,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update category status."));
     }
 
+    /**
+     * Returns the managed tag list.
+     */
     public List<AdminTagItemResponse> getTags() {
         initializeTaxonomyIfEmpty();
         Map<String, Long> usageCounts = resourceRepository.findAllResources().stream()
@@ -502,6 +579,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Creates a managed tag.
+     */
     @Transactional
     public AdminTagItemResponse createTag(AdminTaxonomyRequest request, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -520,6 +600,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create tag."));
     }
 
+    /**
+     * Updates an existing managed tag.
+     */
     @Transactional
     public AdminTagItemResponse updateTag(Long tagId, AdminTaxonomyRequest request, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -541,6 +624,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update tag."));
     }
 
+    /**
+     * Toggles the active status of a managed tag.
+     */
     @Transactional
     public AdminTagItemResponse toggleTagStatus(Long tagId, String operatorName) {
         initializeTaxonomyIfEmpty();
@@ -556,6 +642,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to update tag status."));
     }
 
+    /**
+     * Returns the archived resource list.
+     */
     public List<AdminArchiveItemResponse> getArchiveItems() {
         return adminArchiveRepository.findAll().stream()
                 .map(record -> new AdminArchiveItemResponse(
@@ -574,6 +663,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Returns a single archive record.
+     */
     public AdminArchiveItemResponse getArchiveDetail(Long archiveId) {
         return getArchiveItems().stream()
                 .filter(item -> Objects.equals(item.id(), archiveId))
@@ -581,6 +673,9 @@ public class AdminConsoleService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Archive record not found."));
     }
 
+    /**
+     * Restores an archived resource to approved status.
+     */
     @Transactional
     public AdminActionResponse restoreArchive(Long archiveId, String operatorName) {
         AdminArchiveRepository.ArchiveRecord archiveRecord = adminArchiveRepository.findById(archiveId)
@@ -594,6 +689,9 @@ public class AdminConsoleService {
         return new AdminActionResponse("Resource restored from archive.");
     }
 
+    /**
+     * Returns the administrator activity history.
+     */
     public List<AdminHistoryItemResponse> getHistoryItems() {
         seedHistoryIfEmpty();
         return adminActivityRepository.findAll().stream()
@@ -608,6 +706,9 @@ public class AdminConsoleService {
                 .toList();
     }
 
+    /**
+     * Seeds the history table from existing records when it is empty.
+     */
     private void seedHistoryIfEmpty() {
         if (adminActivityRepository.count() > 0) {
             return;
@@ -641,6 +742,9 @@ public class AdminConsoleService {
         });
     }
 
+    /**
+     * Loads a resource that is currently pending review.
+     */
     private HeritageResource requirePendingResource(Long resourceId) {
         HeritageResource resource = resourceRepository.findAnyById(resourceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
@@ -650,6 +754,9 @@ public class AdminConsoleService {
         return resource;
     }
 
+    /**
+     * Updates a resource to the next moderation status.
+     */
     private void updateResourceStatus(HeritageResource resource, String nextStatus) {
         resourceRepository.updateDraft(new HeritageResource(
                 resource.id(),
@@ -670,6 +777,9 @@ public class AdminConsoleService {
         ));
     }
 
+    /**
+     * Records an admin action in the history table.
+     */
     private void recordHistory(String actionType,
                                String targetType,
                                String targetName,
@@ -685,6 +795,9 @@ public class AdminConsoleService {
         );
     }
 
+    /**
+     * Returns the display label for the resource contributor.
+     */
     private String contributorLabel(HeritageResource resource) {
         if (hasText(resource.ownerUsername())) {
             return resource.ownerUsername();
@@ -692,16 +805,25 @@ public class AdminConsoleService {
         return resource.trackingId() == null ? "Contributor" : "Tracking " + resource.trackingId();
     }
 
+    /**
+     * Builds a short metadata summary for review and archive screens.
+     */
     private String buildSubmissionMetadata(HeritageResource resource) {
         return "Submission ID: " + valueOrFallback(resource.trackingId(), "N/A")
                 + " | Status: " + resource.status()
                 + " | Created: " + formatDateTime(resource.createdAt());
     }
 
+    /**
+     * Returns a fallback image when no thumbnail is available.
+     */
     private String defaultImage(String url) {
         return hasText(url) ? url : "/review/images/resource-placeholder.svg";
     }
 
+    /**
+     * Maps internal resource states to admin review labels.
+     */
     private String mapReviewStatus(String status) {
         return switch (String.valueOf(status).toUpperCase(Locale.ROOT)) {
             case "PENDING" -> "PENDING_REVIEW";
@@ -711,11 +833,17 @@ public class AdminConsoleService {
         };
     }
 
+    /**
+     * Returns whether a resource belongs in the review queue.
+     */
     private boolean isReviewQueueStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
         return "PENDING".equals(normalized) || "REJECTED".equals(normalized);
     }
 
+    /**
+     * Returns whether the appeal thread can accept an administrator reply.
+     */
     private boolean canReplyInAppealThread(HeritageResource resource,
                                            String archiveReason,
                                            List<ResourceAppealMessageResponse> appealMessages) {
@@ -726,14 +854,23 @@ public class AdminConsoleService {
         return hasText(archiveReason) || !appealMessages.isEmpty();
     }
 
+    /**
+     * Formats a date for admin responses.
+     */
     private String formatDate(LocalDateTime value) {
         return value == null ? "" : DATE_FORMATTER.format(value);
     }
 
+    /**
+     * Formats a date-time value for admin responses.
+     */
     private String formatDateTime(LocalDateTime value) {
         return value == null ? "" : DATE_TIME_FORMATTER.format(value);
     }
 
+    /**
+     * Parses a date-time string used by DTOs and history rows.
+     */
     private LocalDateTime parseDateTime(String value) {
         if (!hasText(value)) {
             return LocalDateTime.MIN;
@@ -750,6 +887,9 @@ public class AdminConsoleService {
         }
     }
 
+    /**
+     * Parses a date-only string used by admin list items.
+     */
     private LocalDateTime parseDate(String value) {
         if (!hasText(value)) {
             return LocalDateTime.MIN;
@@ -761,10 +901,16 @@ public class AdminConsoleService {
         }
     }
 
+    /**
+     * Normalizes the operator name used in history entries.
+     */
     private String operator(String operatorName) {
         return hasText(operatorName) ? operatorName.trim() : SYSTEM_OPERATOR;
     }
 
+    /**
+     * Requires non-blank text and trims the result.
+     */
     private String requireText(String value, String message) {
         if (!hasText(value)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, message);
@@ -772,10 +918,16 @@ public class AdminConsoleService {
         return value.trim();
     }
 
+    /**
+     * Returns the provided value or a fallback when blank.
+     */
     private String valueOrFallback(String value, String fallback) {
         return hasText(value) ? value : fallback;
     }
 
+    /**
+     * Returns whether a string contains non-blank text.
+     */
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }

@@ -4,6 +4,9 @@ import java.util.List;
 
 /**
  * Appeal submission response payload.
+ *
+ * @param message result message
+ * @param appealMessages updated appeal message list
  */
 public record ResourceAppealSubmissionResponse(
         String message,

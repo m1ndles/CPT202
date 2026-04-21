@@ -16,14 +16,23 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ResourceAppealMessageRepository {
 
+    /**
+     * Formatter used for appeal message timestamps.
+     */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * JDBC helper used for appeal message queries and inserts.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public ResourceAppealMessageRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Returns all appeal messages for a resource.
+     */
     public List<ResourceAppealMessageResponse> findByResourceId(Long resourceId) {
         return jdbcTemplate.query(
                 """
@@ -46,6 +55,9 @@ public class ResourceAppealMessageRepository {
         );
     }
 
+    /**
+     * Inserts a new appeal message and returns its id.
+     */
     public Long insert(Long resourceId,
                        String senderRole,
                        String senderName,

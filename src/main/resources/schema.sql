@@ -75,14 +75,19 @@ CREATE TABLE IF NOT EXISTS resource_appeal_messages (
 ) COMMENT = 'appeal and clarification thread for rejected resources';
 
 CREATE TABLE IF NOT EXISTS comments (
-    id          BIGINT   PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique comment identifier',
-    resource_id BIGINT   NOT NULL                            COMMENT 'the resource being commented on',
-    user_id     BIGINT   NOT NULL                            COMMENT 'author, must be a logged-in user, not guest',
-    content     TEXT     NOT NULL                            COMMENT 'comment body, max 500 chars enforced by app',
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'when the comment was posted',
+    id          BIGINT      PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique comment identifier',
+    resource_id BIGINT      NOT NULL                            COMMENT 'the resource being commented on',
+    user_id     BIGINT      NOT NULL                            COMMENT 'author, must be a logged-in user, not guest',
+    parent_id   BIGINT      NULL                                COMMENT 'null for root comment; points to parent comment id for a reply (max 2 levels)',
+    content     TEXT        NOT NULL                            COMMENT 'comment body, max 500 chars enforced by app',
+    status      VARCHAR(10) NOT NULL DEFAULT 'ACTIVE'           COMMENT 'ACTIVE or DELETED; soft delete preserves reply structure',
+    created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'when the comment was posted',
+    updated_at  DATETIME    NULL                                COMMENT 'set when the comment is edited; null means never edited',
+    INDEX idx_comments_parent (parent_id),
     FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) COMMENT = 'user feedback on approved heritage resources';
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+) COMMENT = 'user feedback on approved heritage resources; supports 2-level nested replies and soft delete';
 
 CREATE TABLE IF NOT EXISTS comment_likes (
     comment_id BIGINT   NOT NULL                            COMMENT 'the comment being liked',

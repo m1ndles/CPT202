@@ -9,21 +9,33 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * Converts common application exceptions into API responses.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Handles generic API exceptions.
+     */
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, String>> handleApiException(ApiException exception) {
         return ResponseEntity.status(exception.getStatus())
                 .body(Map.of("message", exception.getMessage()));
     }
 
+    /**
+     * Handles authentication-related exceptions.
+     */
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<Map<String, String>> handleAuthException(AuthException exception) {
         return ResponseEntity.status(exception.getStatus())
                 .body(Map.of("message", exception.getMessage()));
     }
 
+    /**
+     * Handles validation failures from request binding.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException exception) {
         FieldError error = exception.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);

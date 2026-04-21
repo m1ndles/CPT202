@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Appeal submission request.
+ *
+ * @param content appeal message content
  */
 public record ResourceAppealRequest(
         @NotBlank(message = "Appeal message content is required.")

@@ -19,20 +19,40 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Authentication and session management APIs.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    /**
+     * Standard session timeout in seconds.
+     */
     private static final int STANDARD_SESSION_SECONDS = 60 * 30;
+
+    /**
+     * Extended session timeout for remember-me sign-ins.
+     */
     private static final int REMEMBER_ME_SESSION_SECONDS = 60 * 60 * 24 * 30;
+
+    /**
+     * Name of the session cookie.
+     */
     private static final String SESSION_COOKIE_NAME = "JSESSIONID";
 
+    /**
+     * Authentication business service.
+     */
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
+    /**
+     * Signs a user in and creates a new session.
+     */
     @PostMapping("/login")
     public LoginResponse login(
             @Valid @RequestBody LoginRequest request,
@@ -53,6 +73,9 @@ public class AuthController {
         return new LoginResponse("Login successful.", user.role().dashboardPath(), user.username(), user.role().name());
     }
 
+    /**
+     * Registers a new account and signs the user in immediately.
+     */
     @PostMapping("/register")
     public LoginResponse register(
             @Valid @RequestBody RegisterRequest request,
@@ -73,6 +96,9 @@ public class AuthController {
         return new LoginResponse("Account created successfully.", user.role().dashboardPath(), user.username(), user.role().name());
     }
 
+    /**
+     * Creates a temporary guest session.
+     */
     @PostMapping("/guest")
     public LoginResponse continueAsGuest(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         invalidateSession(httpRequest);
@@ -86,6 +112,9 @@ public class AuthController {
         return new LoginResponse("Guest access enabled.", UserRole.GUEST.dashboardPath(), "Guest Visitor", UserRole.GUEST.name());
     }
 
+    /**
+     * Returns the current session user profile.
+     */
     @GetMapping("/me")
     public SessionUserResponse currentUser(HttpSession session) {
         Object roleValue = session.getAttribute("role");
@@ -103,6 +132,9 @@ public class AuthController {
         return user;
     }
 
+    /**
+     * Logs the current session out and clears the cookie.
+     */
     @PostMapping("/logout")
     public LoginResponse logout(HttpSession session, HttpServletResponse response) {
         session.invalidate();
@@ -110,6 +142,9 @@ public class AuthController {
         return new LoginResponse("Logged out successfully.", "/login.html", null, null);
     }
 
+    /**
+     * Invalidates any existing session before creating a new one.
+     */
     private void invalidateSession(HttpServletRequest request) {
         HttpSession existingSession = request.getSession(false);
         if (existingSession != null) {
@@ -117,6 +152,9 @@ public class AuthController {
         }
     }
 
+    /**
+     * Writes the session cookie using the requested lifetime.
+     */
     private void writeSessionCookie(HttpSession session, boolean rememberMe, HttpServletResponse response) {
         Cookie cookie = new Cookie(SESSION_COOKIE_NAME, session.getId());
         cookie.setPath("/");
@@ -125,6 +163,9 @@ public class AuthController {
         response.addCookie(cookie);
     }
 
+    /**
+     * Removes the session cookie from the browser.
+     */
     private void clearSessionCookie(HttpServletResponse response) {
         Cookie cookie = new Cookie(SESSION_COOKIE_NAME, "");
         cookie.setPath("/");

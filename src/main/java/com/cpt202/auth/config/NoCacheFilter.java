@@ -8,9 +8,15 @@ import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Disables browser caching for dynamic pages and APIs.
+ */
 @Component
 public class NoCacheFilter extends OncePerRequestFilter {
 
+    /**
+     * Applies no-cache headers to matching requests before continuing the chain.
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -26,6 +32,9 @@ public class NoCacheFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Determines whether the request URI should bypass browser caching.
+     */
     private boolean shouldDisableCaching(String uri) {
         return uri.startsWith("/api/")
                 || uri.endsWith("/home.html")

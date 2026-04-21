@@ -5,16 +5,25 @@ import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+/**
+ * Applies lightweight schema upgrades during startup.
+ */
 @Component
 @Order(0)
 public class SchemaMigrationRunner implements CommandLineRunner {
 
+    /**
+     * JDBC helper used to inspect and update the schema.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public SchemaMigrationRunner(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Creates missing columns and tables required by the current codebase.
+     */
     @Override
     public void run(String... args) {
         addColumnIfMissing(
@@ -102,6 +111,9 @@ public class SchemaMigrationRunner implements CommandLineRunner {
         );
     }
 
+    /**
+     * Adds a column only when it does not already exist.
+     */
     private void addColumnIfMissing(String tableName, String columnName, String ddl) {
         Integer columnCount = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
@@ -116,6 +128,9 @@ public class SchemaMigrationRunner implements CommandLineRunner {
         }
     }
 
+    /**
+     * Creates a table only when it does not already exist.
+     */
     private void createTableIfMissing(String tableName, String ddl) {
         Integer tableCount = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)

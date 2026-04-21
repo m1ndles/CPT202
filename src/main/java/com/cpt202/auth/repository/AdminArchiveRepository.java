@@ -11,15 +11,24 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+/**
+ * Archive record data access.
+ */
 @Repository
 public class AdminArchiveRepository {
 
+    /**
+     * JDBC helper used for archive queries and updates.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public AdminArchiveRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Returns all archive records with resource details.
+     */
     public List<ArchiveRecord> findAll() {
         return jdbcTemplate.query(
                 """
@@ -41,6 +50,9 @@ public class AdminArchiveRepository {
         );
     }
 
+    /**
+     * Returns a single archive record by id.
+     */
     public Optional<ArchiveRecord> findById(Long id) {
         return jdbcTemplate.query(
                 """
@@ -63,6 +75,9 @@ public class AdminArchiveRepository {
         ).stream().findFirst();
     }
 
+    /**
+     * Returns the archive record for a resource when present.
+     */
     public Optional<ArchiveRecord> findByResourceId(Long resourceId) {
         return jdbcTemplate.query(
                 """
@@ -85,11 +100,17 @@ public class AdminArchiveRepository {
         ).stream().findFirst();
     }
 
+    /**
+     * Returns the total number of archive records.
+     */
     public long count() {
         Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM admin_archive_records", Long.class);
         return count == null ? 0 : count;
     }
 
+    /**
+     * Creates or updates the archive record for a resource.
+     */
     public Long upsert(Long resourceId,
                        String contributorLabel,
                        String archivedBy,
@@ -143,14 +164,23 @@ public class AdminArchiveRepository {
         return key.longValue();
     }
 
+    /**
+     * Deletes an archive record by id.
+     */
     public void deleteById(Long id) {
         jdbcTemplate.update("DELETE FROM admin_archive_records WHERE id = ?", id);
     }
 
+    /**
+     * Deletes the archive record for a resource.
+     */
     public void deleteByResourceId(Long resourceId) {
         jdbcTemplate.update("DELETE FROM admin_archive_records WHERE resource_id = ?", resourceId);
     }
 
+    /**
+     * Maps a result row into an archive record.
+     */
     private ArchiveRecord mapRecord(ResultSet rs, int rowNum) throws SQLException {
         Timestamp archivedAt = rs.getTimestamp("archived_at");
         return new ArchiveRecord(
@@ -167,6 +197,20 @@ public class AdminArchiveRepository {
         );
     }
 
+    /**
+     * Immutable archive record view.
+     *
+     * @param id archive id
+     * @param resourceId archived resource id
+     * @param title archived resource title
+     * @param contributorLabel contributor display label
+     * @param category resource category
+     * @param archivedAt archive time
+     * @param archivedBy operator who archived the resource
+     * @param archiveReason archive reason
+     * @param publicationHistory publication history summary
+     * @param originalMetadata original submission metadata
+     */
     public record ArchiveRecord(
             Long id,
             Long resourceId,

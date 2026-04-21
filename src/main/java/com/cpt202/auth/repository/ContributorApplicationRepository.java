@@ -12,17 +12,29 @@ import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+/**
+ * Contributor application data access.
+ */
 @Repository
 public class ContributorApplicationRepository {
 
+    /**
+     * Formatter used for contributor application timestamps.
+     */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * JDBC helper used for application queries and updates.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public ContributorApplicationRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Returns the latest application for a user.
+     */
     public Optional<ContributorApplicationResponse> findLatestByUserId(Long userId) {
         String sql = """
                 SELECT ca.id,
@@ -49,6 +61,9 @@ public class ContributorApplicationRepository {
         return items.stream().findFirst();
     }
 
+    /**
+     * Returns the application history for a user.
+     */
     public List<ContributorApplicationSummaryResponse> findByUserId(Long userId) {
         String sql = """
                 SELECT ca.id,
@@ -68,6 +83,9 @@ public class ContributorApplicationRepository {
         return jdbcTemplate.query(sql, this::mapSummary, userId);
     }
 
+    /**
+     * Returns all pending contributor applications.
+     */
     public List<ContributorApplicationSummaryResponse> findAllPending() {
         String sql = """
                 SELECT ca.id,
@@ -87,6 +105,9 @@ public class ContributorApplicationRepository {
         return jdbcTemplate.query(sql, this::mapSummary);
     }
 
+    /**
+     * Returns all contributor applications.
+     */
     public List<ContributorApplicationSummaryResponse> findAllApplications() {
         String sql = """
                 SELECT ca.id,
@@ -105,6 +126,9 @@ public class ContributorApplicationRepository {
         return jdbcTemplate.query(sql, this::mapSummary);
     }
 
+    /**
+     * Returns a contributor application by id.
+     */
     public Optional<ContributorApplicationResponse> findById(Long id) {
         String sql = """
                 SELECT ca.id,
@@ -129,6 +153,9 @@ public class ContributorApplicationRepository {
         return items.stream().findFirst();
     }
 
+    /**
+     * Inserts a new contributor application and returns its id.
+     */
     public Long insert(Long userId,
                        String fullName,
                        String expertiseField,
@@ -154,6 +181,9 @@ public class ContributorApplicationRepository {
         return jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
     }
 
+    /**
+     * Updates the review result for an application.
+     */
     public void updateReview(Long applicationId, String status, String rejectionComments) {
         jdbcTemplate.update("""
                         UPDATE contributor_applications
@@ -166,6 +196,9 @@ public class ContributorApplicationRepository {
         );
     }
 
+    /**
+     * Maps a result row into the summary response.
+     */
     private ContributorApplicationSummaryResponse mapSummary(ResultSet rs, int rowNum) throws SQLException {
         return new ContributorApplicationSummaryResponse(
                 rs.getLong("id"),
@@ -180,6 +213,9 @@ public class ContributorApplicationRepository {
         );
     }
 
+    /**
+     * Maps a result row into the detail response.
+     */
     private ContributorApplicationResponse mapDetail(ResultSet rs, int rowNum) throws SQLException {
         return new ContributorApplicationResponse(
                 rs.getLong("id"),
@@ -199,6 +235,9 @@ public class ContributorApplicationRepository {
         );
     }
 
+    /**
+     * Formats a database timestamp for the API response.
+     */
     private String format(Timestamp timestamp) {
         if (timestamp == null) {
             return null;

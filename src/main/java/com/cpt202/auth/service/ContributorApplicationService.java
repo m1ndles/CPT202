@@ -24,21 +24,50 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Contributor application business logic.
+ */
 @Service
 public class ContributorApplicationService {
 
+    /**
+     * Maximum supporting file size in bytes.
+     */
     private static final long MAX_FILE_BYTES = 10L * 1024 * 1024;
+
+    /**
+     * Supported supporting file content types.
+     */
     private static final Set<String> ALLOWED_FILE_TYPES = Set.of(
             "application/pdf",
             "image/jpeg",
             "image/png",
             "image/webp"
     );
+
+    /**
+     * Storage directory for contributor application files.
+     */
     private static final Path APPLICATION_UPLOAD_DIR = Path.of("uploads", "applications");
 
+    /**
+     * Repository used to read and update contributor applications.
+     */
     private final ContributorApplicationRepository contributorApplicationRepository;
+
+    /**
+     * Repository used to validate expertise fields against resource categories.
+     */
     private final ResourceRepository resourceRepository;
+
+    /**
+     * Repository used to load and update user accounts.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Repository used to record administrator actions.
+     */
     private final AdminActivityRepository adminActivityRepository;
 
     public ContributorApplicationService(ContributorApplicationRepository contributorApplicationRepository,
@@ -51,16 +80,25 @@ public class ContributorApplicationService {
         this.adminActivityRepository = adminActivityRepository;
     }
 
+    /**
+     * Returns the latest application for the current user.
+     */
     public ContributorApplicationResponse getCurrentApplication(Long userId) {
         requireEligibleUser(userId);
         return contributorApplicationRepository.findLatestByUserId(userId).orElse(null);
     }
 
+    /**
+     * Returns the full application history for the current user.
+     */
     public List<ContributorApplicationSummaryResponse> getMyApplications(Long userId) {
         requireSignedInUser(userId);
         return contributorApplicationRepository.findByUserId(userId);
     }
 
+    /**
+     * Submits a contributor application and stores its optional file.
+     */
     @Transactional
     public ContributorApplicationResponse submit(Long userId,
                                                  ContributorApplicationRequest request,
@@ -92,15 +130,24 @@ public class ContributorApplicationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save contributor application."));
     }
 
+    /**
+     * Returns all pending applications for administrator review.
+     */
     public List<ContributorApplicationSummaryResponse> getPendingApplications() {
         return contributorApplicationRepository.findAllPending();
     }
 
+    /**
+     * Returns the details for a single contributor application.
+     */
     public ContributorApplicationResponse getApplicationDetail(Long applicationId) {
         return contributorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contributor application not found."));
     }
 
+    /**
+     * Approves a contributor application and upgrades the user role.
+     */
     @Transactional
     public ContributorApplicationResponse approve(Long applicationId, String operatorName) {
         ContributorApplicationResponse detail = getApplicationDetail(applicationId);
@@ -126,6 +173,9 @@ public class ContributorApplicationService {
         return getApplicationDetail(applicationId);
     }
 
+    /**
+     * Rejects a contributor application with review comments.
+     */
     @Transactional
     public ContributorApplicationResponse reject(Long applicationId, String comments, String operatorName) {
         String normalizedComments = normalizeText(comments);
@@ -146,12 +196,18 @@ public class ContributorApplicationService {
         return getApplicationDetail(applicationId);
     }
 
+    /**
+     * Ensures the application is still waiting for review.
+     */
     private void requirePending(ContributorApplicationResponse application) {
         if (!"PENDING".equalsIgnoreCase(application.status())) {
             throw new ApiException(HttpStatus.CONFLICT, "Only pending contributor applications can be reviewed.");
         }
     }
 
+    /**
+     * Ensures the current user is eligible to submit an application.
+     */
     private UserAccount requireEligibleUser(Long userId) {
         UserAccount user = requireSignedInUser(userId);
         if (user.role() != UserRole.USER) {
@@ -160,6 +216,9 @@ public class ContributorApplicationService {
         return user;
     }
 
+    /**
+     * Loads the signed-in user or throws an authentication error.
+     */
     private UserAccount requireSignedInUser(Long userId) {
         if (userId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
@@ -168,6 +227,9 @@ public class ContributorApplicationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
     }
 
+    /**
+     * Stores an optional supporting file for the application.
+     */
     private StoredFile storeSupportingFile(MultipartFile file, Long userId) {
         if (file == null || file.isEmpty()) {
             return null;
@@ -200,6 +262,9 @@ public class ContributorApplicationService {
         return new StoredFile(originalName, "/uploads/applications/" + storedName);
     }
 
+    /**
+     * Resolves the file extension for the uploaded content.
+     */
     private String extensionOf(String originalName, String contentType) {
         int dot = originalName.lastIndexOf('.');
         if (dot >= 0 && dot < originalName.length() - 1) {
@@ -214,6 +279,9 @@ public class ContributorApplicationService {
         };
     }
 
+    /**
+     * Trims a nullable text value and converts blanks to null.
+     */
     private String normalizeText(String value) {
         if (value == null) {
             return null;
@@ -222,6 +290,9 @@ public class ContributorApplicationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    /**
+     * Validates the selected expertise field against known categories.
+     */
     private String normalizeExpertiseField(String value) {
         String normalized = normalizeText(value);
         List<String> categories = resourceRepository.findCategories();
@@ -231,11 +302,17 @@ public class ContributorApplicationService {
         return normalized;
     }
 
+    /**
+     * Returns the operator name used for admin history entries.
+     */
     private String operator(String operatorName) {
         String normalized = normalizeText(operatorName);
         return normalized == null ? "Admin Console" : normalized;
     }
 
+    /**
+     * Stored file projection used during application submission.
+     */
     private record StoredFile(String originalName, String url) {
     }
 }

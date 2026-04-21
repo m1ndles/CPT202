@@ -47,9 +47,24 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/resources")
 public class ResourceController {
 
+    /**
+     * Service for resource workflows.
+     */
     private final ResourceService resourceService;
+
+    /**
+     * Service for comment workflows under a resource.
+     */
     private final CommentService commentService;
+
+    /**
+     * Service for draft attachment storage.
+     */
     private final DraftAttachmentService draftAttachmentService;
+
+    /**
+     * Repository used to resolve the signed-in user.
+     */
     private final UserRepository userRepository;
 
     public ResourceController(ResourceService resourceService,
@@ -62,6 +77,9 @@ public class ResourceController {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Returns the public resource list with filters and paging.
+     */
     @GetMapping
     public PageResponse<ResourceSummary> getResources(
             @RequestParam(defaultValue = "") String keyword,
@@ -74,16 +92,25 @@ public class ResourceController {
         return resourceService.getResources(keyword, category, place, sort, page, size);
     }
 
+    /**
+     * Returns the available public categories.
+     */
     @GetMapping("/categories")
     public List<String> getCategories() {
         return resourceService.getCategories();
     }
 
+    /**
+     * Returns the available public places.
+     */
     @GetMapping("/places")
     public List<String> getPlaces() {
         return resourceService.getPlaces();
     }
 
+    /**
+     * Returns the signed-in contributor's resources.
+     */
     @GetMapping("/mine")
     public List<MyResourceItemResponse> getMyResources(
             @RequestParam(defaultValue = "") String status,
@@ -93,18 +120,27 @@ public class ResourceController {
         return resourceService.getMyResources(user.id(), status);
     }
 
+    /**
+     * Returns the current user's favorite resources.
+     */
     @GetMapping("/favorites")
     public List<ResourceSummary> getMyFavoriteResources(HttpSession session) {
         UserAccount user = requireRegisteredUser(session);
         return resourceService.getMyFavoriteResources(user.id());
     }
 
+    /**
+     * Returns a single resource detail view.
+     */
     @GetMapping("/{resourceId}")
     public ResourceDetail getResource(@PathVariable Long resourceId,
                                       HttpSession session) {
         return resourceService.getResource(resourceId, currentUserId(session));
     }
 
+    /**
+     * Deletes a resource owned by the current contributor.
+     */
     @DeleteMapping("/{resourceId}")
     public ResponseEntity<Map<String, String>> deleteOwnedResource(@PathVariable Long resourceId,
                                                                    HttpSession session) {
@@ -113,6 +149,9 @@ public class ResourceController {
         return ResponseEntity.ok(Map.of("message", "Resource deleted successfully."));
     }
 
+    /**
+     * Toggles the current user's favorite state for a resource.
+     */
     @PostMapping("/{resourceId}/favorite")
     public ResourceFavoriteResponse toggleFavorite(@PathVariable Long resourceId,
                                                    HttpSession session) {
@@ -120,11 +159,17 @@ public class ResourceController {
         return resourceService.toggleFavorite(resourceId, user.id());
     }
 
+    /**
+     * Increments the public view count for a resource.
+     */
     @PostMapping("/{resourceId}/view")
     public Map<String, Integer> incrementView(@PathVariable Long resourceId) {
         return Map.of("viewCount", resourceService.incrementView(resourceId));
     }
 
+    /**
+     * Returns paged comments for a resource.
+     */
     @GetMapping("/{resourceId}/comments")
     public PageResponse<CommentResponse> getComments(
             @PathVariable Long resourceId,
@@ -132,9 +177,12 @@ public class ResourceController {
             @RequestParam(defaultValue = "10") int size,
             HttpSession session
     ) {
-        return commentService.getComments(resourceId, currentUserId(session), page, size);
+        return commentService.getComments(resourceId, currentUserId(session), currentRole(session), page, size);
     }
 
+    /**
+     * Adds a new root comment to a resource.
+     */
     @PostMapping("/{resourceId}/comments")
     public CommentResponse addComment(
             @PathVariable Long resourceId,
@@ -144,6 +192,9 @@ public class ResourceController {
         return commentService.addComment(resourceId, currentUserId(session), currentRole(session), request.content());
     }
 
+    /**
+     * Submits a resource for moderation review.
+     */
     @PostMapping("/submit")
     public ResponseEntity<Map<String, Object>> submitResource(@RequestBody ResourceSubmissionDto request,
                                                               HttpSession session) {
@@ -162,6 +213,9 @@ public class ResourceController {
                 ));
     }
 
+    /**
+     * Creates or updates a draft resource.
+     */
     @PostMapping("/draft")
     public ResponseEntity<Map<String, Object>> createDraft(@RequestBody ResourceSubmissionDto request,
                                                            HttpSession session) {
@@ -178,6 +232,9 @@ public class ResourceController {
                 ));
     }
 
+    /**
+     * Returns the current contributor's draft payload.
+     */
     @GetMapping("/draft/{resourceId}")
     public Map<String, Object> getDraft(@PathVariable Long resourceId,
                                         HttpSession session) {
@@ -203,6 +260,9 @@ public class ResourceController {
         return response;
     }
 
+    /**
+     * Sends a contributor appeal message for a resource revision.
+     */
     @PostMapping("/{resourceId}/appeals")
     public ResourceAppealSubmissionResponse submitAppeal(
             @PathVariable Long resourceId,
@@ -213,6 +273,9 @@ public class ResourceController {
         return resourceService.submitAppeal(resourceId, user.id(), user.username(), request.content());
     }
 
+    /**
+     * Uploads a draft attachment for an editable resource.
+     */
     @PostMapping(value = "/draft/{resourceId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DraftAttachmentResponse> uploadDraftAttachment(
             @PathVariable Long resourceId,
@@ -225,6 +288,9 @@ public class ResourceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(attachment);
     }
 
+    /**
+     * Deletes a draft attachment from an editable resource.
+     */
     @DeleteMapping("/draft/{resourceId}/attachments/{attachmentId}")
     public ResponseEntity<Map<String, String>> deleteDraftAttachment(
             @PathVariable Long resourceId,
@@ -237,6 +303,9 @@ public class ResourceController {
         return ResponseEntity.ok(Map.of("message", "Attachment removed."));
     }
 
+    /**
+     * Streams a stored attachment back to the client.
+     */
     @GetMapping("/files/{storedName}")
     public ResponseEntity<Resource> getAttachment(@PathVariable String storedName) {
         Resource resource = draftAttachmentService.loadAttachment(storedName);
@@ -247,11 +316,17 @@ public class ResourceController {
                 .body(resource);
     }
 
+    /**
+     * Returns the current session user id.
+     */
     private Long currentUserId(HttpSession session) {
         Object userId = session.getAttribute("userId");
         return userId instanceof Long ? (Long) userId : null;
     }
 
+    /**
+     * Returns the current session role.
+     */
     private UserRole currentRole(HttpSession session) {
         Object role = session.getAttribute("role");
         if (role == null) return null;
@@ -262,6 +337,9 @@ public class ResourceController {
         }
     }
 
+    /**
+     * Ensures the current user can submit and manage resources.
+     */
     private UserAccount requireUploadPermission(HttpSession session) {
         Long userId = currentUserId(session);
         if (userId == null) {
@@ -279,6 +357,9 @@ public class ResourceController {
         return user;
     }
 
+    /**
+     * Ensures the current user is a signed-in registered account.
+     */
     private UserAccount requireRegisteredUser(HttpSession session) {
         Object roleValue = session.getAttribute("role");
         if (roleValue == null) {

@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Size;
 
 /**
  * Request for posting a comment.
+ *
+ * @param content comment content
  */
 public record AddCommentRequest(
         @NotBlank(message = "Comment content is required.")

@@ -11,15 +11,24 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+/**
+ * User account data access.
+ */
 @Repository
 public class UserRepository {
 
+    /**
+     * JDBC helper used for user queries and updates.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public UserRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Returns a user by email address.
+     */
     public Optional<UserAccount> findByEmail(String email) {
         String sql = """
                 SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, avatar_url, bio, created_at
@@ -31,6 +40,9 @@ public class UserRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns a user by id.
+     */
     public Optional<UserAccount> findById(Long userId) {
         String sql = """
                 SELECT id, email, username, password_hash, role, failed_attempts, locked_until, last_login_at, avatar_url, bio, created_at
@@ -42,6 +54,9 @@ public class UserRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns whether a user already exists for the email address.
+     */
     public boolean existsByEmail(String email) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE email = ?",
@@ -51,6 +66,9 @@ public class UserRepository {
         return count != null && count > 0;
     }
 
+    /**
+     * Returns whether a username is already in use.
+     */
     public boolean existsByUsername(String username) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE username = ?",
@@ -60,6 +78,9 @@ public class UserRepository {
         return count != null && count > 0;
     }
 
+    /**
+     * Returns whether a username is used by another account.
+     */
     public boolean existsByUsernameExcludingUserId(String username, Long userId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE username = ? AND id <> ?",
@@ -70,6 +91,9 @@ public class UserRepository {
         return count != null && count > 0;
     }
 
+    /**
+     * Updates failed login counters and the optional lock time.
+     */
     public void updateFailedLogin(Long userId, int failedAttempts, LocalDateTime lockedUntil) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -81,6 +105,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Resets failed login counters after a successful login.
+     */
     public void resetFailedLogin(Long userId) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -90,6 +117,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Inserts a new user account.
+     */
     public void createUser(String email, String username, String passwordHash, UserRole role) {
         jdbcTemplate.update("""
                         INSERT INTO users (email, username, password_hash, role)
@@ -101,6 +131,9 @@ public class UserRepository {
                 role.name());
     }
 
+    /**
+     * Updates the main identity fields for a user.
+     */
     public void updateUser(Long userId, String email, String username, String passwordHash, UserRole role) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -114,6 +147,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Updates the profile fields for a user.
+     */
     public void updateProfile(Long userId, String username, String bio, String avatarUrl) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -126,6 +162,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Updates the avatar url for a user.
+     */
     public void updateAvatarUrl(Long userId, String avatarUrl) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -136,6 +175,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Updates the password hash for a user.
+     */
     public void updatePasswordHash(Long userId, String passwordHash) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -146,6 +188,9 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Updates the email address for a user.
+     */
     public void updateEmail(Long userId, String email) {
         jdbcTemplate.update("""
                         UPDATE users
@@ -156,10 +201,16 @@ public class UserRepository {
                 userId);
     }
 
+    /**
+     * Returns the row mapper for user accounts.
+     */
     private RowMapper<UserAccount> userRowMapper() {
         return this::mapUser;
     }
 
+    /**
+     * Maps a result row into a user account.
+     */
     private UserAccount mapUser(ResultSet rs, int rowNum) throws SQLException {
         return new UserAccount(
                 rs.getLong("id"),

@@ -22,12 +22,18 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ResourceRepository {
 
+    /**
+     * JDBC helper used for resource queries and updates.
+     */
     private final JdbcTemplate jdbcTemplate;
 
     public ResourceRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Counts approved resources that match the current filters.
+     */
     public long countApproved(String keyword, String category, String place) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM heritage_resources r");
         List<Object> params = new ArrayList<>();
@@ -36,6 +42,9 @@ public class ResourceRepository {
         return count == null ? 0 : count;
     }
 
+    /**
+     * Returns approved resources that match the current filters.
+     */
     public List<HeritageResource> findApproved(String keyword, String category, String place,
                                                String sort, int offset, int limit) {
         StringBuilder sql = new StringBuilder("SELECT r.* FROM heritage_resources r");
@@ -48,6 +57,9 @@ public class ResourceRepository {
         return jdbcTemplate.query(sql.toString(), resourceRowMapper(), params.toArray());
     }
 
+    /**
+     * Returns an approved resource by id.
+     */
     public Optional<HeritageResource> findById(Long id) {
         List<HeritageResource> results = jdbcTemplate.query(
                 "SELECT * FROM heritage_resources WHERE id = ? AND status = 'APPROVED'",
@@ -57,6 +69,9 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns a resource by id regardless of status.
+     */
     public Optional<HeritageResource> findAnyById(Long id) {
         List<HeritageResource> results = jdbcTemplate.query(
                 "SELECT * FROM heritage_resources WHERE id = ?",
@@ -66,6 +81,9 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns a resource by id when it belongs to the given owner.
+     */
     public Optional<HeritageResource> findAnyByIdAndOwner(Long id, Long ownerUserId) {
         List<HeritageResource> results = jdbcTemplate.query(
                 "SELECT * FROM heritage_resources WHERE id = ? AND owner_user_id = ?",
@@ -76,6 +94,9 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Returns all resources regardless of status.
+     */
     public List<HeritageResource> findAllResources() {
         return jdbcTemplate.query(
                 "SELECT * FROM heritage_resources ORDER BY created_at DESC, id DESC",
@@ -83,6 +104,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns resources owned by the given contributor.
+     */
     public List<HeritageResource> findByOwner(Long ownerUserId, String status) {
         StringBuilder sql = new StringBuilder("SELECT * FROM heritage_resources WHERE owner_user_id = ?");
         List<Object> params = new ArrayList<>();
@@ -97,6 +121,9 @@ public class ResourceRepository {
         return jdbcTemplate.query(sql.toString(), resourceRowMapper(), params.toArray());
     }
 
+    /**
+     * Returns approved favorite resources for a user.
+     */
     public List<HeritageResource> findFavoritesByUser(Long userId) {
         return jdbcTemplate.query(
                 """
@@ -112,6 +139,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns the public category list.
+     */
     public List<String> findCategories() {
         return jdbcTemplate.queryForList(
                 "SELECT DISTINCT category FROM heritage_resources WHERE status = 'APPROVED' ORDER BY category",
@@ -119,6 +149,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns the public place list.
+     */
     public List<String> findPlaces() {
         return jdbcTemplate.queryForList(
                 "SELECT DISTINCT place FROM heritage_resources WHERE status = 'APPROVED' ORDER BY place",
@@ -126,6 +159,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns the tags linked to a resource.
+     */
     public List<String> findTagsByResourceId(Long resourceId) {
         return jdbcTemplate.queryForList(
                 "SELECT tag FROM heritage_resource_tags WHERE resource_id = ? ORDER BY id",
@@ -134,6 +170,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns attachment file items linked to a resource.
+     */
     public List<ResourceDetail.FileItem> findFilesByResourceId(Long resourceId) {
         return jdbcTemplate.query(
                 "SELECT name, type, url FROM heritage_resource_files WHERE resource_id = ? ORDER BY id",
@@ -146,6 +185,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns external link items linked to a resource.
+     */
     public List<ResourceDetail.LinkItem> findLinksByResourceId(Long resourceId) {
         return jdbcTemplate.query(
                 "SELECT label, url FROM heritage_resource_links WHERE resource_id = ? ORDER BY id",
@@ -157,6 +199,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Increments the public view count for an approved resource.
+     */
     public void incrementViewCount(Long resourceId) {
         jdbcTemplate.update(
                 "UPDATE heritage_resources SET view_count = view_count + 1 WHERE id = ? AND status = 'APPROVED'",
@@ -164,6 +209,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns the current public view count for an approved resource.
+     */
     public int getViewCount(Long resourceId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT view_count FROM heritage_resources WHERE id = ? AND status = 'APPROVED'",
@@ -173,6 +221,9 @@ public class ResourceRepository {
         return count == null ? 0 : count;
     }
 
+    /**
+     * Inserts a new resource row.
+     */
     public HeritageResource insert(HeritageResource resource) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -229,6 +280,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Updates a draft or moderation-state resource row.
+     */
     public HeritageResource updateDraft(HeritageResource resource) {
         jdbcTemplate.update(
                 """
@@ -254,6 +308,9 @@ public class ResourceRepository {
         return resource;
     }
 
+    /**
+     * Returns a draft resource by id.
+     */
     public Optional<HeritageResource> findDraftById(Long id) {
         List<HeritageResource> results = jdbcTemplate.query(
                 "SELECT * FROM heritage_resources WHERE id = ? AND status = 'DRAFT'",
@@ -263,6 +320,9 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Inserts a stored attachment row and returns its id.
+     */
     public Long insertAttachment(Long resourceId, String name, String type, String url) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -284,6 +344,9 @@ public class ResourceRepository {
         return key.longValue();
     }
 
+    /**
+     * Returns all attachment rows linked to a resource.
+     */
     public List<AttachmentRecord> findDraftAttachments(Long resourceId) {
         return jdbcTemplate.query(
                 "SELECT id, name, type, url FROM heritage_resource_files WHERE resource_id = ? ORDER BY id",
@@ -297,6 +360,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Returns a single attachment row linked to a resource.
+     */
     public Optional<AttachmentRecord> findAttachmentById(Long resourceId, Long attachmentId) {
         List<AttachmentRecord> results = jdbcTemplate.query(
                 "SELECT id, name, type, url FROM heritage_resource_files WHERE resource_id = ? AND id = ?",
@@ -312,6 +378,9 @@ public class ResourceRepository {
         return results.stream().findFirst();
     }
 
+    /**
+     * Deletes an attachment row from a resource.
+     */
     public void deleteAttachment(Long resourceId, Long attachmentId) {
         jdbcTemplate.update(
                 "DELETE FROM heritage_resource_files WHERE resource_id = ? AND id = ?",
@@ -320,6 +389,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Replaces the full tag list for a resource.
+     */
     public void replaceTags(Long resourceId, List<String> tags) {
         jdbcTemplate.update("DELETE FROM heritage_resource_tags WHERE resource_id = ?", resourceId);
         if (tags == null || tags.isEmpty()) {
@@ -334,6 +406,9 @@ public class ResourceRepository {
         }
     }
 
+    /**
+     * Deletes a resource owned by the given contributor.
+     */
     public void deleteResource(Long resourceId, Long ownerUserId) {
         jdbcTemplate.update(
                 "DELETE FROM heritage_resources WHERE id = ? AND owner_user_id = ?",
@@ -342,6 +417,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Counts how many users have favorited a resource.
+     */
     public int countFavoritesByResourceId(Long resourceId) {
         Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM resource_favorites WHERE resource_id = ?",
@@ -351,6 +429,9 @@ public class ResourceRepository {
         return count == null ? 0 : count;
     }
 
+    /**
+     * Returns whether the given user has favorited the resource.
+     */
     public boolean isFavoritedByUser(Long resourceId, Long userId) {
         if (userId == null) {
             return false;
@@ -364,6 +445,9 @@ public class ResourceRepository {
         return count != null && count > 0;
     }
 
+    /**
+     * Adds a favorite row for the user and resource.
+     */
     public void addFavorite(Long resourceId, Long userId) {
         jdbcTemplate.update(
                 "INSERT IGNORE INTO resource_favorites (resource_id, user_id) VALUES (?, ?)",
@@ -372,6 +456,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Removes a favorite row for the user and resource.
+     */
     public void removeFavorite(Long resourceId, Long userId) {
         jdbcTemplate.update(
                 "DELETE FROM resource_favorites WHERE resource_id = ? AND user_id = ?",
@@ -380,6 +467,9 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Appends approved-resource filters to the base SQL query.
+     */
     private void appendFilters(StringBuilder sql, List<Object> params,
                                String keyword, String category, String place) {
         sql.append(" WHERE r.status = 'APPROVED'");
@@ -404,6 +494,9 @@ public class ResourceRepository {
         }
     }
 
+    /**
+     * Returns the SQL order by clause for the requested sort.
+     */
     private String orderBy(String sort) {
         return switch (sort) {
             case "views" -> " ORDER BY r.view_count DESC";
@@ -412,18 +505,30 @@ public class ResourceRepository {
         };
     }
 
+    /**
+     * Escapes special characters for a SQL LIKE pattern.
+     */
     private String escapeLike(String value) {
         return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
+    /**
+     * Returns whether a string contains non-blank text.
+     */
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
 
+    /**
+     * Returns the row mapper for resources.
+     */
     private RowMapper<HeritageResource> resourceRowMapper() {
         return this::mapResource;
     }
 
+    /**
+     * Maps a result row into a resource record.
+     */
     private HeritageResource mapResource(ResultSet rs, int rowNum) throws SQLException {
         return new HeritageResource(
                 rs.getLong("id"),
@@ -444,6 +549,14 @@ public class ResourceRepository {
         );
     }
 
+    /**
+     * Attachment row projection.
+     *
+     * @param id attachment id
+     * @param name original file name
+     * @param type attachment type
+     * @param url attachment access url
+     */
     public record AttachmentRecord(Long id, String name, String type, String url) {
     }
 }

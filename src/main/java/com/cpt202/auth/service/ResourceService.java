@@ -28,15 +28,49 @@ import org.springframework.stereotype.Service;
 @Service
 public class ResourceService {
 
+    /**
+     * Default page size for public resource listings.
+     */
     private static final int DEFAULT_PAGE_SIZE = 6;
+
+    /**
+     * Maximum allowed page size for resource listings.
+     */
     private static final int MAX_PAGE_SIZE = 50;
+
+    /**
+     * Formatter used for resource dates.
+     */
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /**
+     * Supported status filters for the My Resources page.
+     */
     private static final Set<String> MY_RESOURCE_STATUSES = Set.of("DRAFT", "PENDING", "APPROVED", "REJECTED");
 
+    /**
+     * Repository used to read and update resource records.
+     */
     private final ResourceRepository resourceRepository;
+
+    /**
+     * Repository used to load revision archive feedback.
+     */
     private final AdminArchiveRepository adminArchiveRepository;
+
+    /**
+     * Repository used to manage appeal messages.
+     */
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
+
+    /**
+     * Service used to manage stored draft attachments.
+     */
     private final DraftAttachmentService draftAttachmentService;
+
+    /**
+     * Service used to send submission confirmation notifications.
+     */
     private final SubmissionEmailService submissionEmailService;
 
     public ResourceService(ResourceRepository resourceRepository,
@@ -51,6 +85,9 @@ public class ResourceService {
         this.submissionEmailService = submissionEmailService;
     }
 
+    /**
+     * Returns a filtered and paged list of approved resources.
+     */
     public PageResponse<ResourceSummary> getResources(String keyword, String category, String place,
                                                       String sort, int page, int size) {
         int safePage = normalizePage(page);
@@ -73,20 +110,32 @@ public class ResourceService {
         return new PageResponse<>(content, safePage, safeSize, totalItems, totalPages);
     }
 
+    /**
+     * Returns the detail view for a single approved resource.
+     */
     public ResourceDetail getResource(Long resourceId, Long currentUserId) {
         HeritageResource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
         return toDetail(resource, "", List.of(), false, currentUserId);
     }
 
+    /**
+     * Returns the public category list.
+     */
     public List<String> getCategories() {
         return resourceRepository.findCategories();
     }
 
+    /**
+     * Returns the public place list.
+     */
     public List<String> getPlaces() {
         return resourceRepository.findPlaces();
     }
 
+    /**
+     * Increments and returns the public view count for a resource.
+     */
     public int incrementView(Long resourceId) {
         if (resourceRepository.findById(resourceId).isEmpty()) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Resource not found.");
@@ -95,6 +144,9 @@ public class ResourceService {
         return resourceRepository.getViewCount(resourceId);
     }
 
+    /**
+     * Toggles the current user's favorite state for a resource.
+     */
     public ResourceFavoriteResponse toggleFavorite(Long resourceId, Long userId) {
         HeritageResource resource = resourceRepository.findById(resourceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
@@ -114,6 +166,9 @@ public class ResourceService {
         );
     }
 
+    /**
+     * Submits a resource for moderation review.
+     */
     public HeritageResource submitResource(ResourceSubmissionDto dto, Long ownerUserId, String ownerUsername) {
         if (dto == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required.");
@@ -167,6 +222,9 @@ public class ResourceService {
         return saved;
     }
 
+    /**
+     * Creates or updates a draft resource owned by the current contributor.
+     */
     public HeritageResource createDraft(ResourceSubmissionDto dto, Long ownerUserId, String ownerUsername) {
         if (dto == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Request body is required.");
@@ -228,6 +286,9 @@ public class ResourceService {
         return saved;
     }
 
+    /**
+     * Returns a draft-like resource owned by the current contributor.
+     */
     public HeritageResource getOwnedDraft(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         if (!isDraftLikeStatus(resource.status())) {
@@ -236,6 +297,9 @@ public class ResourceService {
         return resource;
     }
 
+    /**
+     * Returns an editable draft owned by the current contributor.
+     */
     public HeritageResource getOwnedEditableDraft(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         if (!isEditableDraftStatus(resource.status())) {
@@ -244,6 +308,9 @@ public class ResourceService {
         return resource;
     }
 
+    /**
+     * Deletes a resource owned by the current contributor.
+     */
     public void deleteOwnedResource(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         if (!isDeletableStatus(resource.status())) {
@@ -255,6 +322,9 @@ public class ResourceService {
         resourceRepository.deleteResource(resource.id(), ownerUserId);
     }
 
+    /**
+     * Returns the current contributor's resources with an optional status filter.
+     */
     public List<MyResourceItemResponse> getMyResources(Long ownerUserId, String status) {
         String normalizedStatus = normalizeMyResourceStatus(status);
         return resourceRepository.findByOwner(ownerUserId, normalizedStatus).stream()
@@ -273,31 +343,49 @@ public class ResourceService {
                 .toList();
     }
 
+    /**
+     * Returns the current user's favorite resources.
+     */
     public List<ResourceSummary> getMyFavoriteResources(Long userId) {
         return resourceRepository.findFavoritesByUser(userId).stream()
                 .map(this::toSummary)
                 .toList();
     }
 
+    /**
+     * Returns the tag list for a resource.
+     */
     public List<String> getResourceTags(Long resourceId) {
         return resourceRepository.findTagsByResourceId(resourceId);
     }
 
+    /**
+     * Returns the latest revision feedback for a contributor-owned resource.
+     */
     public String getRevisionFeedback(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         return loadRevisionFeedback(resource.id());
     }
 
+    /**
+     * Returns the appeal thread for a contributor-owned resource.
+     */
     public List<ResourceAppealMessageResponse> getAppealMessages(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         return resourceAppealMessageRepository.findByResourceId(resource.id());
     }
 
+    /**
+     * Returns whether the contributor can send an appeal message.
+     */
     public boolean canSendAppeal(Long resourceId, Long ownerUserId) {
         HeritageResource resource = requireOwnedResource(resourceId, ownerUserId);
         return canSendAppeal(resource);
     }
 
+    /**
+     * Adds a contributor message to the appeal thread.
+     */
     public ResourceAppealSubmissionResponse submitAppeal(Long resourceId,
                                                          Long ownerUserId,
                                                          String senderName,
@@ -330,6 +418,9 @@ public class ResourceService {
         );
     }
 
+    /**
+     * Sends a submission confirmation when an email address is available.
+     */
     public void sendSubmissionConfirmation(String email, HeritageResource resource) {
         if (!hasText(email) || resource == null) {
             return;
@@ -337,6 +428,9 @@ public class ResourceService {
         submissionEmailService.sendSubmissionConfirmation(email.trim(), resource);
     }
 
+    /**
+     * Converts a resource into the summary card payload.
+     */
     private ResourceSummary toSummary(HeritageResource resource) {
         List<String> tags = resourceRepository.findTagsByResourceId(resource.id());
         if (tags.size() > 3) {
@@ -354,6 +448,9 @@ public class ResourceService {
         );
     }
 
+    /**
+     * Converts a resource into the full detail payload.
+     */
     private ResourceDetail toDetail(HeritageResource resource,
                                     String rejectionComments,
                                     List<ResourceAppealMessageResponse> appealMessages,
@@ -384,6 +481,9 @@ public class ResourceService {
         );
     }
 
+    /**
+     * Normalizes the public sort option.
+     */
     private String normalizeSort(String sort) {
         if ("views".equals(sort) || "title".equals(sort)) {
             return sort;
@@ -391,10 +491,16 @@ public class ResourceService {
         return "newest";
     }
 
+    /**
+     * Normalizes the requested page index.
+     */
     private int normalizePage(int page) {
         return Math.max(page, 1);
     }
 
+    /**
+     * Normalizes the requested page size.
+     */
     private int normalizeSize(int size, int defaultSize) {
         if (size <= 0) {
             return defaultSize;
@@ -402,10 +508,16 @@ public class ResourceService {
         return Math.min(size, MAX_PAGE_SIZE);
     }
 
+    /**
+     * Formats a resource date for the API.
+     */
     private String formatDate(java.time.LocalDateTime value) {
         return value == null ? "" : DATE_FORMATTER.format(value);
     }
 
+    /**
+     * Loads a resource owned by the current contributor.
+     */
     private HeritageResource requireOwnedResource(Long resourceId, Long ownerUserId) {
         if (ownerUserId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
@@ -414,6 +526,9 @@ public class ResourceService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Resource not found."));
     }
 
+    /**
+     * Normalizes the status filter used by the My Resources page.
+     */
     private String normalizeMyResourceStatus(String status) {
         if (!hasText(status)) {
             return "";
@@ -425,31 +540,49 @@ public class ResourceService {
         return normalized;
     }
 
+    /**
+     * Returns whether a resource should still be treated as draft-like.
+     */
     private boolean isDraftLikeStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
         return "DRAFT".equals(normalized) || "PENDING".equals(normalized) || "REJECTED".equals(normalized);
     }
 
+    /**
+     * Returns whether a resource can still be edited as a draft.
+     */
     private boolean isEditableDraftStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
         return "DRAFT".equals(normalized) || "REJECTED".equals(normalized);
     }
 
+    /**
+     * Returns whether a resource can be resubmitted for review.
+     */
     private boolean isResubmittableStatus(String status) {
         return isEditableDraftStatus(status);
     }
 
+    /**
+     * Returns whether a resource can be deleted from My Resources.
+     */
     private boolean isDeletableStatus(String status) {
         String normalized = String.valueOf(status).toUpperCase(Locale.ROOT);
         return "DRAFT".equals(normalized) || "APPROVED".equals(normalized);
     }
 
+    /**
+     * Returns whether an appeal thread can accept a new message.
+     */
     private boolean canSendAppeal(HeritageResource resource) {
         return resource != null
                 && isEditableDraftStatus(resource.status())
                 && hasText(loadRevisionFeedback(resource.id()));
     }
 
+    /**
+     * Loads revision feedback from the archive repository.
+     */
     private String loadRevisionFeedback(Long resourceId) {
         return adminArchiveRepository.findByResourceId(resourceId)
                 .map(AdminArchiveRepository.ArchiveRecord::archiveReason)
@@ -458,14 +591,23 @@ public class ResourceService {
                 .orElse("");
     }
 
+    /**
+     * Returns whether a string contains non-blank text.
+     */
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
 
+    /**
+     * Trims a string or returns null for blank input.
+     */
     private String trimToNull(String value) {
         return hasText(value) ? value.trim() : null;
     }
 
+    /**
+     * Prefers a primary owner name and falls back to another value.
+     */
     private String normalizeOwnerUsername(String primary, String fallback) {
         if (hasText(primary)) {
             return primary.trim();
@@ -473,10 +615,16 @@ public class ResourceService {
         return normalizeOwnerUsername(fallback);
     }
 
+    /**
+     * Normalizes an owner username with a contributor fallback.
+     */
     private String normalizeOwnerUsername(String value) {
         return hasText(value) ? value.trim() : "Contributor";
     }
 
+    /**
+     * Splits and normalizes the tag string from the submission form.
+     */
     private List<String> normalizeTags(String value) {
         if (!hasText(value)) {
             return List.of();
@@ -488,6 +636,9 @@ public class ResourceService {
                 .toList();
     }
 
+    /**
+     * Generates a tracking id for a submitted resource.
+     */
     private String generateTrackingId() {
         return "TRK-" + UUID.randomUUID()
                 .toString()

@@ -4,6 +4,13 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Registration request payload.
+ *
+ * @param email account email
+ * @param username desired username
+ * @param password plain-text password
+ */
 public record RegisterRequest(
         @NotBlank(message = "Email is required.")
         @Email(message = "Please enter a valid email address.")

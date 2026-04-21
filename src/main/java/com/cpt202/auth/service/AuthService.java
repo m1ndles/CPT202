@@ -13,15 +13,40 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * Authentication and session user business logic.
+ */
 @Service
 public class AuthService {
 
+    /**
+     * Failed attempt threshold that starts warning the user.
+     */
     private static final int WARNING_THRESHOLD = 4;
+
+    /**
+     * Failed attempt threshold that locks the account.
+     */
     private static final int LOCK_THRESHOLD = 6;
+
+    /**
+     * Lock duration in minutes after too many failed logins.
+     */
     private static final int LOCK_MINUTES = 15;
+
+    /**
+     * Formatter used for session-facing timestamps.
+     */
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+    /**
+     * Repository used to load and update user accounts.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Password encoder used for password verification and storage.
+     */
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -29,6 +54,9 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Authenticates a user by email and password.
+     */
     public AuthenticatedUser login(String email, String password) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         UserAccount user = userRepository.findByEmail(normalizedEmail)
@@ -49,6 +77,9 @@ public class AuthService {
         return new AuthenticatedUser(user.id(), user.username(), user.email(), user.role());
     }
 
+    /**
+     * Registers a new user account.
+     */
     public AuthenticatedUser register(String email, String username, String password) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         String normalizedUsername = username.trim();
@@ -75,6 +106,9 @@ public class AuthService {
         return new AuthenticatedUser(user.id(), user.username(), user.email(), user.role());
     }
 
+    /**
+     * Builds the session user response for the current session context.
+     */
     public SessionUserResponse getSessionUser(Long userId, UserRole sessionRole) {
         if (sessionRole == null) {
             throw new AuthException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
@@ -112,6 +146,9 @@ public class AuthService {
         );
     }
 
+    /**
+     * Creates the session user response payload.
+     */
     private SessionUserResponse buildSessionUser(
             String username,
             String email,
@@ -139,10 +176,16 @@ public class AuthService {
         );
     }
 
+    /**
+     * Formats a timestamp or falls back to the provided text.
+     */
     private String formatDateTime(LocalDateTime value, String fallback) {
         return value == null ? fallback : DATE_TIME_FORMATTER.format(value);
     }
 
+    /**
+     * Updates login failure counters and returns the corresponding error.
+     */
     private AuthenticatedUser handleFailedLogin(UserAccount user, LocalDateTime now) {
         int nextAttempt = user.failedAttempts() + 1;
         if (nextAttempt >= LOCK_THRESHOLD) {
@@ -162,6 +205,9 @@ public class AuthService {
         throw new AuthException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect.");
     }
 
+    /**
+     * Lightweight authenticated user projection used by the controller.
+     */
     public record AuthenticatedUser(Long id, String username, String email, UserRole role) {
     }
 }

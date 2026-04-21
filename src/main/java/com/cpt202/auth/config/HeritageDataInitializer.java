@@ -15,7 +15,14 @@ import org.springframework.stereotype.Component;
 @Order(2)
 public class HeritageDataInitializer implements CommandLineRunner {
 
+    /**
+     * JDBC helper used to detect existing seed data.
+     */
     private final JdbcTemplate jdbcTemplate;
+
+    /**
+     * Data source used to execute the SQL seed script.
+     */
     private final DataSource dataSource;
 
     public HeritageDataInitializer(JdbcTemplate jdbcTemplate, DataSource dataSource) {
@@ -23,6 +30,9 @@ public class HeritageDataInitializer implements CommandLineRunner {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Loads the heritage seed script when the resource table is empty.
+     */
     @Override
     public void run(String... args) {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM heritage_resources", Integer.class);

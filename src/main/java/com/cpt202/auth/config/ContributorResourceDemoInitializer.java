@@ -13,15 +13,36 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+/**
+ * Seeds contributor-owned demo resources for key workflow states.
+ */
 @Component
 @Order(3)
 public class ContributorResourceDemoInitializer implements CommandLineRunner {
 
+    /**
+     * Default contributor account used for the seeded resources.
+     */
     private static final String DEFAULT_CONTRIBUTOR_EMAIL = "contributor@heritagehub.com";
 
+    /**
+     * Repository used to load the contributor account.
+     */
     private final UserRepository userRepository;
+
+    /**
+     * Repository used to create the demo resources.
+     */
     private final ResourceRepository resourceRepository;
+
+    /**
+     * Repository used to seed archive feedback for rejected resources.
+     */
     private final AdminArchiveRepository adminArchiveRepository;
+
+    /**
+     * Repository used to seed the appeal conversation thread.
+     */
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
 
     public ContributorResourceDemoInitializer(UserRepository userRepository,
@@ -34,6 +55,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         this.resourceAppealMessageRepository = resourceAppealMessageRepository;
     }
 
+    /**
+     * Seeds contributor demo resources after the demo users exist.
+     */
     @Override
     public void run(String... args) {
         userRepository.findByEmail(DEFAULT_CONTRIBUTOR_EMAIL.toLowerCase(Locale.ROOT))
@@ -41,6 +65,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 .ifPresent(this::seedMissingStatuses);
     }
 
+    /**
+     * Ensures the contributor has one resource for each major moderation state.
+     */
     private void seedMissingStatuses(UserAccount contributor) {
         ensureResource(
                 contributor,
@@ -105,6 +132,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         seedRejectedRevisionContext(contributor);
     }
 
+    /**
+     * Creates a demo resource for the given status when none exists yet.
+     */
     private void ensureResource(UserAccount contributor,
                                 String status,
                                 String title,
@@ -144,6 +174,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         resourceRepository.replaceTags(saved.id(), splitTags(tags));
     }
 
+    /**
+     * Builds a stable tracking id for seeded resources.
+     */
     private String trackingIdFor(Long contributorId, String status) {
         String suffix = switch (status) {
             case "PENDING" -> "PD";
@@ -154,6 +187,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         return "TRK-DEMO-" + contributorId + "-" + suffix;
     }
 
+    /**
+     * Splits the demo tag string into distinct tag values.
+     */
     private List<String> splitTags(String tags) {
         if (tags == null || tags.isBlank()) {
             return List.of();
@@ -164,6 +200,9 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 .toList();
     }
 
+    /**
+     * Adds archive feedback and a starter appeal thread for rejected resources.
+     */
     private void seedRejectedRevisionContext(UserAccount contributor) {
         resourceRepository.findByOwner(contributor.id(), "REJECTED").forEach(resource -> {
             adminArchiveRepository.upsert(
