@@ -1,0 +1,108 @@
+package com.cpt202.auth.service;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.cpt202.auth.dto.ContributorApplicationRequest;
+import com.cpt202.auth.dto.ContributorApplicationResponse;
+import com.cpt202.auth.exception.ApiException;
+import com.cpt202.auth.model.UserAccount;
+import com.cpt202.auth.model.UserRole;
+import com.cpt202.auth.repository.AdminActivityRepository;
+import com.cpt202.auth.repository.ContributorApplicationRepository;
+import com.cpt202.auth.repository.ResourceRepository;
+import com.cpt202.auth.repository.UserRepository;
+import java.util.Optional;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+
+@ExtendWith(MockitoExtension.class)
+class ContributorApplicationServiceTest {
+
+    @Mock
+    private ContributorApplicationRepository contributorApplicationRepository;
+
+    @Mock
+    private ResourceRepository resourceRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private AdminActivityRepository adminActivityRepository;
+
+    @InjectMocks
+    private ContributorApplicationService contributorApplicationService;
+
+    private UserAccount user(UserRole role) {
+        return new UserAccount(
+                1L, "alice@example.com", "alice", "hash",
+                role, 0, null, null, null, null, null
+        );
+    }
+
+    private ContributorApplicationResponse application(String status) {
+        return new ContributorApplicationResponse(
+                10L, 1L, "alice", "alice@example.com",
+                "Alice Zhou", "Classical Garden", "I study gardens.",
+                null, status, null,
+                "2026-01-01 10:00", null,
+                null, null
+        );
+    }
+
+    @Test
+    void submit_rejectsWhenPendingApplicationExists() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(UserRole.USER)));
+        when(contributorApplicationRepository.findLatestByUserId(1L))
+                .thenReturn(Optional.of(application("PENDING")));
+
+        ContributorApplicationRequest request = new ContributorApplicationRequest(
+                "Alice Zhou", "Classical Garden", "I want to contribute.", null);
+
+        assertThatThrownBy(() -> contributorApplicationService.submit(1L, request, null))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("pending")
+                .extracting("status").isEqualTo(HttpStatus.CONFLICT);
+
+        verify(contributorApplicationRepository, never()).insert(
+                anyLong(), anyString(), anyString(), anyString(), any(), any(), any());
+    }
+
+    @Test
+    void approve_upgradesUserRoleToContributor() {
+        when(contributorApplicationRepository.findById(10L))
+                .thenReturn(Optional.of(application("PENDING")));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(UserRole.USER)));
+
+        contributorApplicationService.approve(10L, "admin");
+
+        verify(contributorApplicationRepository).updateReview(eq(10L), eq("APPROVED"), any());
+        verify(userRepository).updateUser(
+                eq(1L),
+                eq("alice@example.com"),
+                eq("alice"),
+                eq("hash"),
+                eq(UserRole.CONTRIBUTOR));
+    }
+
+    @Test
+    void reject_requiresRejectionComments() {
+        assertThatThrownBy(() -> contributorApplicationService.reject(10L, "   ", "admin"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Rejection comments")
+                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
+
+        verify(contributorApplicationRepository, never()).updateReview(anyLong(), anyString(), anyString());
+    }
+}
