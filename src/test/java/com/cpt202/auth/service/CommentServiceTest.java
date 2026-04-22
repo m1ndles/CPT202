@@ -24,6 +24,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Unit tests for {@link CommentService} covering CRUD and nesting rules.
+ */
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
@@ -36,6 +39,9 @@ class CommentServiceTest {
     @InjectMocks
     private CommentService commentService;
 
+    /**
+     * Creates an approved resource stub for testing.
+     */
     private HeritageResource approvedResource(long id) {
         return new HeritageResource(
                 id, "Title", "Title", "Category", "Period", "Place",
@@ -44,6 +50,9 @@ class CommentServiceTest {
         );
     }
 
+    /**
+     * Creates a comment view row stub.
+     */
     private CommentViewRow viewRow(long id, Long parentId, long userId, String status) {
         return new CommentViewRow(
                 id,
@@ -61,6 +70,9 @@ class CommentServiceTest {
         );
     }
 
+    /**
+     * Fetching comments for a non-existent resource returns 404.
+     */
     @Test
     void getComments_throwsWhenResourceMissing() {
         when(resourceRepository.findById(99L)).thenReturn(Optional.empty());
@@ -73,6 +85,9 @@ class CommentServiceTest {
         verify(commentRepository, never()).findRootsByResourceId(anyLong(), any(), anyInt(0), anyInt(0));
     }
 
+    /**
+     * Comment content is trimmed before persistence.
+     */
     @Test
     void addComment_trimsWhitespaceAndSaves() {
         when(resourceRepository.findById(10L)).thenReturn(Optional.of(approvedResource(10L)));
@@ -84,6 +99,9 @@ class CommentServiceTest {
         verify(commentRepository).create(10L, 1L, null, "hello");
     }
 
+    /**
+     * Guest users are forbidden from posting comments.
+     */
     @Test
     void addComment_rejectsGuestRole() {
         assertThatThrownBy(() -> commentService.addComment(10L, 1L, UserRole.GUEST, "hi"))
@@ -93,6 +111,9 @@ class CommentServiceTest {
         verify(commentRepository, never()).create(anyLong(), anyLong(), any(), anyString());
     }
 
+    /**
+     * Replies to replies are rejected (max 2 levels).
+     */
     @Test
     void replyToComment_rejectsSecondLevelNesting() {
         CommentViewRow parentReply = viewRow(20L, 10L, 2L, "ACTIVE");
@@ -106,6 +127,9 @@ class CommentServiceTest {
         verify(commentRepository, never()).create(anyLong(), anyLong(), any(), anyString());
     }
 
+    /**
+     * Editing another user's comment returns 403.
+     */
     @Test
     void updateComment_rejectsWhenNotOwner() {
         CommentViewRow othersComment = viewRow(30L, null, 99L, "ACTIVE");
@@ -119,6 +143,9 @@ class CommentServiceTest {
         verify(commentRepository, never()).updateContent(anyLong(), anyString());
     }
 
+    /**
+     * Deleting own comment performs a soft delete.
+     */
     @Test
     void deleteComment_softDeletesOwnedComment() {
         CommentViewRow own = viewRow(40L, null, 1L, "ACTIVE");

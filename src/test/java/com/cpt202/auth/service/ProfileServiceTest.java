@@ -21,6 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Unit tests for {@link ProfileService} covering password update rules.
+ */
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceTest {
 
@@ -36,6 +39,9 @@ class ProfileServiceTest {
     @InjectMocks
     private ProfileService profileService;
 
+    /**
+     * Creates a default test user.
+     */
     private UserAccount user() {
         return new UserAccount(
                 1L, "alice@example.com", "alice", "stored-hash",
@@ -43,6 +49,9 @@ class ProfileServiceTest {
         );
     }
 
+    /**
+     * Wrong current password is rejected with 400.
+     */
     @Test
     void updatePassword_rejectsWrongCurrentPassword() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user()));
@@ -57,6 +66,9 @@ class ProfileServiceTest {
         verify(userRepository, never()).updatePasswordHash(anyLong(), anyString());
     }
 
+    /**
+     * New password must differ from the current one.
+     */
     @Test
     void updatePassword_rejectsSameAsCurrent() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user()));

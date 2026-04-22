@@ -1,0 +1,483 @@
+{
+  "info": {
+    "_postman_id": "b4a9c0d0-1f3c-4a1e-9a2d-hh2025042001",
+    "name": "HeritageHub API",
+    "description": "Session-authenticated integration test collection for the HeritageHub first release. All requests are session-cookie based: run a Login request first, then the collection-level cookie jar keeps the JSESSIONID for subsequent requests. Folders are organised to mirror the report structure (Auth -> Discovery -> Contributor Application -> Resource Submission -> Comments & Appeals -> Admin Console).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (regular user)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"demo@heritagehub.com\",\n  \"password\": \"Password123!\",\n  \"rememberMe\": false\n}"}
+          }
+        },
+        {
+          "name": "Login (contributor)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"contributor@heritagehub.com\",\n  \"password\": \"Password123!\",\n  \"rememberMe\": false\n}"}
+          }
+        },
+        {
+          "name": "Login (administrator)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"admin@qq.com\",\n  \"password\": \"admin123456\",\n  \"rememberMe\": false\n}"}
+          }
+        },
+        {
+          "name": "Register new account",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"]},
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"username\": \"new_user\",\n  \"password\": \"Strong!Pass123\"\n}"}
+          }
+        },
+        {
+          "name": "Continue as guest",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/auth/guest", "host": ["{{baseUrl}}"], "path": ["api", "auth", "guest"]}
+          }
+        },
+        {
+          "name": "Current session user",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"]}
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Discovery",
+      "item": [
+        {
+          "name": "List approved resources (paged)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/resources?keyword=&category=&place=&sort=createdAt&page=1&size=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resources"],
+              "query": [
+                {"key": "keyword", "value": ""},
+                {"key": "category", "value": ""},
+                {"key": "place", "value": ""},
+                {"key": "sort", "value": "createdAt"},
+                {"key": "page", "value": "1"},
+                {"key": "size", "value": "6"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "List categories (public)",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/resources/categories", "host": ["{{baseUrl}}"], "path": ["api", "resources", "categories"]}
+          }
+        },
+        {
+          "name": "List places (public)",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/resources/places", "host": ["{{baseUrl}}"], "path": ["api", "resources", "places"]}
+          }
+        },
+        {
+          "name": "Get resource detail",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/resources/1", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1"]}
+          }
+        },
+        {
+          "name": "Increment view count",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/resources/1/view", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "view"]}
+          }
+        },
+        {
+          "name": "Toggle favourite",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/resources/1/favorite", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "favorite"]}
+          }
+        },
+        {
+          "name": "List my favourites",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/resources/favorites", "host": ["{{baseUrl}}"], "path": ["api", "resources", "favorites"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Contributor Application",
+      "item": [
+        {
+          "name": "Submit contributor application (multipart)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications"]},
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "fullName", "value": "Zhang Wei", "type": "text"},
+                {"key": "contactEmail", "value": "demo@heritagehub.com", "type": "text"},
+                {"key": "expertiseArea", "value": "Traditional Architecture", "type": "text"},
+                {"key": "motivationStatement", "value": "I have 10 years of field research on Jiangsu gardens and would like to share documented resources.", "type": "text"},
+                {"key": "portfolioLink", "value": "https://example.com/portfolio", "type": "text"},
+                {"key": "supportingFile", "type": "file", "src": []}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get current application status",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications/current", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications", "current"]}
+          }
+        },
+        {
+          "name": "List my applications",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications/mine", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications", "mine"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Resource Submission (contributor)",
+      "item": [
+        {
+          "name": "Save draft",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/resources/draft", "host": ["{{baseUrl}}"], "path": ["api", "resources", "draft"]},
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Suzhou Classical Garden Craftsmanship\",\n  \"titleEn\": \"Suzhou Classical Garden Craftsmanship\",\n  \"category\": \"architecture\",\n  \"period\": \"Ming and Qing Dynasties\",\n  \"place\": \"Suzhou, Jiangsu\",\n  \"description\": \"An initial draft description of classical garden craftsmanship.\",\n  \"tags\": \"garden,craft\",\n  \"copyright\": \"CC BY-SA 4.0\"\n}"}
+          }
+        },
+        {
+          "name": "Load draft",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/resources/draft/1", "host": ["{{baseUrl}}"], "path": ["api", "resources", "draft", "1"]}
+          }
+        },
+        {
+          "name": "Upload draft attachment (multipart)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/resources/draft/1/attachments", "host": ["{{baseUrl}}"], "path": ["api", "resources", "draft", "1", "attachments"]},
+            "body": {
+              "mode": "formdata",
+              "formdata": [{"key": "file", "type": "file", "src": []}]
+            }
+          }
+        },
+        {
+          "name": "Delete draft attachment",
+          "request": {
+            "method": "DELETE",
+            "url": {"raw": "{{baseUrl}}/api/resources/draft/1/attachments/1", "host": ["{{baseUrl}}"], "path": ["api", "resources", "draft", "1", "attachments", "1"]}
+          }
+        },
+        {
+          "name": "Submit resource for review",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/resources/submit", "host": ["{{baseUrl}}"], "path": ["api", "resources", "submit"]},
+            "body": {"mode": "raw", "raw": "{\n  \"title\": \"Suzhou Classical Garden Craftsmanship\",\n  \"titleEn\": \"Suzhou Classical Garden Craftsmanship\",\n  \"category\": \"architecture\",\n  \"period\": \"Ming and Qing Dynasties\",\n  \"place\": \"Suzhou, Jiangsu\",\n  \"description\": \"A submission describing classical garden craftsmanship techniques passed down through generations.\",\n  \"tags\": \"garden,craft\",\n  \"copyright\": \"CC BY-SA 4.0\"\n}"}
+          }
+        },
+        {
+          "name": "List my resources",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/resources/mine?status=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resources", "mine"],
+              "query": [{"key": "status", "value": ""}]
+            }
+          }
+        },
+        {
+          "name": "Delete own resource",
+          "request": {
+            "method": "DELETE",
+            "url": {"raw": "{{baseUrl}}/api/resources/1", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Comments and Appeals",
+      "item": [
+        {
+          "name": "List comments (paged)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/resources/1/comments?page=1&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "resources", "1", "comments"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add root comment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/resources/1/comments", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "comments"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Very informative resource. Thank you for sharing.\"\n}"}
+          }
+        },
+        {
+          "name": "Reply to comment",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/comments/2/reply", "host": ["{{baseUrl}}"], "path": ["api", "comments", "2", "reply"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Thanks for the context, I will look into the sources you mentioned.\"\n}"}
+          }
+        },
+        {
+          "name": "Toggle like",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/comments/2/like", "host": ["{{baseUrl}}"], "path": ["api", "comments", "2", "like"]}
+          }
+        },
+        {
+          "name": "Edit own comment",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/comments/2", "host": ["{{baseUrl}}"], "path": ["api", "comments", "2"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Edited: additional thanks for the reference.\"\n}"}
+          }
+        },
+        {
+          "name": "Delete own comment",
+          "request": {
+            "method": "DELETE",
+            "url": {"raw": "{{baseUrl}}/api/comments/2", "host": ["{{baseUrl}}"], "path": ["api", "comments", "2"]}
+          }
+        },
+        {
+          "name": "Submit resource appeal (contributor)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/resources/1/appeals", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "appeals"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"I have revised the description and added two additional references. Please review again.\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Admin - Contributor Applications",
+      "item": [
+        {
+          "name": "List pending applications",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications/admin/pending", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications", "admin", "pending"]}
+          }
+        },
+        {
+          "name": "Get application detail",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications/admin/1", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications", "admin", "1"]}
+          }
+        },
+        {
+          "name": "Approve application",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/contributor-applications/admin/1/approve", "host": ["{{baseUrl}}"], "path": ["api", "contributor-applications", "admin", "1", "approve"]}
+          }
+        },
+        {
+          "name": "Reject application",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/contributor-applications/admin/1/reject?comments=Insufficient%20supporting%20material",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "contributor-applications", "admin", "1", "reject"],
+              "query": [{"key": "comments", "value": "Insufficient supporting material"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Admin - Resource Review",
+      "item": [
+        {
+          "name": "Admin dashboard summary",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "admin", "dashboard"]}
+          }
+        },
+        {
+          "name": "List resources pending review",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/resources/reviews", "host": ["{{baseUrl}}"], "path": ["api", "admin", "resources", "reviews"]}
+          }
+        },
+        {
+          "name": "Get review detail",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/resources/reviews/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "resources", "reviews", "1"]}
+          }
+        },
+        {
+          "name": "Approve resource",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/admin/resources/reviews/18/approve", "host": ["{{baseUrl}}"], "path": ["api", "admin", "resources", "reviews", "18", "approve"]}
+          }
+        },
+        {
+          "name": "Reject resource",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/resources/reviews/1/reject", "host": ["{{baseUrl}}"], "path": ["api", "admin", "resources", "reviews", "1", "reject"]},
+            "body": {"mode": "raw", "raw": "{\n  \"rejectionComments\": \"Description is too brief; please add historical context and at least one primary source.\"\n}"}
+          }
+        },
+        {
+          "name": "Reply to contributor appeal",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/resources/reviews/1/appeals", "host": ["{{baseUrl}}"], "path": ["api", "admin", "resources", "reviews", "1", "appeals"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Thanks for the revision. Please clarify the date range in the period field.\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Admin - Taxonomy",
+      "item": [
+        {
+          "name": "List categories (admin)",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"]}
+          }
+        },
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/categories", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"folk-music\",\n  \"description\": \"Traditional folk music from the Jiangsu region.\"\n}"}
+          }
+        },
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/categories/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories", "1"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"folk-music\",\n  \"description\": \"Updated description: traditional folk music from the Jiangsu region and surrounding areas.\"\n}"}
+          }
+        },
+        {
+          "name": "Toggle category status",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/admin/categories/1/toggle-status", "host": ["{{baseUrl}}"], "path": ["api", "admin", "categories", "1", "toggle-status"]}
+          }
+        },
+        {
+          "name": "List tags (admin)",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/tags", "host": ["{{baseUrl}}"], "path": ["api", "admin", "tags"]}
+          }
+        },
+        {
+          "name": "Create tag",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/tags", "host": ["{{baseUrl}}"], "path": ["api", "admin", "tags"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"suzhou\",\n  \"description\": \"Resources related to Suzhou.\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Admin - Archives and History",
+      "item": [
+        {
+          "name": "List archives",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/archives", "host": ["{{baseUrl}}"], "path": ["api", "admin", "archives"]}
+          }
+        },
+        {
+          "name": "Restore archive",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/admin/archives/1/restore", "host": ["{{baseUrl}}"], "path": ["api", "admin", "archives", "1", "restore"]}
+          }
+        },
+        {
+          "name": "Activity history",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/history", "host": ["{{baseUrl}}"], "path": ["api", "admin", "history"]}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080"}
+  ]
+}

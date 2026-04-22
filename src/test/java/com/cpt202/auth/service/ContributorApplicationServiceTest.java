@@ -26,6 +26,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Unit tests for {@link ContributorApplicationService} covering submission and review.
+ */
 @ExtendWith(MockitoExtension.class)
 class ContributorApplicationServiceTest {
 
@@ -44,6 +47,9 @@ class ContributorApplicationServiceTest {
     @InjectMocks
     private ContributorApplicationService contributorApplicationService;
 
+    /**
+     * Creates a test user with the given role.
+     */
     private UserAccount user(UserRole role) {
         return new UserAccount(
                 1L, "alice@example.com", "alice", "hash",
@@ -51,6 +57,9 @@ class ContributorApplicationServiceTest {
         );
     }
 
+    /**
+     * Creates a contributor application stub with the given status.
+     */
     private ContributorApplicationResponse application(String status) {
         return new ContributorApplicationResponse(
                 10L, 1L, "alice", "alice@example.com",
@@ -61,6 +70,9 @@ class ContributorApplicationServiceTest {
         );
     }
 
+    /**
+     * Duplicate submission while pending returns 409 Conflict.
+     */
     @Test
     void submit_rejectsWhenPendingApplicationExists() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user(UserRole.USER)));
@@ -79,6 +91,9 @@ class ContributorApplicationServiceTest {
                 anyLong(), anyString(), anyString(), anyString(), any(), any(), any());
     }
 
+    /**
+     * Approval upgrades the user role from USER to CONTRIBUTOR.
+     */
     @Test
     void approve_upgradesUserRoleToContributor() {
         when(contributorApplicationRepository.findById(10L))
@@ -96,6 +111,9 @@ class ContributorApplicationServiceTest {
                 eq(UserRole.CONTRIBUTOR));
     }
 
+    /**
+     * Rejection without comments returns 400 Bad Request.
+     */
     @Test
     void reject_requiresRejectionComments() {
         assertThatThrownBy(() -> contributorApplicationService.reject(10L, "   ", "admin"))

@@ -28,6 +28,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Unit tests for {@link AdminConsoleService} covering review and taxonomy.
+ */
 @ExtendWith(MockitoExtension.class)
 class AdminConsoleServiceTest {
 
@@ -55,6 +58,9 @@ class AdminConsoleServiceTest {
     @InjectMocks
     private AdminConsoleService adminConsoleService;
 
+    /**
+     * Creates a resource stub with the given id and status.
+     */
     private HeritageResource resourceWithStatus(long id, String status) {
         return new HeritageResource(
                 id, "Garden", "Garden", "Classical Garden", null, "Suzhou",
@@ -63,6 +69,9 @@ class AdminConsoleServiceTest {
         );
     }
 
+    /**
+     * Approving a non-pending resource returns 400.
+     */
     @Test
     void approveResourceReview_rejectsNonPending() {
         when(resourceRepository.findAnyById(50L))
@@ -76,6 +85,9 @@ class AdminConsoleServiceTest {
         verify(resourceRepository, never()).updateDraft(any());
     }
 
+    /**
+     * Rejection without comments returns 400.
+     */
     @Test
     void rejectResourceReview_requiresComments() {
         when(resourceRepository.findAnyById(50L))
@@ -89,6 +101,9 @@ class AdminConsoleServiceTest {
         verify(resourceRepository, never()).updateDraft(any());
     }
 
+    /**
+     * Creating a category with a duplicate name returns 409.
+     */
     @Test
     void createCategory_rejectsDuplicateName() {
         when(adminTaxonomyRepository.countCategories()).thenReturn(1L);
@@ -108,6 +123,9 @@ class AdminConsoleServiceTest {
                 anyString(), anyString(), anyString(), any(LocalDateTime.class));
     }
 
+    /**
+     * Toggling an active category switches it to inactive.
+     */
     @Test
     void toggleCategoryStatus_togglesActiveToInactive() {
         TaxonomyRecord before = new TaxonomyRecord(

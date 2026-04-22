@@ -22,6 +22,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Unit tests for {@link AuthService} covering login and registration.
+ */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
@@ -34,7 +37,10 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    private UserAccount buildUser(int failedAttempts, LocalDateTime lockedUntil) {
+    /**
+     * Creates a test user with the given failed-attempt state.
+     */
+    private UserAccount buildUser(int failedAttempts) {
         return new UserAccount(
                 1L,
                 "alice@example.com",
@@ -42,7 +48,7 @@ class AuthServiceTest {
                 "hash",
                 UserRole.USER,
                 failedAttempts,
-                lockedUntil,
+                null,
                 null,
                 null,
                 null,
@@ -50,9 +56,12 @@ class AuthServiceTest {
         );
     }
 
+    /**
+     * Successful login resets the failed-attempt counter.
+     */
     @Test
     void login_success_resetsFailedCounter() {
-        UserAccount user = buildUser(3, null);
+        UserAccount user = buildUser(3);
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("correct-pw", "hash")).thenReturn(true);
 
@@ -63,9 +72,12 @@ class AuthServiceTest {
         verify(userRepository).resetFailedLogin(1L);
     }
 
+    /**
+     * Sixth wrong password locks the account for 15 minutes.
+     */
     @Test
     void login_wrongPassword_locksAtAttempt6() {
-        UserAccount user = buildUser(5, null);
+        UserAccount user = buildUser(5);
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong-pw", "hash")).thenReturn(false);
 
@@ -78,6 +90,9 @@ class AuthServiceTest {
         verify(userRepository, never()).resetFailedLogin(1L);
     }
 
+    /**
+     * Registration with a taken username returns 409 Conflict.
+     */
     @Test
     void register_duplicateUsername_throwsConflict() {
         when(userRepository.existsByUsername("alice")).thenReturn(true);
@@ -90,6 +105,9 @@ class AuthServiceTest {
         verify(userRepository, never()).createUser(any(), any(), any(), any());
     }
 
+    /**
+     * Registration with a taken email returns 409 Conflict.
+     */
     @Test
     void register_duplicateEmail_throwsConflict() {
         when(userRepository.existsByUsername("alice")).thenReturn(false);

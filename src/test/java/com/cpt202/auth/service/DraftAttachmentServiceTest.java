@@ -23,6 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 
+/**
+ * Unit tests for {@link DraftAttachmentService} covering upload validation.
+ */
 @ExtendWith(MockitoExtension.class)
 class DraftAttachmentServiceTest {
 
@@ -31,11 +34,17 @@ class DraftAttachmentServiceTest {
 
     private DraftAttachmentService draftAttachmentService;
 
+    /**
+     * Initialises the service with a temporary upload directory.
+     */
     @BeforeEach
     void setUp(@TempDir Path tempDir) throws IOException {
         draftAttachmentService = new DraftAttachmentService(resourceRepository, tempDir.toString());
     }
 
+    /**
+     * Creates a resource stub with the given status.
+     */
     private HeritageResource resource(String status) {
         return new HeritageResource(
                 100L, "Title", "Title", "Cat", null, "Place",
@@ -44,6 +53,9 @@ class DraftAttachmentServiceTest {
         );
     }
 
+    /**
+     * Uploading to a non-draft resource returns 400.
+     */
     @Test
     void uploadDraftAttachment_rejectsNonDraftStatus() {
         when(resourceRepository.findAnyById(100L)).thenReturn(Optional.of(resource("APPROVED")));
@@ -59,6 +71,9 @@ class DraftAttachmentServiceTest {
         verify(resourceRepository, never()).insertAttachment(anyLong(), anyString(), anyString(), anyString());
     }
 
+    /**
+     * Uploading an unsupported file type returns 400.
+     */
     @Test
     void uploadDraftAttachment_rejectsUnsupportedExtension() {
         when(resourceRepository.findAnyById(100L)).thenReturn(Optional.of(resource("DRAFT")));

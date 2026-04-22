@@ -25,6 +25,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
+/**
+ * Unit tests for {@link ResourceService} covering browsing and favourites.
+ */
 @ExtendWith(MockitoExtension.class)
 class ResourceServiceTest {
 
@@ -46,6 +49,9 @@ class ResourceServiceTest {
     @InjectMocks
     private ResourceService resourceService;
 
+    /**
+     * Empty database yields an empty page response.
+     */
     @Test
     void getResources_returnsEmptyPageWhenNoData() {
         when(resourceRepository.countApproved(null, null, null)).thenReturn(0L);
@@ -59,6 +65,9 @@ class ResourceServiceTest {
         assertThat(page.content()).isEmpty();
     }
 
+    /**
+     * Requesting a non-existent resource returns 404.
+     */
     @Test
     void getResource_throwsNotFoundForMissingResource() {
         when(resourceRepository.findById(99L)).thenReturn(Optional.empty());
@@ -69,6 +78,9 @@ class ResourceServiceTest {
                 .extracting("status").isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * View count increment on missing resource returns 404.
+     */
     @Test
     void incrementView_throwsNotFoundForMissingResource() {
         when(resourceRepository.findById(99L)).thenReturn(Optional.empty());
@@ -80,6 +92,9 @@ class ResourceServiceTest {
         verify(resourceRepository, never()).incrementViewCount(anyLong());
     }
 
+    /**
+     * Favourite toggle on missing resource returns 404.
+     */
     @Test
     void toggleFavorite_throwsNotFoundForMissingResource() {
         when(resourceRepository.findById(99L)).thenReturn(Optional.empty());
