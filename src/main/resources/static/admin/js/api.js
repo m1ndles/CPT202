@@ -32,8 +32,8 @@ function matchesSearch(item, search, fields) {
 function sortByDate(items, key, direction) {
     const copy = [...items];
     copy.sort((left, right) => {
-        const leftDate = new Date(left[key]).getTime();
-        const rightDate = new Date(right[key]).getTime();
+        const leftDate = new Date(String(left[key] || "").replace(" ", "T")).getTime();
+        const rightDate = new Date(String(right[key] || "").replace(" ", "T")).getTime();
         return direction === "asc" ? leftDate - rightDate : rightDate - leftDate;
     });
     return copy;
@@ -76,6 +76,13 @@ export async function rejectContributorApplication(id, rejectionComments) {
     });
 }
 
+export async function sendContributorAppealReply(id, content) {
+    return await request(`/api/contributor-applications/admin/${id}/appeals`, {
+        method: "POST",
+        body: JSON.stringify({ content })
+    });
+}
+
 export async function getResourceReviewList({ search = "", category = "All", status = "All", sort = "desc" } = {}) {
     const resources = await request("/api/admin/resources/reviews");
     const statusFiltered = resources
@@ -111,6 +118,15 @@ export async function rejectResourceReview(id, rejectionComments) {
     const response = await request(`/api/admin/resources/reviews/${id}/reject`, {
         method: "POST",
         body: JSON.stringify({ rejectionComments })
+    });
+    const resource = await getResourceReviewDetail(id);
+    return { ...response, resource };
+}
+
+export async function archiveResourceReview(id, archiveReason) {
+    const response = await request(`/api/admin/resources/reviews/${id}/archive`, {
+        method: "POST",
+        body: JSON.stringify({ rejectionComments: archiveReason })
     });
     const resource = await getResourceReviewDetail(id);
     return { ...response, resource };
@@ -224,4 +240,41 @@ export async function getHistoryLog({ search = "", actionType = "All", targetTyp
         operators: ["All", ...new Set(history.map((item) => item.operator))],
         items: sortByDate(items, "createdAt", "desc")
     };
+}
+
+export async function getComplaintInbox({ search = "", type = "All", status = "All" } = {}) {
+    const complaints = await request("/api/admin/complaints");
+    const items = complaints
+        .filter((item) => type === "All" || item.complaintType === type)
+        .filter((item) => status === "All" || item.status === status)
+        .filter((item) => matchesSearch(item, search, ["title", "targetName", "createdBy", "latestMessagePreview"]));
+
+    return {
+        types: ["All", ...new Set(complaints.map((item) => item.complaintType))],
+        statuses: ["All", ...new Set(complaints.map((item) => item.status))],
+        items: sortByDate(items, "updatedAt", "desc")
+    };
+}
+
+export async function getComplaintDetail(type, id) {
+    return await request(`/api/admin/complaints/${type}/${id}`);
+}
+
+export async function replyToComplaint(type, id, content) {
+    return await request(`/api/admin/complaints/${type}/${id}/reply`, {
+        method: "POST",
+        body: JSON.stringify({ content })
+    });
+}
+
+export async function reopenReportedResourceComplaint(id) {
+    return await request(`/api/admin/complaints/resource-report/${id}/reopen`, {
+        method: "POST"
+    });
+}
+
+export async function deleteReportedCommentComplaint(id) {
+    return await request(`/api/admin/complaints/comment-report/${id}/delete-comment`, {
+        method: "DELETE"
+    });
 }

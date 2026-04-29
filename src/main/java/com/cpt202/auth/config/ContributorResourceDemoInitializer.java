@@ -13,36 +13,15 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/**
- * Seeds contributor-owned demo resources for key workflow states.
- */
 @Component
 @Order(3)
 public class ContributorResourceDemoInitializer implements CommandLineRunner {
 
-    /**
-     * Default contributor account used for the seeded resources.
-     */
     private static final String DEFAULT_CONTRIBUTOR_EMAIL = "contributor@heritagehub.com";
 
-    /**
-     * Repository used to load the contributor account.
-     */
     private final UserRepository userRepository;
-
-    /**
-     * Repository used to create the demo resources.
-     */
     private final ResourceRepository resourceRepository;
-
-    /**
-     * Repository used to seed archive feedback for rejected resources.
-     */
     private final AdminArchiveRepository adminArchiveRepository;
-
-    /**
-     * Repository used to seed the appeal conversation thread.
-     */
     private final ResourceAppealMessageRepository resourceAppealMessageRepository;
 
     public ContributorResourceDemoInitializer(UserRepository userRepository,
@@ -55,9 +34,6 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         this.resourceAppealMessageRepository = resourceAppealMessageRepository;
     }
 
-    /**
-     * Seeds contributor demo resources after the demo users exist.
-     */
     @Override
     public void run(String... args) {
         userRepository.findByEmail(DEFAULT_CONTRIBUTOR_EMAIL.toLowerCase(Locale.ROOT))
@@ -65,9 +41,6 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 .ifPresent(this::seedMissingStatuses);
     }
 
-    /**
-     * Ensures the contributor has one resource for each major moderation state.
-     */
     private void seedMissingStatuses(UserAccount contributor) {
         ensureResource(
                 contributor,
@@ -114,7 +87,7 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 LocalDateTime.now().minusDays(8)
         );
 
-        ensureResource(
+        ensureResourceByTitle(
                 contributor,
                 "REJECTED",
                 "Yixing Kiln Workshop Ledger",
@@ -129,12 +102,39 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 LocalDateTime.now().minusDays(5)
         );
 
+        ensureResourceByTitle(
+                contributor,
+                "REJECTED",
+                "Nantong Indigo Print Pattern Register",
+                "Second demo rejection case used to test the revise-and-resubmit workflow with a separate rejected contributor record.",
+                "Traditional Craft",
+                "Nantong",
+                "Republic Era",
+                "indigo,dyeing,pattern register",
+                "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=1200&q=80",
+                trackingIdFor(contributor.id(), "REJECTED") + "-2",
+                0,
+                LocalDateTime.now().minusDays(6)
+        );
+
+        ensureResourceByTitle(
+                contributor,
+                "REJECTED",
+                "Wuxi Clay Figurine Workshop Inventory",
+                "Third demo rejection case for testing multiple rejected submissions and resubmission handling from the contributor workspace.",
+                "Traditional Craft",
+                "Wuxi",
+                "Mid 20th Century",
+                "clay figurine,inventory,folk craft",
+                "https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=1200&q=80",
+                trackingIdFor(contributor.id(), "REJECTED") + "-3",
+                0,
+                LocalDateTime.now().minusDays(7)
+        );
+
         seedRejectedRevisionContext(contributor);
     }
 
-    /**
-     * Creates a demo resource for the given status when none exists yet.
-     */
     private void ensureResource(UserAccount contributor,
                                 String status,
                                 String title,
@@ -174,9 +174,48 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         resourceRepository.replaceTags(saved.id(), splitTags(tags));
     }
 
-    /**
-     * Builds a stable tracking id for seeded resources.
-     */
+    private void ensureResourceByTitle(UserAccount contributor,
+                                       String status,
+                                       String title,
+                                       String description,
+                                       String category,
+                                       String place,
+                                       String period,
+                                       String tags,
+                                       String thumbnail,
+                                       String trackingId,
+                                       int viewCount,
+                                       LocalDateTime createdAt) {
+        boolean exists = resourceRepository.findByOwner(contributor.id(), status).stream()
+                .anyMatch(resource -> title.equalsIgnoreCase(resource.title()));
+        boolean trackingIdExists = trackingId != null && !trackingId.isBlank() && resourceRepository.findAllResources().stream()
+                .anyMatch(resource -> trackingId.equalsIgnoreCase(resource.trackingId()));
+        if (exists || trackingIdExists) {
+            return;
+        }
+
+        HeritageResource resource = new HeritageResource(
+                null,
+                title,
+                null,
+                category,
+                period,
+                place,
+                description,
+                thumbnail,
+                "Demo contributor dataset",
+                trackingId,
+                status,
+                viewCount,
+                createdAt,
+                contributor.id(),
+                contributor.username()
+        );
+
+        HeritageResource saved = resourceRepository.insert(resource);
+        resourceRepository.replaceTags(saved.id(), splitTags(tags));
+    }
+
     private String trackingIdFor(Long contributorId, String status) {
         String suffix = switch (status) {
             case "PENDING" -> "PD";
@@ -187,9 +226,6 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
         return "TRK-DEMO-" + contributorId + "-" + suffix;
     }
 
-    /**
-     * Splits the demo tag string into distinct tag values.
-     */
     private List<String> splitTags(String tags) {
         if (tags == null || tags.isBlank()) {
             return List.of();
@@ -200,9 +236,6 @@ public class ContributorResourceDemoInitializer implements CommandLineRunner {
                 .toList();
     }
 
-    /**
-     * Adds archive feedback and a starter appeal thread for rejected resources.
-     */
     private void seedRejectedRevisionContext(UserAccount contributor) {
         resourceRepository.findByOwner(contributor.id(), "REJECTED").forEach(resource -> {
             adminArchiveRepository.upsert(

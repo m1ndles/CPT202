@@ -1,10 +1,24 @@
 const pageName = document.body.dataset.page;
 
-document.querySelectorAll("[data-nav]").forEach((link) => {
-    if (link.dataset.nav === pageName) {
-        link.classList.add("active");
+function syncActiveNavState() {
+    document.querySelectorAll("[data-nav]").forEach((link) => {
+        link.classList.toggle("active", link.dataset.nav === pageName);
+    });
+}
+
+function ensureComplaintLink() {
+    const adminNav = document.querySelector(".admin-nav");
+    if (!adminNav || adminNav.querySelector('[data-nav="complaints"]')) {
+        return;
     }
-});
+
+    const complaintLink = document.createElement("a");
+    complaintLink.href = "/admin/complaint-management.html";
+    complaintLink.dataset.nav = "complaints";
+    complaintLink.className = "nav-link";
+    complaintLink.textContent = "Complaints";
+    adminNav.appendChild(complaintLink);
+}
 
 function ensureLogoutButton() {
     const adminNav = document.querySelector(".admin-nav");
@@ -37,7 +51,9 @@ async function handleLogout(logoutButton) {
     }
 }
 
+ensureComplaintLink();
 const logoutButton = ensureLogoutButton();
+syncActiveNavState();
 logoutButton?.addEventListener("click", () => {
     handleLogout(logoutButton);
 });

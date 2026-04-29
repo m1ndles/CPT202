@@ -1,7 +1,6 @@
 package com.cpt202.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -12,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.HeritageResource;
 import com.cpt202.auth.model.UserRole;
+import com.cpt202.auth.repository.CommentReportRepository;
 import com.cpt202.auth.repository.CommentRepository;
 import com.cpt202.auth.repository.CommentRepository.CommentViewRow;
 import com.cpt202.auth.repository.ResourceRepository;
@@ -25,13 +25,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 /**
- * Unit tests for {@link CommentService} covering CRUD and nesting rules.
+ * Unit tests for {@link CommentService} covering the current comment and report workflow.
  */
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private CommentReportRepository commentReportRepository;
 
     @Mock
     private ResourceRepository resourceRepository;
@@ -53,18 +56,17 @@ class CommentServiceTest {
     /**
      * Creates a comment view row stub.
      */
-    private CommentViewRow viewRow(long id, Long parentId, long userId, String status) {
+    private CommentViewRow viewRow(long id, long userId, String viewerRole) {
         return new CommentViewRow(
                 id,
                 10L,
                 userId,
-                parentId,
+                1L,
                 "alice",
                 UserRole.USER.name(),
+                viewerRole,
                 "hello",
-                status,
                 LocalDateTime.now(),
-                null,
                 0,
                 false
         );
@@ -77,12 +79,12 @@ class CommentServiceTest {
     void getComments_throwsWhenResourceMissing() {
         when(resourceRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> commentService.getComments(99L, 1L, UserRole.USER, 1, 10))
+        assertThatThrownBy(() -> commentService.getComments(99L, 1L, 1, 10))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Resource not found")
                 .extracting("status").isEqualTo(HttpStatus.NOT_FOUND);
 
-        verify(commentRepository, never()).findRootsByResourceId(anyLong(), any(), anyInt(0), anyInt(0));
+        verify(commentRepository, never()).findByResourceId(anyLong(), anyLong(), anyInt(0), anyInt(0));
     }
 
     /**
@@ -91,12 +93,12 @@ class CommentServiceTest {
     @Test
     void addComment_trimsWhitespaceAndSaves() {
         when(resourceRepository.findById(10L)).thenReturn(Optional.of(approvedResource(10L)));
-        when(commentRepository.create(eq(10L), eq(1L), eq(null), eq("hello"))).thenReturn(55L);
-        when(commentRepository.findViewById(55L, 1L)).thenReturn(Optional.of(viewRow(55L, null, 1L, "ACTIVE")));
+        when(commentRepository.create(eq(10L), eq(1L), eq("hello"))).thenReturn(55L);
+        when(commentRepository.findViewById(55L, 1L)).thenReturn(Optional.of(viewRow(55L, 1L, UserRole.USER.name())));
 
         commentService.addComment(10L, 1L, UserRole.USER, "   hello   ");
 
-        verify(commentRepository).create(10L, 1L, null, "hello");
+        verify(commentRepository).create(10L, 1L, "hello");
     }
 
     /**
@@ -108,52 +110,51 @@ class CommentServiceTest {
                 .isInstanceOf(ApiException.class)
                 .extracting("status").isEqualTo(HttpStatus.FORBIDDEN);
 
-        verify(commentRepository, never()).create(anyLong(), anyLong(), any(), anyString());
+        verify(commentRepository, never()).create(anyLong(), anyLong(), anyString());
     }
 
     /**
-     * Replies to replies are rejected (max 2 levels).
+     * Regular users cannot delete comments in the latest moderation model.
      */
     @Test
-    void replyToComment_rejectsSecondLevelNesting() {
-        CommentViewRow parentReply = viewRow(20L, 10L, 2L, "ACTIVE");
-        when(commentRepository.findViewById(20L, 1L)).thenReturn(Optional.of(parentReply));
+    void deleteComment_rejectsRegularUserDeletion() {
+        when(commentRepository.findViewById(40L, 1L))
+                .thenReturn(Optional.of(viewRow(40L, 1L, UserRole.USER.name())));
 
-        assertThatThrownBy(() -> commentService.replyToComment(20L, 1L, UserRole.USER, "nested reply"))
+        assertThatThrownBy(() -> commentService.deleteComment(40L, 1L, UserRole.USER))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("2 levels")
-                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
-
-        verify(commentRepository, never()).create(anyLong(), anyLong(), any(), anyString());
-    }
-
-    /**
-     * Editing another user's comment returns 403.
-     */
-    @Test
-    void updateComment_rejectsWhenNotOwner() {
-        CommentViewRow othersComment = viewRow(30L, null, 99L, "ACTIVE");
-        when(commentRepository.findViewById(30L, 1L)).thenReturn(Optional.of(othersComment));
-
-        assertThatThrownBy(() -> commentService.updateComment(30L, 1L, UserRole.USER, "edited"))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("your own")
                 .extracting("status").isEqualTo(HttpStatus.FORBIDDEN);
 
-        verify(commentRepository, never()).updateContent(anyLong(), anyString());
+        verify(commentRepository, never()).delete(anyLong());
     }
 
     /**
-     * Deleting own comment performs a soft delete.
+     * Contributors can delete their own comments.
      */
     @Test
-    void deleteComment_softDeletesOwnedComment() {
-        CommentViewRow own = viewRow(40L, null, 1L, "ACTIVE");
-        when(commentRepository.findViewById(40L, 1L)).thenReturn(Optional.of(own));
+    void deleteComment_deletesContributorOwnComment() {
+        when(commentRepository.findViewById(40L, 1L))
+                .thenReturn(Optional.of(viewRow(40L, 1L, UserRole.CONTRIBUTOR.name())));
 
-        commentService.deleteComment(40L, 1L, UserRole.USER);
+        commentService.deleteComment(40L, 1L, UserRole.CONTRIBUTOR);
 
-        verify(commentRepository).softDelete(40L);
+        verify(commentRepository).delete(40L);
+    }
+
+    /**
+     * Empty report content is rejected before a report thread is created.
+     */
+    @Test
+    void submitReport_requiresReportContent() {
+        when(commentRepository.findViewById(40L, 1L))
+                .thenReturn(Optional.of(viewRow(40L, 1L, UserRole.USER.name())));
+
+        assertThatThrownBy(() -> commentService.submitReport(40L, 1L, UserRole.USER, "alice", "   "))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Report content")
+                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
+
+        verify(commentReportRepository, never()).createThread(anyLong(), anyLong(), anyString(), anyString(), org.mockito.ArgumentMatchers.any());
     }
 
     private static int anyInt(int defaultValue) {

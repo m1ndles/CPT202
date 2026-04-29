@@ -49,7 +49,7 @@
   </a>
   <div class="flex items-center gap-3">
     <a href="/profile.html" class="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20">Back to Profile</a>
-    <a href="/submit-resource.html" class="rounded-full border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-white/90">Submit Resource</a>
+    <a href="/submit-resource.html" class="rounded-full border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-primary transition-all hover:bg-white/90">Add New Resource</a>
     <button id="logoutBtn" class="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium transition-all hover:bg-white/20">Log out</button>
   </div>
 </header>
@@ -80,6 +80,9 @@
       <div class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Drafts</div>
       <div id="draftCount" class="mt-3 font-headline text-4xl text-primary">0</div>
       <p class="mt-2 text-sm text-text-soft">Editable working copies that have not entered review yet.</p>
+      <p class="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs font-medium text-primary">
+        You can keep up to 50 saved drafts in your draft box.
+      </p>
     </article>
     <article class="rounded-2xl border border-surface-line bg-surface-card p-5 shadow-card">
       <div class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Pending</div>
@@ -111,6 +114,10 @@
         <button class="status-tab rounded-full border border-surface-line bg-white px-4 py-2 text-sm font-semibold text-text-soft transition-all hover:border-primary/30 hover:text-primary" data-view="APPROVED">Published <span id="approvedTabCount" class="ml-1 text-outline">0</span></button>
         <button class="status-tab rounded-full border border-surface-line bg-white px-4 py-2 text-sm font-semibold text-text-soft transition-all hover:border-primary/30 hover:text-primary" data-view="REJECTED">Rejected <span id="rejectedTabCount" class="ml-1 text-outline">0</span></button>
       </div>
+    </div>
+
+    <div id="draftLimitNotice" class="hidden mb-5 rounded-xl border border-primary/15 bg-primary/5 px-5 py-4 text-sm text-primary">
+      Draft box reminder: you can keep up to 50 saved drafts. Delete an older draft before creating a new one if you reach the limit.
     </div>
 
     <div id="resourceList" class="space-y-4">

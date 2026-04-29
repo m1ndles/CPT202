@@ -3,6 +3,8 @@ package com.cpt202.auth.controller;
 import com.cpt202.auth.dto.ContributorApplicationRequest;
 import com.cpt202.auth.dto.ContributorApplicationResponse;
 import com.cpt202.auth.dto.ContributorApplicationSummaryResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
+import com.cpt202.auth.dto.ResourceAppealRequest;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.service.ContributorApplicationService;
@@ -16,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -23,15 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Contributor application APIs.
+ * Contributor application APIs for applicants and administrators.
  */
 @RestController
 @RequestMapping("/api/contributor-applications")
 public class ContributorApplicationController {
 
-    /**
-     * Service for contributor application workflows.
-     */
     private final ContributorApplicationService contributorApplicationService;
 
     public ContributorApplicationController(ContributorApplicationService contributorApplicationService) {
@@ -39,7 +39,7 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Returns the latest application for the signed-in user.
+     * Returns the current user's latest contributor application.
      */
     @GetMapping("/current")
     public ContributorApplicationResponse getCurrentApplication(HttpSession session) {
@@ -47,7 +47,7 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Returns all applications created by the signed-in user.
+     * Returns the current user's contributor application history.
      */
     @GetMapping("/mine")
     public List<ContributorApplicationSummaryResponse> getMyApplications(HttpSession session) {
@@ -55,7 +55,7 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Submits a contributor application with an optional supporting file.
+     * Submits a new contributor application with an optional supporting file.
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ContributorApplicationResponse> submitApplication(
@@ -68,7 +68,16 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Returns pending applications for administrator review.
+     * Sends an appeal message for the current rejected application.
+     */
+    @PostMapping("/current/appeals")
+    public MessageThreadSubmissionResponse submitAppeal(@Valid @RequestBody ResourceAppealRequest request,
+                                                        HttpSession session) {
+        return contributorApplicationService.submitAppeal(currentUserId(session), request.content());
+    }
+
+    /**
+     * Returns pending contributor applications for administrators.
      */
     @GetMapping("/admin/pending")
     public List<ContributorApplicationSummaryResponse> getPendingApplications(HttpSession session) {
@@ -77,19 +86,19 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Returns the details for a contributor application.
+     * Returns a contributor application detail for administrator review.
      */
     @GetMapping("/admin/{applicationId}")
-    public ContributorApplicationResponse getApplicationDetail(@PathVariable Long applicationId, HttpSession session) {
+    public ContributorApplicationResponse getApplicationDetail(@PathVariable("applicationId") Long applicationId, HttpSession session) {
         requireAdmin(session);
         return contributorApplicationService.getApplicationDetail(applicationId);
     }
 
     /**
-     * Approves a contributor application.
+     * Approves a pending contributor application.
      */
     @PostMapping("/admin/{applicationId}/approve")
-    public Map<String, Object> approve(@PathVariable Long applicationId, HttpSession session) {
+    public Map<String, Object> approve(@PathVariable("applicationId") Long applicationId, HttpSession session) {
         requireAdmin(session);
         ContributorApplicationResponse application = contributorApplicationService.approve(applicationId, currentUsername(session));
         return Map.of(
@@ -99,11 +108,11 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Rejects a contributor application with review comments.
+     * Rejects a pending contributor application with comments.
      */
     @PostMapping("/admin/{applicationId}/reject")
-    public Map<String, Object> reject(@PathVariable Long applicationId,
-                                      @RequestParam String comments,
+    public Map<String, Object> reject(@PathVariable("applicationId") Long applicationId,
+                                      @RequestParam("comments") String comments,
                                       HttpSession session) {
         requireAdmin(session);
         ContributorApplicationResponse application = contributorApplicationService.reject(applicationId, comments, currentUsername(session));
@@ -111,6 +120,17 @@ public class ContributorApplicationController {
                 "message", "Contributor application rejected.",
                 "application", application
         );
+    }
+
+    /**
+     * Sends an administrator reply in a contributor application appeal thread.
+     */
+    @PostMapping("/admin/{applicationId}/appeals")
+    public MessageThreadSubmissionResponse replyToAppeal(@PathVariable("applicationId") Long applicationId,
+                                                         @Valid @RequestBody ResourceAppealRequest request,
+                                                         HttpSession session) {
+        requireAdmin(session);
+        return contributorApplicationService.replyToAppeal(applicationId, currentUsername(session), request.content());
     }
 
     /**
@@ -136,7 +156,7 @@ public class ContributorApplicationController {
     }
 
     /**
-     * Returns the operator name used for admin review actions.
+     * Returns the display name used for administrator appeal replies.
      */
     private String currentUsername(HttpSession session) {
         Object username = session.getAttribute("username");

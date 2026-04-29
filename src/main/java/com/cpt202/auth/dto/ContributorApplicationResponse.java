@@ -1,5 +1,7 @@
 package com.cpt202.auth.dto;
 
+import java.util.List;
+
 /**
  * Contributor application detail payload.
  *
@@ -8,15 +10,17 @@ package com.cpt202.auth.dto;
  * @param username applicant username
  * @param email applicant email
  * @param fullName applicant full name
- * @param expertiseField expertise field
+ * @param expertiseField selected expertise field
  * @param motivationStatement motivation statement
- * @param portfolioLink portfolio link
+ * @param portfolioLink portfolio or supporting link
  * @param status review status
- * @param rejectionComments rejection comments
+ * @param rejectionComments latest admin rejection comments
  * @param submittedAt submission time
  * @param reviewedAt review time
- * @param attachmentName uploaded attachment name
- * @param attachmentUrl uploaded attachment url
+ * @param attachmentName uploaded supporting file name
+ * @param attachmentUrl uploaded supporting file url
+ * @param appealMessages contributor application appeal messages
+ * @param canSendAppeal whether the applicant can send appeal messages
  */
 public record ContributorApplicationResponse(
         Long id,
@@ -32,6 +36,8 @@ public record ContributorApplicationResponse(
         String submittedAt,
         String reviewedAt,
         String attachmentName,
-        String attachmentUrl
+        String attachmentUrl,
+        List<ResourceAppealMessageResponse> appealMessages,
+        boolean canSendAppeal
 ) {
 }

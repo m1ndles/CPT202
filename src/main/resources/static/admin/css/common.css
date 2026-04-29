@@ -54,6 +54,7 @@ textarea {
     width: min(1280px, calc(100% - 36px));
     margin: 0 auto;
     padding: 28px 0 40px;
+    min-width: 0;
 }
 
 .admin-shell {
@@ -63,11 +64,11 @@ textarea {
 
 .topbar {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
     padding: 18px 24px;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
 }
 
 .brand-mark {
@@ -82,19 +83,17 @@ textarea {
     font-family: var(--font-display);
     font-size: 1.22rem;
     line-height: 1.15;
-    white-space: nowrap;
 }
 
 .brand-mark span {
     color: var(--muted);
     font-size: 0.9rem;
     line-height: 1.2;
-    white-space: nowrap;
 }
 
 .admin-nav {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 10px;
     flex: 1 1 auto;
@@ -113,8 +112,10 @@ textarea {
     color: var(--muted);
     font-weight: 700;
     font-size: 0.96rem;
-    white-space: nowrap;
-    flex: 0 0 auto;
+    white-space: normal;
+    flex: 0 1 auto;
+    max-width: 100%;
+    text-align: center;
 }
 
 .nav-action {
@@ -233,6 +234,22 @@ p {
 .status-badge.active {
     background: var(--accent-soft);
     color: var(--accent);
+}
+
+.status-badge.open {
+    background: #efe4c9;
+    color: #885f08;
+}
+
+.status-badge.replied,
+.status-badge.in_review {
+    background: #eef5f2;
+    color: var(--accent);
+}
+
+.status-badge.resolved {
+    background: rgba(236, 228, 216, 0.9);
+    color: var(--muted);
 }
 
 .status-badge.inactive,
@@ -394,13 +411,15 @@ textarea {
 }
 
 .table-wrap {
+    width: 100%;
     overflow-x: auto;
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
+    min-width: 760px;
 }
 
 .data-table th,
@@ -408,7 +427,9 @@ textarea {
     padding: 9px 10px;
     border-bottom: 1px solid var(--line);
     text-align: left;
-    vertical-align: middle;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .data-table th {
@@ -483,16 +504,47 @@ textarea {
         grid-template-columns: 1fr;
     }
 
+    .detail-sidebar {
+        min-width: 0;
+    }
+
     .topbar {
-        align-items: center;
-        flex-direction: row;
-        overflow-x: auto;
-        scrollbar-width: thin;
+        align-items: stretch;
+        flex-direction: column;
     }
 
     .admin-nav {
-        width: auto;
+        width: 100%;
+        justify-content: flex-start;
         padding-bottom: 2px;
+    }
+}
+
+@media (max-width: 760px) {
+    .page-shell {
+        width: min(100% - 16px, 1240px);
+    }
+
+    .topbar {
+        padding: 16px;
+    }
+
+    .brand-mark strong {
+        font-size: 1.08rem;
+    }
+
+    .brand-mark span {
+        font-size: 0.82rem;
+    }
+
+    .admin-nav {
+        gap: 8px;
+    }
+
+    .nav-link {
+        min-height: 42px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
     }
 }
 html {

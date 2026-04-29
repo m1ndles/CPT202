@@ -1,7 +1,8 @@
 import {
     approveContributorApplication,
     getContributorApprovalDetail,
-    rejectContributorApplication
+    rejectContributorApplication,
+    sendContributorAppealReply
 } from "/admin/js/api.js";
 
 const params = new URLSearchParams(window.location.search);
@@ -21,6 +22,12 @@ const rejectButton = document.getElementById("rejectButton");
 const feedbackMessage = document.getElementById("feedbackMessage");
 const existingRejectionBlock = document.getElementById("existingRejectionBlock");
 const existingRejectionComments = document.getElementById("existingRejectionComments");
+const appealThreadList = document.getElementById("appealThreadList");
+const appealReplyCard = document.getElementById("appealReplyCard");
+const appealReplyInput = document.getElementById("appealReplyInput");
+const sendAppealReplyButton = document.getElementById("sendAppealReplyButton");
+const appealReplyStatus = document.getElementById("appealReplyStatus");
+let currentApplication = null;
 
 function formatDate(value) {
     if (!value) return "-";
@@ -34,6 +41,47 @@ function formatDate(value) {
 function setFeedback(message = "", type = "") {
     feedbackMessage.textContent = message;
     feedbackMessage.className = `feedback-message ${type}`.trim();
+}
+
+function setAppealReplyStatus(message = "", type = "") {
+    if (!appealReplyStatus) return;
+    appealReplyStatus.textContent = message;
+    appealReplyStatus.className = `feedback-message ${type}`.trim();
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function renderAppealThread(messages) {
+    if (!appealThreadList) return;
+
+    if (!Array.isArray(messages) || !messages.length) {
+        appealThreadList.innerHTML = `
+            <div class="appeal-thread-empty">
+                No appeal messages have been sent for this application yet.
+            </div>
+        `;
+        return;
+    }
+
+    appealThreadList.innerHTML = messages.map((item) => {
+        const role = String(item.senderRole || "").toLowerCase() === "admin" ? "admin" : "applicant";
+        return `
+            <article class="appeal-thread-item ${role}">
+                <div class="appeal-thread-meta">
+                    <span>${escapeHtml(item.createdAt || "")}</span>
+                    <strong>${escapeHtml(item.senderName || role)}</strong>
+                </div>
+                <p class="appeal-thread-body">${escapeHtml(item.content || "")}</p>
+            </article>
+        `;
+    }).join("");
 }
 
 function renderPortfolio(item) {
@@ -59,6 +107,7 @@ function renderEvidence(item) {
 }
 
 function renderDetail(item) {
+    currentApplication = item;
     applicantName.textContent = item.fullName;
     username.textContent = `@${item.username}`;
     submittedAt.textContent = formatDate(item.submittedAt);
@@ -80,6 +129,16 @@ function renderDetail(item) {
         existingRejectionComments.textContent = item.rejectionComments;
     } else {
         existingRejectionBlock.hidden = true;
+    }
+
+    renderAppealThread(item.appealMessages || []);
+    const canReply = item.status === "REJECTED" || (Array.isArray(item.appealMessages) && item.appealMessages.length > 0);
+    appealReplyCard.hidden = !canReply;
+    if (!canReply) {
+        setAppealReplyStatus("");
+        if (appealReplyInput) {
+            appealReplyInput.value = "";
+        }
     }
 }
 
@@ -120,6 +179,35 @@ rejectButton.addEventListener("click", async () => {
         setFeedback(response.message, "success");
     } catch (error) {
         setFeedback(error.message || "Failed to reject contributor application.", "error");
+    }
+});
+
+sendAppealReplyButton?.addEventListener("click", async () => {
+    const content = appealReplyInput.value.trim();
+    if (!applicationId || !currentApplication) {
+        setAppealReplyStatus("Application detail is not ready yet.", "error");
+        return;
+    }
+    if (!content) {
+        setAppealReplyStatus("Reply message content is required.", "error");
+        return;
+    }
+
+    sendAppealReplyButton.disabled = true;
+    setAppealReplyStatus("");
+    try {
+        const response = await sendContributorAppealReply(applicationId, content);
+        currentApplication = {
+            ...currentApplication,
+            appealMessages: response.messages || currentApplication.appealMessages
+        };
+        renderDetail(currentApplication);
+        appealReplyInput.value = "";
+        setAppealReplyStatus(response.message || "Reply sent.", "success");
+    } catch (error) {
+        setAppealReplyStatus(error.message || "Failed to send reply.", "error");
+    } finally {
+        sendAppealReplyButton.disabled = false;
     }
 });
 

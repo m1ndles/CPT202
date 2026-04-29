@@ -2,9 +2,12 @@ package com.cpt202.auth.controller;
 
 import com.cpt202.auth.dto.ResourceAppealRequest;
 import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.admin.AdminActionResponse;
 import com.cpt202.auth.dto.admin.AdminArchiveItemResponse;
 import com.cpt202.auth.dto.admin.AdminCategoryItemResponse;
+import com.cpt202.auth.dto.admin.AdminComplaintDetailResponse;
+import com.cpt202.auth.dto.admin.AdminComplaintItemResponse;
 import com.cpt202.auth.dto.admin.AdminDashboardSummaryResponse;
 import com.cpt202.auth.dto.admin.AdminHistoryItemResponse;
 import com.cpt202.auth.dto.admin.AdminRejectionRequest;
@@ -19,6 +22,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,14 +32,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Administrator console APIs.
+ * Administrator console APIs for review, taxonomy, archive, and complaint workflows.
  */
 @RestController
 @RequestMapping("/api/admin")
 public class AdminConsoleController {
 
     /**
-     * Service that powers the admin console workflows.
+     * Service that owns administrator workflow rules.
      */
     private final AdminConsoleService adminConsoleService;
 
@@ -44,7 +48,7 @@ public class AdminConsoleController {
     }
 
     /**
-     * Returns the dashboard summary for administrators.
+     * Returns aggregate dashboard data for the admin landing page.
      */
     @GetMapping("/dashboard")
     public AdminDashboardSummaryResponse getDashboard(HttpSession session) {
@@ -53,7 +57,7 @@ public class AdminConsoleController {
     }
 
     /**
-     * Returns the resource moderation queue.
+     * Returns resources currently visible in the moderation queue.
      */
     @GetMapping("/resources/reviews")
     public List<AdminResourceReviewItemResponse> getResourceReviewList(HttpSession session) {
@@ -62,28 +66,28 @@ public class AdminConsoleController {
     }
 
     /**
-     * Returns the details for a resource under review.
+     * Returns the full moderation detail for one resource.
      */
     @GetMapping("/resources/reviews/{resourceId}")
-    public AdminResourceReviewDetailResponse getResourceReviewDetail(@PathVariable Long resourceId, HttpSession session) {
+    public AdminResourceReviewDetailResponse getResourceReviewDetail(@PathVariable("resourceId") Long resourceId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.getResourceReviewDetail(resourceId);
     }
 
     /**
-     * Approves a pending resource review.
+     * Approves a pending resource and moves it into the public lifecycle.
      */
     @PostMapping("/resources/reviews/{resourceId}/approve")
-    public AdminActionResponse approveResourceReview(@PathVariable Long resourceId, HttpSession session) {
+    public AdminActionResponse approveResourceReview(@PathVariable("resourceId") Long resourceId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.approveResourceReview(resourceId, currentUsername(session));
     }
 
     /**
-     * Rejects a pending resource review with feedback.
+     * Rejects a pending resource with reviewer feedback.
      */
     @PostMapping("/resources/reviews/{resourceId}/reject")
-    public AdminActionResponse rejectResourceReview(@PathVariable Long resourceId,
+    public AdminActionResponse rejectResourceReview(@PathVariable("resourceId") Long resourceId,
                                                     @Valid @RequestBody AdminRejectionRequest request,
                                                     HttpSession session) {
         requireAdmin(session);
@@ -91,18 +95,29 @@ public class AdminConsoleController {
     }
 
     /**
-     * Sends a reply in the resource appeal thread.
+     * Archives an approved resource and records the archive reason.
+     */
+    @PostMapping("/resources/reviews/{resourceId}/archive")
+    public AdminActionResponse archiveApprovedResource(@PathVariable("resourceId") Long resourceId,
+                                                       @Valid @RequestBody AdminRejectionRequest request,
+                                                       HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.archiveApprovedResource(resourceId, request.rejectionComments(), currentUsername(session));
+    }
+
+    /**
+     * Sends an administrator reply in a resource appeal thread.
      */
     @PostMapping("/resources/reviews/{resourceId}/appeals")
-    public ResourceAppealSubmissionResponse submitResourceReviewReply(@PathVariable Long resourceId,
-                                                                     @Valid @RequestBody ResourceAppealRequest request,
-                                                                     HttpSession session) {
+    public ResourceAppealSubmissionResponse submitResourceReviewReply(@PathVariable("resourceId") Long resourceId,
+                                                                      @Valid @RequestBody ResourceAppealRequest request,
+                                                                      HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.submitResourceReviewReply(resourceId, currentUsername(session), request.content());
     }
 
     /**
-     * Returns the managed category list.
+     * Returns administrator-managed categories.
      */
     @GetMapping("/categories")
     public List<AdminCategoryItemResponse> getCategories(HttpSession session) {
@@ -111,7 +126,7 @@ public class AdminConsoleController {
     }
 
     /**
-     * Creates a new managed category.
+     * Creates a new administrator-managed category.
      */
     @PostMapping("/categories")
     public AdminCategoryItemResponse createCategory(@Valid @RequestBody AdminTaxonomyRequest request, HttpSession session) {
@@ -120,10 +135,10 @@ public class AdminConsoleController {
     }
 
     /**
-     * Updates an existing managed category.
+     * Updates an administrator-managed category.
      */
     @PutMapping("/categories/{categoryId}")
-    public AdminCategoryItemResponse updateCategory(@PathVariable Long categoryId,
+    public AdminCategoryItemResponse updateCategory(@PathVariable("categoryId") Long categoryId,
                                                     @Valid @RequestBody AdminTaxonomyRequest request,
                                                     HttpSession session) {
         requireAdmin(session);
@@ -131,16 +146,16 @@ public class AdminConsoleController {
     }
 
     /**
-     * Toggles the active status of a managed category.
+     * Toggles a category between active and inactive states.
      */
     @PostMapping("/categories/{categoryId}/toggle-status")
-    public AdminCategoryItemResponse toggleCategoryStatus(@PathVariable Long categoryId, HttpSession session) {
+    public AdminCategoryItemResponse toggleCategoryStatus(@PathVariable("categoryId") Long categoryId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.toggleCategoryStatus(categoryId, currentUsername(session));
     }
 
     /**
-     * Returns the managed tag list.
+     * Returns administrator-managed tags.
      */
     @GetMapping("/tags")
     public List<AdminTagItemResponse> getTags(HttpSession session) {
@@ -149,7 +164,7 @@ public class AdminConsoleController {
     }
 
     /**
-     * Creates a new managed tag.
+     * Creates a new administrator-managed tag.
      */
     @PostMapping("/tags")
     public AdminTagItemResponse createTag(@Valid @RequestBody AdminTaxonomyRequest request, HttpSession session) {
@@ -158,10 +173,10 @@ public class AdminConsoleController {
     }
 
     /**
-     * Updates an existing managed tag.
+     * Updates an administrator-managed tag.
      */
     @PutMapping("/tags/{tagId}")
-    public AdminTagItemResponse updateTag(@PathVariable Long tagId,
+    public AdminTagItemResponse updateTag(@PathVariable("tagId") Long tagId,
                                           @Valid @RequestBody AdminTaxonomyRequest request,
                                           HttpSession session) {
         requireAdmin(session);
@@ -169,16 +184,16 @@ public class AdminConsoleController {
     }
 
     /**
-     * Toggles the active status of a managed tag.
+     * Toggles a tag between active and inactive states.
      */
     @PostMapping("/tags/{tagId}/toggle-status")
-    public AdminTagItemResponse toggleTagStatus(@PathVariable Long tagId, HttpSession session) {
+    public AdminTagItemResponse toggleTagStatus(@PathVariable("tagId") Long tagId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.toggleTagStatus(tagId, currentUsername(session));
     }
 
     /**
-     * Returns the archived resource list.
+     * Returns archived resource records.
      */
     @GetMapping("/archives")
     public List<AdminArchiveItemResponse> getArchives(HttpSession session) {
@@ -187,30 +202,82 @@ public class AdminConsoleController {
     }
 
     /**
-     * Returns a single archive record.
+     * Returns one archived resource record.
      */
     @GetMapping("/archives/{archiveId}")
-    public AdminArchiveItemResponse getArchiveDetail(@PathVariable Long archiveId, HttpSession session) {
+    public AdminArchiveItemResponse getArchiveDetail(@PathVariable("archiveId") Long archiveId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.getArchiveDetail(archiveId);
     }
 
     /**
-     * Restores an archived resource.
+     * Restores an archived resource to approved status.
      */
     @PostMapping("/archives/{archiveId}/restore")
-    public AdminActionResponse restoreArchive(@PathVariable Long archiveId, HttpSession session) {
+    public AdminActionResponse restoreArchive(@PathVariable("archiveId") Long archiveId, HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.restoreArchive(archiveId, currentUsername(session));
     }
 
     /**
-     * Returns the recent admin activity history.
+     * Returns administrator activity history.
      */
     @GetMapping("/history")
     public List<AdminHistoryItemResponse> getHistory(HttpSession session) {
         requireAdmin(session);
         return adminConsoleService.getHistoryItems();
+    }
+
+    /**
+     * Returns contributor appeal and user report threads for the complaint inbox.
+     */
+    @GetMapping("/complaints")
+    public List<AdminComplaintItemResponse> getComplaints(HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.getComplaintItems();
+    }
+
+    /**
+     * Returns one complaint inbox thread with its conversation messages.
+     */
+    @GetMapping("/complaints/{complaintType}/{complaintId}")
+    public AdminComplaintDetailResponse getComplaintDetail(@PathVariable("complaintType") String complaintType,
+                                                           @PathVariable("complaintId") Long complaintId,
+                                                           HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.getComplaintDetail(complaintType, complaintId);
+    }
+
+    /**
+     * Sends an administrator reply to a supported complaint thread.
+     */
+    @PostMapping("/complaints/{complaintType}/{complaintId}/reply")
+    public MessageThreadSubmissionResponse replyToComplaint(@PathVariable("complaintType") String complaintType,
+                                                            @PathVariable("complaintId") Long complaintId,
+                                                            @Valid @RequestBody ResourceAppealRequest request,
+                                                            HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.replyToComplaint(complaintType, complaintId, currentUsername(session), request.content());
+    }
+
+    /**
+     * Reopens a reported public resource for moderation review.
+     */
+    @PostMapping("/complaints/resource-report/{complaintId}/reopen")
+    public AdminActionResponse reopenReportedResource(@PathVariable("complaintId") Long complaintId,
+                                                      HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.reopenReportedResource(complaintId, currentUsername(session));
+    }
+
+    /**
+     * Deletes a reported comment after administrator review.
+     */
+    @DeleteMapping("/complaints/comment-report/{complaintId}/delete-comment")
+    public AdminActionResponse deleteReportedComment(@PathVariable("complaintId") Long complaintId,
+                                                     HttpSession session) {
+        requireAdmin(session);
+        return adminConsoleService.deleteReportedComment(complaintId, currentUsername(session));
     }
 
     /**
@@ -228,7 +295,7 @@ public class AdminConsoleController {
     }
 
     /**
-     * Returns the current operator name for admin actions.
+     * Returns the display name used for administrator audit entries.
      */
     private String currentUsername(HttpSession session) {
         Object username = session.getAttribute("username");

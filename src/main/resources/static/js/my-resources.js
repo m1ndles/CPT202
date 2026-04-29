@@ -3,6 +3,7 @@ import { deleteMyResource, getMyResources, getSessionUser, logout } from "./heri
 const pageMessage = document.getElementById("pageMessage");
 const userSummary = document.getElementById("userSummary");
 const resourceList = document.getElementById("resourceList");
+const draftLimitNotice = document.getElementById("draftLimitNotice");
 const logoutBtn = document.getElementById("logoutBtn");
 const tabButtons = Array.from(document.querySelectorAll(".status-tab"));
 
@@ -80,18 +81,18 @@ function buildPrimaryAction(resource) {
       };
     case "PENDING":
       return {
-        label: "Details",
-        href: `/my-resource-detail.html?id=${encodeURIComponent(resource.id)}&status=${encodeURIComponent(resource.status)}`
+        label: "Re-edit",
+        href: `/submit-resource.html?draftId=${encodeURIComponent(resource.id)}&edit=1&sourceStatus=${encodeURIComponent(resource.status)}`
       };
     case "APPROVED":
       return {
-        label: "Details",
-        href: `/my-resource-detail.html?id=${encodeURIComponent(resource.id)}&status=${encodeURIComponent(resource.status)}`
+        label: "Re-edit",
+        href: `/submit-resource.html?draftId=${encodeURIComponent(resource.id)}&edit=1&sourceStatus=${encodeURIComponent(resource.status)}`
       };
     case "REJECTED":
       return {
-        label: "Details (Resubmission)",
-        href: `/my-resource-detail.html?id=${encodeURIComponent(resource.id)}&status=${encodeURIComponent(resource.status)}`
+        label: "Re-edit",
+        href: `/submit-resource.html?draftId=${encodeURIComponent(resource.id)}&edit=1&sourceStatus=${encodeURIComponent(resource.status)}`
       };
     default:
       return {
@@ -99,6 +100,26 @@ function buildPrimaryAction(resource) {
         href: "#"
       };
   }
+}
+
+function buildSecondaryAction(resource) {
+  if (resource.status === "DRAFT") {
+    return null;
+  }
+  return {
+    label: resource.status === "REJECTED" ? "Details & Messages" : "View Details",
+    href: `/my-resource-detail.html?id=${encodeURIComponent(resource.id)}&status=${encodeURIComponent(resource.status)}`
+  };
+}
+
+function buildMessageAction(resource) {
+  if (resource.status !== "REJECTED") {
+    return null;
+  }
+  return {
+    label: "Message Admin",
+    href: `/my-resource-detail.html?id=${encodeURIComponent(resource.id)}&status=REJECTED#appealSection`
+  };
 }
 
 function canDelete(resource) {
@@ -123,6 +144,8 @@ function renderTabs() {
       ? "status-tab rounded-full border border-primary/20 bg-primary px-4 py-2 text-sm font-semibold text-white transition-all"
       : "status-tab rounded-full border border-surface-line bg-white px-4 py-2 text-sm font-semibold text-text-soft transition-all hover:border-primary/30 hover:text-primary";
   });
+
+  draftLimitNotice.classList.toggle("hidden", !(currentView === "ALL" || currentView === "DRAFT"));
 }
 
 function updateCounts() {
@@ -168,6 +191,8 @@ function renderList() {
 
   resourceList.innerHTML = filtered.map((resource) => {
     const action = buildPrimaryAction(resource);
+    const secondaryAction = buildSecondaryAction(resource);
+    const messageAction = buildMessageAction(resource);
     const tags = (resource.tags || [])
       .map((tag) => `<span class="rounded-full bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary">${escapeHtml(tag)}</span>`)
       .join("");
@@ -208,6 +233,16 @@ function renderList() {
                 <a href="${action.href}" class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#2d5648]">
                   ${escapeHtml(action.label)}
                 </a>
+                ${secondaryAction ? `
+                  <a href="${secondaryAction.href}" class="inline-flex items-center justify-center rounded-xl border border-surface-line bg-white px-4 py-2.5 text-sm font-semibold text-text-soft transition-all hover:border-primary/20 hover:bg-primary/5 hover:text-primary">
+                    ${escapeHtml(secondaryAction.label)}
+                  </a>
+                ` : ""}
+                ${messageAction ? `
+                  <a href="${messageAction.href}" class="inline-flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-primary/10">
+                    ${escapeHtml(messageAction.label)}
+                  </a>
+                ` : ""}
                 ${canDelete(resource) ? `
                   <button
                     type="button"

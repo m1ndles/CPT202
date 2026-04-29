@@ -98,6 +98,29 @@ CREATE TABLE IF NOT EXISTS comment_likes (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) COMMENT = 'one like per user per comment, composite PK prevents duplicates';
 
+CREATE TABLE IF NOT EXISTS comment_report_threads (
+    id               BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique comment report thread identifier',
+    comment_id       BIGINT       NOT NULL                            COMMENT 'reported comment id',
+    reporter_user_id BIGINT       NOT NULL                            COMMENT 'registered reporter account id',
+    reporter_name    VARCHAR(120) NOT NULL                            COMMENT 'display name of the reporter',
+    status           VARCHAR(20)  NOT NULL DEFAULT 'OPEN'            COMMENT 'OPEN / REPLIED / RESOLVED',
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'thread creation time',
+    updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'thread last update time',
+    UNIQUE KEY uk_comment_report_thread (comment_id, reporter_user_id),
+    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE
+) COMMENT = 'per-user report thread for a comment';
+
+CREATE TABLE IF NOT EXISTS comment_report_messages (
+    id          BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique comment report message identifier',
+    thread_id   BIGINT       NOT NULL                            COMMENT 'linked comment report thread id',
+    sender_role VARCHAR(20)  NOT NULL                            COMMENT 'USER / ADMIN',
+    sender_name VARCHAR(120) NOT NULL                            COMMENT 'display name of the sender',
+    content     TEXT         NOT NULL                            COMMENT 'report message content',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'message creation time',
+    FOREIGN KEY (thread_id) REFERENCES comment_report_threads(id) ON DELETE CASCADE
+) COMMENT = 'conversation messages inside a comment report thread';
+
 CREATE TABLE IF NOT EXISTS contributor_applications (
     id                   BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique application identifier',
     user_id              BIGINT       NOT NULL                            COMMENT 'applicant account id',
@@ -113,6 +136,39 @@ CREATE TABLE IF NOT EXISTS contributor_applications (
     reviewed_at          DATETIME     NULL                                COMMENT 'when the application was reviewed',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) COMMENT = 'registered user requests to become contributors';
+
+CREATE TABLE IF NOT EXISTS contributor_application_appeal_messages (
+    id             BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique appeal message identifier',
+    application_id BIGINT       NOT NULL                            COMMENT 'linked contributor application id',
+    sender_role    VARCHAR(20)  NOT NULL                            COMMENT 'APPLICANT / ADMIN',
+    sender_name    VARCHAR(120) NOT NULL                            COMMENT 'display name of the sender',
+    content        TEXT         NOT NULL                            COMMENT 'appeal or reply content',
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'message creation time',
+    FOREIGN KEY (application_id) REFERENCES contributor_applications(id) ON DELETE CASCADE
+) COMMENT = 'conversation thread for rejected contributor applications';
+
+CREATE TABLE IF NOT EXISTS resource_report_threads (
+    id               BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique report thread identifier',
+    resource_id      BIGINT       NOT NULL                            COMMENT 'reported resource id',
+    reporter_user_id BIGINT       NOT NULL                            COMMENT 'registered reporter account id',
+    reporter_name    VARCHAR(120) NOT NULL                            COMMENT 'display name of the reporter',
+    status           VARCHAR(20)  NOT NULL DEFAULT 'OPEN'            COMMENT 'OPEN / REPLIED / IN_REVIEW / RESOLVED',
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'thread creation time',
+    updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'thread last update time',
+    UNIQUE KEY uk_resource_report_thread (resource_id, reporter_user_id),
+    FOREIGN KEY (resource_id) REFERENCES heritage_resources(id) ON DELETE CASCADE,
+    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE
+) COMMENT = 'per-user report thread for a resource';
+
+CREATE TABLE IF NOT EXISTS resource_report_messages (
+    id         BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique report message identifier',
+    thread_id  BIGINT       NOT NULL                            COMMENT 'linked resource report thread id',
+    sender_role VARCHAR(20) NOT NULL                            COMMENT 'USER / ADMIN',
+    sender_name VARCHAR(120) NOT NULL                           COMMENT 'display name of the sender',
+    content    TEXT         NOT NULL                            COMMENT 'report or reply message content',
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP  COMMENT 'message creation time',
+    FOREIGN KEY (thread_id) REFERENCES resource_report_threads(id) ON DELETE CASCADE
+) COMMENT = 'conversation messages inside a resource report thread';
 
 CREATE TABLE IF NOT EXISTS admin_categories (
     id          BIGINT       PRIMARY KEY AUTO_INCREMENT          COMMENT 'unique category identifier',

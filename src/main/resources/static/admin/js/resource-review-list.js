@@ -28,7 +28,7 @@ function formatDate(value) {
 
 function renderCategories(categories) {
     categoryFilter.innerHTML = categories.map((category) => `
-        <option value="${category}" ${category === state.category ? "selected" : ""}>${category}</option>
+        <option value="${category}" ${category === state.category ? "selected" : ""}>${category === "All" ? "All categories" : category}</option>
     `).join("");
 }
 
@@ -43,6 +43,41 @@ function countLabel(status, count) {
     }
 }
 
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function renderConversationState(item) {
+    if (item.status !== "REJECTED") {
+        return `<span class="conversation-muted">Available after rejection</span>`;
+    }
+
+    const count = Number(item.appealMessageCount || 0);
+    if (!count) {
+        return `
+            <div class="conversation-state no-thread">
+                <strong>No appeal yet</strong>
+                <span>Contributor has not sent a message.</span>
+            </div>
+        `;
+    }
+
+    const latestRole = String(item.latestAppealSenderRole || "").toUpperCase();
+    const needsReply = latestRole !== "ADMIN";
+    return `
+        <div class="conversation-state ${needsReply ? "needs-reply" : "admin-replied"}">
+            <strong>${needsReply ? "Needs reply" : "Admin replied"}</strong>
+            <span>${escapeHtml(item.latestAppealPreview || "Conversation message received.")}</span>
+            <small>${escapeHtml(item.latestAppealAt || "")} · ${count} message${count === 1 ? "" : "s"}</small>
+        </div>
+    `;
+}
+
 function renderTable(items) {
     if (!items.length) {
         resourceTableBody.innerHTML = "";
@@ -54,19 +89,20 @@ function renderTable(items) {
         <tr>
             <td>
                 <div class="resource-cell">
-                    <img class="resource-thumb" src="${item.thumbnailUrl}" alt="${item.title}">
+                    <img class="resource-thumb" src="${escapeHtml(item.thumbnailUrl)}" alt="${escapeHtml(item.title)}">
                     <div>
-                        <div class="resource-title">${item.title}</div>
-                        <div class="resource-subtitle">${item.category}</div>
+                        <div class="resource-title">${escapeHtml(item.title)}</div>
+                        <div class="resource-subtitle">${escapeHtml(item.category)}</div>
                     </div>
                 </div>
             </td>
-            <td>${item.contributor}</td>
-            <td>${item.category}</td>
-            <td>${item.place}</td>
+            <td>${escapeHtml(item.contributor)}</td>
+            <td>${escapeHtml(item.category)}</td>
+            <td>${escapeHtml(item.place)}</td>
             <td>${formatDate(item.submissionDate)}</td>
             <td><span class="status-badge ${item.status.toLowerCase()}">${item.status.replaceAll("_", " ")}</span></td>
-            <td><a class="primary-button button-link" href="/admin/resource-review-detail.html?id=${item.id}">${item.status === "REJECTED" ? "Open Record" : "Open Review"}</a></td>
+            <td>${renderConversationState(item)}</td>
+            <td><a class="primary-button button-link" href="/admin/resource-review-detail.html?id=${encodeURIComponent(item.id)}">${item.status === "REJECTED" ? "Open Record" : "Open Review"}</a></td>
         </tr>
     `).join("");
 

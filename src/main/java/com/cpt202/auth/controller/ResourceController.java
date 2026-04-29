@@ -3,10 +3,12 @@ package com.cpt202.auth.controller;
 import com.cpt202.auth.dto.AddCommentRequest;
 import com.cpt202.auth.dto.CommentResponse;
 import com.cpt202.auth.dto.DraftAttachmentResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.MyResourceItemResponse;
 import com.cpt202.auth.dto.PageResponse;
 import com.cpt202.auth.dto.ResourceAppealRequest;
 import com.cpt202.auth.dto.ResourceAppealSubmissionResponse;
+import com.cpt202.auth.dto.ResourceRevisionCancelRequest;
 import com.cpt202.auth.dto.ResourceDetail;
 import com.cpt202.auth.dto.ResourceFavoriteResponse;
 import com.cpt202.auth.dto.ResourceSubmissionDto;
@@ -47,24 +49,9 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/resources")
 public class ResourceController {
 
-    /**
-     * Service for resource workflows.
-     */
     private final ResourceService resourceService;
-
-    /**
-     * Service for comment workflows under a resource.
-     */
     private final CommentService commentService;
-
-    /**
-     * Service for draft attachment storage.
-     */
     private final DraftAttachmentService draftAttachmentService;
-
-    /**
-     * Repository used to resolve the signed-in user.
-     */
     private final UserRepository userRepository;
 
     public ResourceController(ResourceService resourceService,
@@ -82,18 +69,18 @@ public class ResourceController {
      */
     @GetMapping
     public PageResponse<ResourceSummary> getResources(
-            @RequestParam(defaultValue = "") String keyword,
-            @RequestParam(defaultValue = "") String category,
-            @RequestParam(defaultValue = "") String place,
-            @RequestParam(defaultValue = "newest") String sort,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "6") int size
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "category", defaultValue = "") String category,
+            @RequestParam(name = "place", defaultValue = "") String place,
+            @RequestParam(name = "sort", defaultValue = "newest") String sort,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "6") int size
     ) {
         return resourceService.getResources(keyword, category, place, sort, page, size);
     }
 
     /**
-     * Returns the available public categories.
+     * Returns public resource categories.
      */
     @GetMapping("/categories")
     public List<String> getCategories() {
@@ -101,7 +88,7 @@ public class ResourceController {
     }
 
     /**
-     * Returns the available public places.
+     * Returns public resource places.
      */
     @GetMapping("/places")
     public List<String> getPlaces() {
@@ -109,11 +96,11 @@ public class ResourceController {
     }
 
     /**
-     * Returns the signed-in contributor's resources.
+     * Returns resources owned by the current contributor.
      */
     @GetMapping("/mine")
     public List<MyResourceItemResponse> getMyResources(
-            @RequestParam(defaultValue = "") String status,
+            @RequestParam(name = "status", defaultValue = "") String status,
             HttpSession session
     ) {
         UserAccount user = requireUploadPermission(session);
@@ -121,7 +108,7 @@ public class ResourceController {
     }
 
     /**
-     * Returns the current user's favorite resources.
+     * Returns resources favorited by the current registered user.
      */
     @GetMapping("/favorites")
     public List<ResourceSummary> getMyFavoriteResources(HttpSession session) {
@@ -130,10 +117,10 @@ public class ResourceController {
     }
 
     /**
-     * Returns a single resource detail view.
+     * Returns one public resource detail.
      */
     @GetMapping("/{resourceId}")
-    public ResourceDetail getResource(@PathVariable Long resourceId,
+    public ResourceDetail getResource(@PathVariable("resourceId") Long resourceId,
                                       HttpSession session) {
         return resourceService.getResource(resourceId, currentUserId(session));
     }
@@ -142,7 +129,7 @@ public class ResourceController {
      * Deletes a resource owned by the current contributor.
      */
     @DeleteMapping("/{resourceId}")
-    public ResponseEntity<Map<String, String>> deleteOwnedResource(@PathVariable Long resourceId,
+    public ResponseEntity<Map<String, String>> deleteOwnedResource(@PathVariable("resourceId") Long resourceId,
                                                                    HttpSession session) {
         UserAccount user = requireUploadPermission(session);
         resourceService.deleteOwnedResource(resourceId, user.id());
@@ -153,7 +140,7 @@ public class ResourceController {
      * Toggles the current user's favorite state for a resource.
      */
     @PostMapping("/{resourceId}/favorite")
-    public ResourceFavoriteResponse toggleFavorite(@PathVariable Long resourceId,
+    public ResourceFavoriteResponse toggleFavorite(@PathVariable("resourceId") Long resourceId,
                                                    HttpSession session) {
         UserAccount user = requireRegisteredUser(session);
         return resourceService.toggleFavorite(resourceId, user.id());
@@ -163,29 +150,29 @@ public class ResourceController {
      * Increments the public view count for a resource.
      */
     @PostMapping("/{resourceId}/view")
-    public Map<String, Integer> incrementView(@PathVariable Long resourceId) {
+    public Map<String, Integer> incrementView(@PathVariable("resourceId") Long resourceId) {
         return Map.of("viewCount", resourceService.incrementView(resourceId));
     }
 
     /**
-     * Returns paged comments for a resource.
+     * Returns paged comments for a public resource.
      */
     @GetMapping("/{resourceId}/comments")
     public PageResponse<CommentResponse> getComments(
-            @PathVariable Long resourceId,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @PathVariable("resourceId") Long resourceId,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
             HttpSession session
     ) {
-        return commentService.getComments(resourceId, currentUserId(session), currentRole(session), page, size);
+        return commentService.getComments(resourceId, currentUserId(session), page, size);
     }
 
     /**
-     * Adds a new root comment to a resource.
+     * Adds a new comment to a public resource.
      */
     @PostMapping("/{resourceId}/comments")
     public CommentResponse addComment(
-            @PathVariable Long resourceId,
+            @PathVariable("resourceId") Long resourceId,
             @Valid @RequestBody AddCommentRequest request,
             HttpSession session
     ) {
@@ -233,16 +220,17 @@ public class ResourceController {
     }
 
     /**
-     * Returns the current contributor's draft payload.
+     * Returns an owned draft payload for the submission editor.
      */
     @GetMapping("/draft/{resourceId}")
-    public Map<String, Object> getDraft(@PathVariable Long resourceId,
+    public Map<String, Object> getDraft(@PathVariable("resourceId") Long resourceId,
                                         HttpSession session) {
         UserAccount user = requireUploadPermission(session);
         HeritageResource resource = resourceService.getOwnedDraft(resourceId, user.id());
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("id", resource.id());
         response.put("title", resource.title());
+        response.put("titleEn", resource.titleEn() == null ? "" : resource.titleEn());
         response.put("description", resource.description());
         response.put("category", resource.category());
         response.put("period", resource.period() == null ? "" : resource.period());
@@ -261,11 +249,42 @@ public class ResourceController {
     }
 
     /**
+     * Prepares an approved or pending resource for contributor revision.
+     */
+    @PostMapping("/{resourceId}/revision-draft")
+    public Map<String, Object> createRevisionDraft(@PathVariable("resourceId") Long resourceId,
+                                                   HttpSession session) {
+        UserAccount user = requireUploadPermission(session);
+        HeritageResource resource = resourceService.createRevisionDraft(resourceId, user.id(), user.username());
+        return Map.of(
+                "message", "Revision draft prepared.",
+                "id", resource.id(),
+                "status", resource.status()
+        );
+    }
+
+    /**
+     * Cancels a revision draft and restores the previous resource state.
+     */
+    @PostMapping("/{resourceId}/revision-cancel")
+    public Map<String, Object> cancelRevisionDraft(@PathVariable("resourceId") Long resourceId,
+                                                   @Valid @RequestBody ResourceRevisionCancelRequest request,
+                                                   HttpSession session) {
+        UserAccount user = requireUploadPermission(session);
+        HeritageResource resource = resourceService.cancelRevisionDraft(resourceId, user.id(), user.username(), request);
+        return Map.of(
+                "message", "Revision cancelled and the original state has been restored.",
+                "id", resource.id(),
+                "status", resource.status()
+        );
+    }
+
+    /**
      * Sends a contributor appeal message for a resource revision.
      */
     @PostMapping("/{resourceId}/appeals")
     public ResourceAppealSubmissionResponse submitAppeal(
-            @PathVariable Long resourceId,
+            @PathVariable("resourceId") Long resourceId,
             @Valid @RequestBody ResourceAppealRequest request,
             HttpSession session
     ) {
@@ -274,11 +293,24 @@ public class ResourceController {
     }
 
     /**
+     * Opens or appends to a user report thread for a resource.
+     */
+    @PostMapping("/{resourceId}/reports")
+    public MessageThreadSubmissionResponse submitReport(
+            @PathVariable("resourceId") Long resourceId,
+            @Valid @RequestBody ResourceAppealRequest request,
+            HttpSession session
+    ) {
+        UserAccount user = requireRegisteredUser(session);
+        return resourceService.submitReport(resourceId, user.id(), user.username(), request.content());
+    }
+
+    /**
      * Uploads a draft attachment for an editable resource.
      */
     @PostMapping(value = "/draft/{resourceId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DraftAttachmentResponse> uploadDraftAttachment(
-            @PathVariable Long resourceId,
+            @PathVariable("resourceId") Long resourceId,
             @RequestPart("file") MultipartFile file,
             HttpSession session
     ) {
@@ -293,8 +325,8 @@ public class ResourceController {
      */
     @DeleteMapping("/draft/{resourceId}/attachments/{attachmentId}")
     public ResponseEntity<Map<String, String>> deleteDraftAttachment(
-            @PathVariable Long resourceId,
-            @PathVariable Long attachmentId,
+            @PathVariable("resourceId") Long resourceId,
+            @PathVariable("attachmentId") Long attachmentId,
             HttpSession session
     ) {
         UserAccount user = requireUploadPermission(session);
@@ -307,7 +339,7 @@ public class ResourceController {
      * Streams a stored attachment back to the client.
      */
     @GetMapping("/files/{storedName}")
-    public ResponseEntity<Resource> getAttachment(@PathVariable String storedName) {
+    public ResponseEntity<Resource> getAttachment(@PathVariable("storedName") String storedName) {
         Resource resource = draftAttachmentService.loadAttachment(storedName);
         String contentType = draftAttachmentService.detectContentType(storedName);
         return ResponseEntity.ok()

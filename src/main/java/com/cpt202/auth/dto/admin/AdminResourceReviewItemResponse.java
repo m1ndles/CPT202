@@ -20,6 +20,10 @@ public record AdminResourceReviewItemResponse(
         String place,
         String submissionDate,
         String status,
-        String thumbnailUrl
+        String thumbnailUrl,
+        int appealMessageCount,
+        String latestAppealSenderRole,
+        String latestAppealAt,
+        String latestAppealPreview
 ) {
 }

@@ -29,8 +29,41 @@ function formatDate(value) {
 
 function renderOptions(element, items, currentValue) {
     element.innerHTML = items.map((item) => `
-        <option value="${item}" ${item === currentValue ? "selected" : ""}>${item}</option>
+        <option value="${item}" ${item === currentValue ? "selected" : ""}>${formatOptionLabel(element.id, item)}</option>
     `).join("");
+}
+
+function toTitleCase(value) {
+    return String(value || "")
+        .split(" ")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+function formatActionType(value) {
+    if (value === "All") return "All actions";
+    return toTitleCase(String(value || "").replaceAll("_", " ").replaceAll("-", " "));
+}
+
+function formatTargetType(value) {
+    if (value === "All") return "All record types";
+    return toTitleCase(String(value || "").replaceAll("_", " ").replaceAll("-", " "));
+}
+
+function formatOperator(value) {
+    if (value === "All") return "All operators";
+    if (String(value || "").toUpperCase() === "SYSTEM") {
+        return "System";
+    }
+    return value;
+}
+
+function formatOptionLabel(selectId, value) {
+    if (selectId === "actionTypeFilter") return formatActionType(value);
+    if (selectId === "targetTypeFilter") return formatTargetType(value);
+    if (selectId === "operatorFilter") return formatOperator(value);
+    return value;
 }
 
 function renderTable(items) {

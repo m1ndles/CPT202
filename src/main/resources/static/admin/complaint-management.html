@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint Inbox | Heritage Platform</title>
+    <link rel="stylesheet" href="/admin/css/common.css">
+    <link rel="stylesheet" href="/admin/css/complaint-management.css">
+</head>
+<body data-page="complaints">
+<div class="page-shell admin-shell">
+    <header class="topbar panel">
+        <div class="brand-mark">
+            <strong>Community Heritage Admin</strong>
+            <span>Contributor access approval and resource publication review</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="nav-link" data-nav="dashboard" href="/admin/dashboard.html">Dashboard</a>
+            <a class="nav-link" data-nav="contributor-approval" href="/admin/contributor-approval-list.html">Contributor Approval</a>
+            <a class="nav-link" data-nav="resource-review" href="/admin/resource-review-list.html">Resource Review</a>
+            <a class="nav-link" data-nav="taxonomy" href="/admin/category-management.html">Taxonomy Admin</a>
+            <a class="nav-link" data-nav="archive" href="/admin/archive-management.html">Archive</a>
+            <a class="nav-link" data-nav="history" href="/admin/history-log.html">History</a>
+        </nav>
+    </header>
+
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <p class="eyebrow">Complaint Inbox</p>
+            <h1>Reports and Appeal Messages</h1>
+            <p class="hero-text">Review contributor appeal conversations and user resource reports, then reply or send the content back into moderation.</p>
+        </div>
+        <div class="hero-aside">
+            <span>Open threads</span>
+            <strong id="complaintCount">0</strong>
+        </div>
+    </section>
+
+    <section class="toolbar panel complaint-toolbar">
+        <div class="field-group grow">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="search" placeholder="Search by title, reporter, applicant, or message preview">
+        </div>
+        <div class="field-group">
+            <label for="typeFilter">Reported Item</label>
+            <select id="typeFilter"></select>
+        </div>
+        <div class="field-group">
+            <label for="statusFilter">Progress</label>
+            <select id="statusFilter"></select>
+        </div>
+        <button id="refreshButton" class="secondary-button toolbar-button" type="button">Refresh Inbox</button>
+    </section>
+
+    <main class="complaint-layout">
+        <section class="panel complaint-list-panel">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Threads</p>
+                    <h2>Complaint queue</h2>
+                </div>
+            </div>
+            <div id="complaintList" class="complaint-list"></div>
+            <div id="emptyState" class="empty-state" hidden>
+                <h3>No complaint threads match your current filters.</h3>
+            </div>
+        </section>
+
+        <aside class="panel complaint-detail-panel">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Detail</p>
+                    <h2 id="detailTitle">Select a complaint thread</h2>
+                </div>
+            </div>
+            <div id="detailMeta" class="complaint-meta"></div>
+            <p id="detailHelper" class="detail-helper">Choose a thread from the list to inspect the conversation.</p>
+            <a id="detailActionLink" class="secondary-button button-link complaint-action-link" href="#" hidden>Open related record</a>
+            <button id="reopenButton" class="danger-button" type="button" hidden>Reopen Resource for Review</button>
+            <button id="deleteCommentButton" class="danger-button" type="button" hidden>Delete Reported Comment</button>
+            <div id="messageThread" class="message-thread"></div>
+            <div id="replyCard" class="reply-card" hidden>
+                <label class="textarea-label" for="replyInput">Reply</label>
+                <textarea id="replyInput" rows="5" maxlength="1000" placeholder="Write a reply to the contributor or reporter here."></textarea>
+                <div class="action-stack">
+                    <button id="replyButton" class="primary-button" type="button">Send Reply</button>
+                </div>
+                <p id="replyStatus" class="feedback-message"></p>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script type="module" src="/admin/js/common.js"></script>
+<script type="module" src="/admin/js/complaint-management.js"></script>
+</body>
+</html>

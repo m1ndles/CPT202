@@ -15,9 +15,11 @@ import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserAccount;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.repository.AdminActivityRepository;
+import com.cpt202.auth.repository.ContributorApplicationAppealMessageRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import com.cpt202.auth.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,9 @@ class ContributorApplicationServiceTest {
 
     @Mock
     private ContributorApplicationRepository contributorApplicationRepository;
+
+    @Mock
+    private ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository;
 
     @Mock
     private ResourceRepository resourceRepository;
@@ -66,7 +71,8 @@ class ContributorApplicationServiceTest {
                 "Alice Zhou", "Classical Garden", "I study gardens.",
                 null, status, null,
                 "2026-01-01 10:00", null,
-                null, null
+                null, null,
+                List.of(), "REJECTED".equals(status)
         );
     }
 

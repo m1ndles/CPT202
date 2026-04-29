@@ -34,6 +34,10 @@ export function getProfile() {
   return request('/api/profile');
 }
 
+export function getProfileEngagement() {
+  return request('/api/profile/engagement');
+}
+
 export function updateProfile(payload) {
   return request('/api/profile', {
     method: 'PUT',
@@ -79,6 +83,13 @@ export function submitContributorApplication(formData) {
   });
 }
 
+export function submitContributorApplicationAppeal(content) {
+  return request('/api/contributor-applications/current/appeals', {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  });
+}
+
 export function logout() {
   return request('/api/auth/logout', { method: 'POST' });
 }
@@ -115,6 +126,19 @@ export function getOwnedDraft(resourceId) {
   return request(`/api/resources/draft/${resourceId}`);
 }
 
+export function createRevisionDraft(resourceId) {
+  return request(`/api/resources/${resourceId}/revision-draft`, {
+    method: 'POST'
+  });
+}
+
+export function cancelRevisionDraft(resourceId, payload) {
+  return request(`/api/resources/${resourceId}/revision-cancel`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
 export function getResourceById(resourceId) {
   return request(`/api/resources/${resourceId}`);
 }
@@ -127,6 +151,13 @@ export function toggleResourceFavorite(resourceId) {
 
 export function submitResourceAppeal(resourceId, content) {
   return request(`/api/resources/${resourceId}/appeals`, {
+    method: 'POST',
+    body: JSON.stringify({ content })
+  });
+}
+
+export function submitResourceReport(resourceId, content) {
+  return request(`/api/resources/${resourceId}/reports`, {
     method: 'POST',
     body: JSON.stringify({ content })
   });
@@ -159,16 +190,9 @@ export function toggleLike(commentId) {
   return request(`/api/comments/${commentId}/like`, { method: 'POST' });
 }
 
-export function replyToComment(parentId, content) {
-  return request(`/api/comments/${parentId}/reply`, {
+export function submitCommentReport(commentId, content) {
+  return request(`/api/comments/${commentId}/reports`, {
     method: 'POST',
-    body: JSON.stringify({ content })
-  });
-}
-
-export function updateComment(commentId, content) {
-  return request(`/api/comments/${commentId}`, {
-    method: 'PUT',
     body: JSON.stringify({ content })
   });
 }

@@ -1,19 +1,19 @@
 package com.cpt202.auth.controller;
 
-import com.cpt202.auth.dto.AddCommentRequest;
 import com.cpt202.auth.dto.CommentResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
+import com.cpt202.auth.dto.ResourceAppealRequest;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.service.CommentService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -23,9 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/comments")
 public class CommentController {
 
-    /**
-     * Comment business service.
-     */
     private final CommentService commentService;
 
     public CommentController(CommentService commentService) {
@@ -36,41 +33,33 @@ public class CommentController {
      * Toggles the current user's like on a comment.
      */
     @PostMapping("/{commentId}/like")
-    public CommentResponse toggleLike(@PathVariable Long commentId, HttpSession session) {
+    public CommentResponse toggleLike(@PathVariable("commentId") Long commentId, HttpSession session) {
         return commentService.toggleLike(commentId, currentUserId(session), currentRole(session));
     }
 
     /**
-     * Adds a reply to a root comment.
-     */
-    @PostMapping("/{parentId}/reply")
-    public CommentResponse replyToComment(
-            @PathVariable Long parentId,
-            @Valid @RequestBody AddCommentRequest request,
-            HttpSession session
-    ) {
-        return commentService.replyToComment(parentId, currentUserId(session), currentRole(session), request.content());
-    }
-
-    /**
-     * Updates the current user's own comment.
-     */
-    @PutMapping("/{commentId}")
-    public CommentResponse updateComment(
-            @PathVariable Long commentId,
-            @Valid @RequestBody AddCommentRequest request,
-            HttpSession session
-    ) {
-        return commentService.updateComment(commentId, currentUserId(session), currentRole(session), request.content());
-    }
-
-    /**
-     * Deletes the current user's own comment.
+     * Deletes a comment when the current role has moderation permission.
      */
     @DeleteMapping("/{commentId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteComment(@PathVariable Long commentId, HttpSession session) {
+    public ResponseEntity<Map<String, String>> deleteComment(@PathVariable("commentId") Long commentId, HttpSession session) {
         commentService.deleteComment(commentId, currentUserId(session), currentRole(session));
+        return ResponseEntity.ok(Map.of("message", "Comment deleted."));
+    }
+
+    /**
+     * Opens or appends to a user report thread for a comment.
+     */
+    @PostMapping("/{commentId}/reports")
+    public MessageThreadSubmissionResponse reportComment(@PathVariable("commentId") Long commentId,
+                                                         @Valid @RequestBody ResourceAppealRequest request,
+                                                         HttpSession session) {
+        return commentService.submitReport(
+                commentId,
+                currentUserId(session),
+                currentRole(session),
+                currentUsername(session),
+                request.content()
+        );
     }
 
     /**
@@ -92,5 +81,13 @@ public class CommentController {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /**
+     * Returns the current session username for report messages.
+     */
+    private String currentUsername(HttpSession session) {
+        Object username = session.getAttribute("username");
+        return username instanceof String value ? value : null;
     }
 }

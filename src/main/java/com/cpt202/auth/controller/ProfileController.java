@@ -1,5 +1,6 @@
 package com.cpt202.auth.controller;
 
+import com.cpt202.auth.dto.ContributorEngagementResponse;
 import com.cpt202.auth.dto.SessionUserResponse;
 import com.cpt202.auth.dto.UpdateEmailRequest;
 import com.cpt202.auth.dto.UpdatePasswordRequest;
@@ -42,7 +43,15 @@ public class ProfileController {
     }
 
     /**
-     * Updates the current user's profile details.
+     * Returns contributor engagement metrics for the current profile.
+     */
+    @GetMapping("/engagement")
+    public ContributorEngagementResponse getContributorEngagement(HttpSession session) {
+        return profileService.getContributorEngagement(currentUserId(session));
+    }
+
+    /**
+     * Updates the current user's public profile fields.
      */
     @PutMapping
     public SessionUserResponse updateProfile(@Valid @RequestBody UpdateProfileRequest request, HttpSession session) {

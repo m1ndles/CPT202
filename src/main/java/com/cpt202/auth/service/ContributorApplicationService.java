@@ -3,10 +3,13 @@ package com.cpt202.auth.service;
 import com.cpt202.auth.dto.ContributorApplicationRequest;
 import com.cpt202.auth.dto.ContributorApplicationResponse;
 import com.cpt202.auth.dto.ContributorApplicationSummaryResponse;
+import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
+import com.cpt202.auth.dto.ResourceAppealMessageResponse;
 import com.cpt202.auth.exception.ApiException;
 import com.cpt202.auth.model.UserAccount;
 import com.cpt202.auth.model.UserRole;
 import com.cpt202.auth.repository.AdminActivityRepository;
+import com.cpt202.auth.repository.ContributorApplicationAppealMessageRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
 import com.cpt202.auth.repository.ResourceRepository;
 import com.cpt202.auth.repository.UserRepository;
@@ -30,75 +33,45 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class ContributorApplicationService {
 
-    /**
-     * Maximum supporting file size in bytes.
-     */
     private static final long MAX_FILE_BYTES = 10L * 1024 * 1024;
-
-    /**
-     * Supported supporting file content types.
-     */
     private static final Set<String> ALLOWED_FILE_TYPES = Set.of(
             "application/pdf",
             "image/jpeg",
             "image/png",
             "image/webp"
     );
-
-    /**
-     * Storage directory for contributor application files.
-     */
     private static final Path APPLICATION_UPLOAD_DIR = Path.of("uploads", "applications");
 
-    /**
-     * Repository used to read and update contributor applications.
-     */
     private final ContributorApplicationRepository contributorApplicationRepository;
-
-    /**
-     * Repository used to validate expertise fields against resource categories.
-     */
+    private final ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository;
     private final ResourceRepository resourceRepository;
-
-    /**
-     * Repository used to load and update user accounts.
-     */
     private final UserRepository userRepository;
-
-    /**
-     * Repository used to record administrator actions.
-     */
     private final AdminActivityRepository adminActivityRepository;
 
     public ContributorApplicationService(ContributorApplicationRepository contributorApplicationRepository,
+                                         ContributorApplicationAppealMessageRepository contributorApplicationAppealMessageRepository,
                                          ResourceRepository resourceRepository,
                                          UserRepository userRepository,
                                          AdminActivityRepository adminActivityRepository) {
         this.contributorApplicationRepository = contributorApplicationRepository;
+        this.contributorApplicationAppealMessageRepository = contributorApplicationAppealMessageRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository = userRepository;
         this.adminActivityRepository = adminActivityRepository;
     }
 
-    /**
-     * Returns the latest application for the current user.
-     */
     public ContributorApplicationResponse getCurrentApplication(Long userId) {
         requireEligibleUser(userId);
-        return contributorApplicationRepository.findLatestByUserId(userId).orElse(null);
+        return contributorApplicationRepository.findLatestByUserId(userId)
+                .map(this::enrichApplication)
+                .orElse(null);
     }
 
-    /**
-     * Returns the full application history for the current user.
-     */
     public List<ContributorApplicationSummaryResponse> getMyApplications(Long userId) {
         requireSignedInUser(userId);
         return contributorApplicationRepository.findByUserId(userId);
     }
 
-    /**
-     * Submits a contributor application and stores its optional file.
-     */
     @Transactional
     public ContributorApplicationResponse submit(Long userId,
                                                  ContributorApplicationRequest request,
@@ -130,24 +103,16 @@ public class ContributorApplicationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save contributor application."));
     }
 
-    /**
-     * Returns all pending applications for administrator review.
-     */
     public List<ContributorApplicationSummaryResponse> getPendingApplications() {
         return contributorApplicationRepository.findAllPending();
     }
 
-    /**
-     * Returns the details for a single contributor application.
-     */
     public ContributorApplicationResponse getApplicationDetail(Long applicationId) {
         return contributorApplicationRepository.findById(applicationId)
+                .map(this::enrichApplication)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contributor application not found."));
     }
 
-    /**
-     * Approves a contributor application and upgrades the user role.
-     */
     @Transactional
     public ContributorApplicationResponse approve(Long applicationId, String operatorName) {
         ContributorApplicationResponse detail = getApplicationDetail(applicationId);
@@ -173,9 +138,6 @@ public class ContributorApplicationService {
         return getApplicationDetail(applicationId);
     }
 
-    /**
-     * Rejects a contributor application with review comments.
-     */
     @Transactional
     public ContributorApplicationResponse reject(Long applicationId, String comments, String operatorName) {
         String normalizedComments = normalizeText(comments);
@@ -197,17 +159,79 @@ public class ContributorApplicationService {
     }
 
     /**
-     * Ensures the application is still waiting for review.
+     * Sends an applicant appeal message after a contributor application is rejected.
      */
+    @Transactional
+    public MessageThreadSubmissionResponse submitAppeal(Long userId, String content) {
+        UserAccount user = requireEligibleUser(userId);
+        ContributorApplicationResponse application = contributorApplicationRepository.findLatestByUserId(user.id())
+                .map(this::enrichApplication)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Contributor application not found."));
+        if (!application.canSendAppeal()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This application is not currently available for appeal messages.");
+        }
+
+        String normalizedContent = normalizeMessageContent(content);
+        contributorApplicationAppealMessageRepository.insert(
+                application.id(),
+                "APPLICANT",
+                user.username(),
+                normalizedContent,
+                LocalDateTime.now()
+        );
+        adminActivityRepository.insert(
+                "contributor appeal submitted",
+                "Contributor",
+                application.fullName(),
+                user.username(),
+                LocalDateTime.now(),
+                normalizedContent
+        );
+        return new MessageThreadSubmissionResponse(
+                "Appeal message sent to the admin team.",
+                contributorApplicationAppealMessageRepository.findByApplicationId(application.id())
+        );
+    }
+
+    /**
+     * Sends an administrator reply in a contributor application appeal thread.
+     */
+    @Transactional
+    public MessageThreadSubmissionResponse replyToAppeal(Long applicationId, String operatorName, String content) {
+        ContributorApplicationResponse application = getApplicationDetail(applicationId);
+        if (!"REJECTED".equalsIgnoreCase(application.status())
+                && application.appealMessages().isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "This application does not currently have an appeal thread.");
+        }
+
+        String normalizedContent = normalizeMessageContent(content);
+        contributorApplicationAppealMessageRepository.insert(
+                application.id(),
+                "ADMIN",
+                operator(operatorName),
+                normalizedContent,
+                LocalDateTime.now()
+        );
+        adminActivityRepository.insert(
+                "contributor appeal replied",
+                "Contributor",
+                application.fullName(),
+                operator(operatorName),
+                LocalDateTime.now(),
+                normalizedContent
+        );
+        return new MessageThreadSubmissionResponse(
+                "Reply sent to the applicant.",
+                contributorApplicationAppealMessageRepository.findByApplicationId(application.id())
+        );
+    }
+
     private void requirePending(ContributorApplicationResponse application) {
         if (!"PENDING".equalsIgnoreCase(application.status())) {
             throw new ApiException(HttpStatus.CONFLICT, "Only pending contributor applications can be reviewed.");
         }
     }
 
-    /**
-     * Ensures the current user is eligible to submit an application.
-     */
     private UserAccount requireEligibleUser(Long userId) {
         UserAccount user = requireSignedInUser(userId);
         if (user.role() != UserRole.USER) {
@@ -216,9 +240,6 @@ public class ContributorApplicationService {
         return user;
     }
 
-    /**
-     * Loads the signed-in user or throws an authentication error.
-     */
     private UserAccount requireSignedInUser(Long userId) {
         if (userId == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue.");
@@ -227,9 +248,6 @@ public class ContributorApplicationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Please log in to continue."));
     }
 
-    /**
-     * Stores an optional supporting file for the application.
-     */
     private StoredFile storeSupportingFile(MultipartFile file, Long userId) {
         if (file == null || file.isEmpty()) {
             return null;
@@ -262,9 +280,6 @@ public class ContributorApplicationService {
         return new StoredFile(originalName, "/uploads/applications/" + storedName);
     }
 
-    /**
-     * Resolves the file extension for the uploaded content.
-     */
     private String extensionOf(String originalName, String contentType) {
         int dot = originalName.lastIndexOf('.');
         if (dot >= 0 && dot < originalName.length() - 1) {
@@ -279,9 +294,6 @@ public class ContributorApplicationService {
         };
     }
 
-    /**
-     * Trims a nullable text value and converts blanks to null.
-     */
     private String normalizeText(String value) {
         if (value == null) {
             return null;
@@ -290,9 +302,17 @@ public class ContributorApplicationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    /**
-     * Validates the selected expertise field against known categories.
-     */
+    private String normalizeMessageContent(String content) {
+        String normalized = normalizeText(content);
+        if (normalized == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message content is required.");
+        }
+        if (normalized.length() > 1000) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Message must be 1000 characters or fewer.");
+        }
+        return normalized;
+    }
+
     private String normalizeExpertiseField(String value) {
         String normalized = normalizeText(value);
         List<String> categories = resourceRepository.findCategories();
@@ -302,17 +322,37 @@ public class ContributorApplicationService {
         return normalized;
     }
 
-    /**
-     * Returns the operator name used for admin history entries.
-     */
     private String operator(String operatorName) {
         String normalized = normalizeText(operatorName);
         return normalized == null ? "Admin Console" : normalized;
     }
 
     /**
-     * Stored file projection used during application submission.
+     * Adds appeal-thread state to the application payload returned by repositories.
      */
+    private ContributorApplicationResponse enrichApplication(ContributorApplicationResponse application) {
+        List<ResourceAppealMessageResponse> appealMessages = contributorApplicationAppealMessageRepository.findByApplicationId(application.id());
+        boolean canSendAppeal = "REJECTED".equalsIgnoreCase(application.status());
+        return new ContributorApplicationResponse(
+                application.id(),
+                application.userId(),
+                application.username(),
+                application.email(),
+                application.fullName(),
+                application.expertiseField(),
+                application.motivationStatement(),
+                application.portfolioLink(),
+                application.status(),
+                application.rejectionComments(),
+                application.submittedAt(),
+                application.reviewedAt(),
+                application.attachmentName(),
+                application.attachmentUrl(),
+                appealMessages,
+                canSendAppeal
+        );
+    }
+
     private record StoredFile(String originalName, String url) {
     }
 }

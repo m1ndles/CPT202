@@ -102,6 +102,48 @@
       <p class="text-text-soft text-sm">Be the first to add one.</p>
     </div>
   </div>
+
+  <div id="reportSection" class="hidden mt-10">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="material-symbols-outlined text-2xl text-tertiary">flag</span>
+      <h2 class="font-headline text-xl font-bold text-tertiary">Report This Resource</h2>
+    </div>
+
+    <div id="reportThread" class="space-y-3 mb-6"></div>
+
+    <div id="reportForm" class="hidden bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card">
+      <div class="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+        <div>
+          <label for="reportReasonType" class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-outline">Issue Type</label>
+          <select id="reportReasonType"
+            class="w-full rounded-xl border border-surface-line bg-white px-3 py-3 text-sm text-text-main focus:ring-2 focus:ring-tertiary/20 focus:border-tertiary">
+            <option value="">Select a reason</option>
+            <option value="Inaccurate information">Inaccurate information</option>
+            <option value="Copyright concern">Copyright concern</option>
+            <option value="Offensive or harmful">Offensive or harmful</option>
+            <option value="Spam or advertising">Spam or advertising</option>
+            <option value="Privacy concern">Privacy concern</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="text-sm text-text-soft leading-6 rounded-xl border border-tertiary/10 bg-tertiary/5 px-4 py-3">
+          Tell the admin team what is wrong and why it should be reviewed. Your message stays private between you and the moderators.
+        </div>
+      </div>
+      <textarea id="reportContent" placeholder="Describe the issue you want the admin team to review" maxlength="1000"
+        class="mt-4 w-full min-h-[120px] p-4 bg-surface-soft border-0 rounded-xl text-sm placeholder:text-outline/60 focus:ring-2 focus:ring-tertiary/20 focus:bg-white transition-all resize-y"></textarea>
+      <div class="flex items-center justify-between mt-3 gap-3 flex-wrap">
+        <div class="text-xs text-outline">Visible only to you and the admin team.</div>
+        <button id="submitReport" class="px-6 py-2.5 bg-tertiary text-white rounded-xl font-semibold text-sm hover:bg-[#62490f] transition-all active:scale-95 flex items-center gap-2">
+          <span class="material-symbols-outlined text-lg">outgoing_mail</span>
+          Send Report
+        </button>
+      </div>
+      <div id="reportMessage" class="hidden mt-3 text-sm"></div>
+    </div>
+
+    <div id="reportReadonly" class="hidden bg-surface-soft border border-surface-line rounded-2xl p-5 text-sm text-text-soft"></div>
+  </div>
 </div>
 
 <script type="module">
@@ -112,9 +154,9 @@
     getResourceById,
     getSessionUser,
     incrementView,
-    replyToComment,
-    updateComment,
     logout,
+    submitCommentReport,
+    submitResourceReport,
     toggleResourceFavorite,
     toggleLike
   } from './js/heritage-data.js';
@@ -127,7 +169,94 @@
   let commentPage = 1;
   let totalCommentPages = 0;
   let loadedComments = [];
-  const expandedReplyParents = new Set();
+
+  function renderReportSection() {
+    const section = document.getElementById('reportSection');
+    const thread = document.getElementById('reportThread');
+    const form = document.getElementById('reportForm');
+    const readonly = document.getElementById('reportReadonly');
+
+    if (!section || !resource) {
+      return;
+    }
+
+    section.classList.remove('hidden');
+    const messages = Array.isArray(resource.reportMessages) ? resource.reportMessages : [];
+
+    thread.innerHTML = messages.length
+      ? messages.map((item) => {
+          const isAdmin = String(item.senderRole || '').toUpperCase() === 'ADMIN';
+          return `
+            <article class="rounded-2xl border px-5 py-4 ${isAdmin ? 'border-primary/15 bg-primary/5' : 'border-tertiary/20 bg-tertiary/5'}">
+              <div class="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.16em] text-outline">
+                <span>${escapeHtml(item.createdAt || '')}</span>
+                <strong class="text-text-main tracking-normal normal-case">${escapeHtml(item.senderName || '')}</strong>
+              </div>
+              <p class="mt-2 text-sm leading-7 text-text-main">${escapeHtml(item.content || '')}</p>
+            </article>
+          `;
+        }).join('')
+      : `
+        <div class="rounded-2xl border border-dashed border-surface-line px-5 py-4 text-sm text-text-soft bg-white/60">
+          No report messages have been sent for this resource yet.
+        </div>
+      `;
+
+    const canSendReport = !sessionUser.guest && resource.canSendReport !== false;
+    if (!canSendReport) {
+      form.classList.add('hidden');
+      readonly.classList.remove('hidden');
+      readonly.textContent = 'Please sign in with a registered account to report resources to the admin team.';
+      return;
+    }
+
+    form.classList.remove('hidden');
+    readonly.classList.add('hidden');
+  }
+
+  function bindReportForm() {
+    const button = document.getElementById('submitReport');
+    const textarea = document.getElementById('reportContent');
+    const typeSelect = document.getElementById('reportReasonType');
+    const message = document.getElementById('reportMessage');
+    if (!button || !textarea || !typeSelect || !message) {
+      return;
+    }
+
+    button.addEventListener('click', async () => {
+      const content = textarea.value.trim();
+      const reasonType = typeSelect.value.trim();
+      if (!reasonType) {
+        message.textContent = 'Please select a report type.';
+        message.className = 'mt-3 text-sm text-red-700';
+        message.classList.remove('hidden');
+        return;
+      }
+      if (!content) {
+        message.textContent = 'Please explain the reason for this report.';
+        message.className = 'mt-3 text-sm text-red-700';
+        message.classList.remove('hidden');
+        return;
+      }
+
+      button.disabled = true;
+      message.classList.add('hidden');
+      try {
+        const response = await submitResourceReport(resourceId, `[${reasonType}] ${content}`);
+        resource.reportMessages = response.messages || resource.reportMessages;
+        textarea.value = '';
+        typeSelect.value = '';
+        renderReportSection();
+        showNotice(response.message || 'Report sent.');
+      } catch (error) {
+        message.textContent = error.message || 'Failed to send report.';
+        message.className = 'mt-3 text-sm text-red-700';
+        message.classList.remove('hidden');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
 
   function slugifyCategory(value) {
     return `cat-${value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
@@ -177,6 +306,18 @@
         <span class="material-symbols-outlined text-lg" ${data.favoritedByMe ? "style=\"font-variation-settings: 'FILL' 1;\"" : ''}>favorite</span>
         <span id="favoriteBtnLabel">${data.favoritedByMe ? 'Saved' : 'Save'}</span>
         <span id="favoriteBtnCount" class="rounded-full bg-black/5 px-2 py-0.5 text-xs font-bold">${data.favoriteCount}</span>
+      </button>
+    `;
+
+    const reportButton = `
+      <button
+        id="reportBtn"
+        type="button"
+        class="inline-flex shrink-0 items-center gap-2 rounded-full border border-tertiary/20 bg-white px-4 py-2 text-sm font-semibold text-tertiary transition-all hover:bg-tertiary/5 hover:border-tertiary/35"
+        ${sessionUser.guest ? 'disabled title="Log in with a registered account to report resources"' : ''}
+      >
+        <span class="material-symbols-outlined text-lg">flag</span>
+        <span>Report</span>
       </button>
     `;
 
@@ -232,7 +373,10 @@
               <h1 class="font-headline text-2xl md:text-3xl font-bold text-text-main mb-1">${escapeHtml(data.title)}</h1>
               <div class="text-text-soft text-sm italic mb-4">${escapeHtml(data.titleEn || '')}</div>
             </div>
-            ${favoriteButton}
+            <div class="flex flex-wrap items-center justify-end gap-3">
+              ${reportButton}
+              ${favoriteButton}
+            </div>
           </div>
           <div class="flex flex-wrap items-center gap-4 text-sm text-text-soft mb-6">
             <span class="flex items-center gap-1"><span class="material-symbols-outlined text-base">location_on</span>${escapeHtml(data.place)}</span>
@@ -314,6 +458,18 @@
     });
   }
 
+  function bindReportButton() {
+    const button = document.getElementById('reportBtn');
+    if (!button) {
+      return;
+    }
+
+    button.addEventListener('click', () => {
+      document.getElementById('reportSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('reportReasonType')?.focus();
+    });
+  }
+
   function renderCommentForm() {
     const form = document.getElementById('commentForm');
     const readonly = document.getElementById('commentReadonly');
@@ -329,80 +485,6 @@
     readonly.classList.add('hidden');
   }
 
-  function renderCommentCard(comment) {
-    const isReply = comment.parentId != null;
-    const expanded = isReply && expandedReplyParents.has(Number(comment.parentId));
-    const hiddenAttr = isReply && !expanded ? 'hidden' : '';
-    const replyDataAttr = isReply ? `data-reply-of="${comment.parentId}"` : '';
-    const wrapperClasses = isReply
-      ? `reply-card ml-8 sm:ml-12 bg-surface-soft border border-surface-line rounded-2xl p-4 shadow-sm ${hiddenAttr}`
-      : 'bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card';
-    const deletedContentClass = comment.deleted ? 'italic text-text-soft' : 'text-text-main';
-    const editedLabel = comment.edited
-      ? `<span class="text-xs text-outline ml-2">(edited ${escapeHtml(comment.updatedAt || '')})</span>`
-      : '';
-
-    const likeButton = comment.deleted ? '' : `
-      <button
-        class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
-        data-comment-id="${comment.id}"
-        ${sessionUser.guest ? 'disabled title="Log in to like comments"' : ''}
-      >
-        <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
-        ${comment.likes}
-      </button>`;
-
-    const replyButton = comment.canReply ? `
-      <button class="reply-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-text-soft hover:bg-primary/10 hover:text-primary"
-              data-comment-id="${comment.id}">
-        <span class="material-symbols-outlined text-base">reply</span>
-        Reply
-      </button>` : '';
-
-    const parentExpanded = !isReply && expandedReplyParents.has(Number(comment.id));
-    const replyCountBadge = (!isReply && comment.replyCount > 0) ? `
-      <button type="button" class="reply-toggle inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full hover:bg-primary/20"
-              data-parent-id="${comment.id}" aria-expanded="${parentExpanded}">
-        <span class="material-symbols-outlined text-sm">${parentExpanded ? 'expand_less' : 'expand_more'}</span>
-        ${parentExpanded ? 'Hide' : 'Show'} ${comment.replyCount} ${comment.replyCount === 1 ? 'reply' : 'replies'}
-      </button>` : '';
-
-    const editButton = comment.canEdit ? `
-      <button class="edit-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-text-soft hover:bg-primary/10 hover:text-primary"
-              data-comment-id="${comment.id}">
-        <span class="material-symbols-outlined text-base">edit</span>
-        Edit
-      </button>` : '';
-
-    const deleteButton = comment.canDelete ? `
-      <button class="delete-btn inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium text-red-500 hover:bg-red-50"
-              data-comment-id="${comment.id}">
-        <span class="material-symbols-outlined text-base">delete</span>
-        Delete
-      </button>` : '';
-
-    return `
-      <div class="${wrapperClasses} comment-card" data-comment-id="${comment.id}" ${replyDataAttr}>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-semibold text-primary">${escapeHtml(comment.username)}</span>
-            <span class="px-2 py-0.5 bg-primary/80 text-white text-[10px] font-bold rounded-full uppercase">${escapeHtml(comment.role)}</span>
-            ${replyCountBadge}
-          </div>
-          <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}${editedLabel}</span>
-        </div>
-        <div class="comment-body ${deletedContentClass} text-sm leading-7 mb-4" data-role="body">${escapeHtml(comment.content)}</div>
-        <div class="flex flex-wrap items-center gap-2">
-          ${likeButton}
-          ${replyButton}
-          ${editButton}
-          ${deleteButton}
-        </div>
-        <div class="comment-reply-slot hidden mt-4" data-role="reply-slot"></div>
-      </div>
-    `;
-  }
-
   function renderComments() {
     const list = document.getElementById('commentList');
     const empty = document.getElementById('commentEmpty');
@@ -416,7 +498,45 @@
     }
 
     empty.classList.add('hidden');
-    list.innerHTML = loadedComments.map(renderCommentCard).join('');
+    list.innerHTML = loadedComments.map(comment => `
+      <div class="bg-surface-card border border-surface-line rounded-2xl p-5 shadow-card">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="font-semibold text-primary">${escapeHtml(comment.username)}</span>
+            <span class="px-2 py-0.5 bg-primary/80 text-white text-[10px] font-bold rounded-full uppercase">${escapeHtml(comment.role)}</span>
+          </div>
+          <span class="text-xs text-outline">${escapeHtml(comment.createdAt)}</span>
+        </div>
+        <div class="text-text-main text-sm leading-7 mb-4">${escapeHtml(comment.content)}</div>
+        <div class="flex items-center gap-2">
+          <button
+            class="like-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${comment.likedByMe ? 'bg-red-50 text-red-500' : 'bg-surface-soft text-text-soft hover:bg-primary/10 hover:text-primary'}"
+            data-comment-id="${comment.id}"
+            ${sessionUser.guest ? 'disabled title="Log in to like comments"' : ''}
+          >
+            <span class="material-symbols-outlined text-base" ${comment.likedByMe ? 'style="font-variation-settings: \'FILL\' 1;"' : ''}>favorite</span>
+            ${comment.likes}
+          </button>
+          <button
+            class="report-comment-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary/5 text-tertiary text-sm font-medium hover:bg-tertiary/10"
+            data-comment-id="${comment.id}"
+            ${sessionUser.guest ? 'disabled title="Log in with a registered account to report comments"' : ''}
+          >
+            <span class="material-symbols-outlined text-base">flag</span>
+            Report
+          </button>
+          ${comment.canDelete ? `
+            <button
+              class="delete-comment-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100"
+              data-comment-id="${comment.id}"
+            >
+              <span class="material-symbols-outlined text-base">delete</span>
+              Remove
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `).join('');
 
     loadMoreBtn.classList.toggle('hidden', commentPage >= totalCommentPages);
 
@@ -426,7 +546,7 @@
         button.disabled = true;
         try {
           const updated = await toggleLike(button.dataset.commentId);
-          replaceCommentInPlace(updated);
+          loadedComments = loadedComments.map(comment => comment.id === updated.id ? updated : comment);
           renderComments();
           showNotice('');
         } catch (error) {
@@ -436,193 +556,42 @@
       });
     });
 
-    list.querySelectorAll('.reply-btn').forEach(button => {
-      button.addEventListener('click', () => openReplyComposer(button.dataset.commentId));
-    });
-
-    list.querySelectorAll('.edit-btn').forEach(button => {
-      button.addEventListener('click', () => openEditComposer(button.dataset.commentId));
-    });
-
-    list.querySelectorAll('.delete-btn').forEach(button => {
-      button.addEventListener('click', () => confirmDeleteComment(button.dataset.commentId));
-    });
-
-    list.querySelectorAll('.reply-toggle').forEach(button => {
-      button.addEventListener('click', () => {
-        const parentId = Number(button.dataset.parentId);
-        const expanding = !expandedReplyParents.has(parentId);
-        if (expanding) {
-          expandedReplyParents.add(parentId);
-        } else {
-          expandedReplyParents.delete(parentId);
-        }
-        renderComments();
-        if (expanding) {
-          requestAnimationFrame(() => {
-            const parentCard = document.querySelector(`.comment-card[data-comment-id="${parentId}"]`);
-            if (parentCard) {
-              parentCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          });
+    list.querySelectorAll('.delete-comment-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        if (!window.confirm('Delete this comment?')) return;
+        button.disabled = true;
+        try {
+          await deleteComment(button.dataset.commentId);
+          await loadComments(true);
+          showNotice('Comment deleted.');
+        } catch (error) {
+          button.disabled = false;
+          showNotice(error.message || 'Failed to delete comment.', true);
         }
       });
     });
-  }
 
-  function replaceCommentInPlace(updated) {
-    loadedComments = loadedComments.map(comment => comment.id === updated.id ? updated : comment);
-  }
+    list.querySelectorAll('.report-comment-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const content = window.prompt('Describe the issue you want the admin team to review for this comment:');
+        if (content === null) return;
+        const normalized = content.trim();
+        if (!normalized) {
+          showNotice('Report content is required.', true);
+          return;
+        }
 
-  function insertReplyAfterParent(parentId, reply) {
-    const index = loadedComments.findIndex(comment => comment.id === Number(parentId) || comment.id === parentId);
-    if (index < 0) {
-      loadedComments = [...loadedComments, reply];
-      return;
-    }
-    let insertAt = index + 1;
-    while (insertAt < loadedComments.length && loadedComments[insertAt].parentId != null) {
-      insertAt += 1;
-    }
-    loadedComments = [
-      ...loadedComments.slice(0, insertAt),
-      reply,
-      ...loadedComments.slice(insertAt)
-    ];
-  }
-
-  function removeComment(commentId) {
-    loadedComments = loadedComments.filter(comment => comment.id !== commentId && comment.parentId !== commentId);
-  }
-
-  function openReplyComposer(commentId) {
-    const card = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
-    if (!card) return;
-    const slot = card.querySelector('[data-role="reply-slot"]');
-    slot.innerHTML = `
-      <textarea class="reply-input w-full min-h-[80px] p-3 bg-surface-soft border border-surface-line rounded-xl text-sm"
-                maxlength="500" placeholder="Reply to this comment"></textarea>
-      <div class="flex items-center gap-2 mt-2">
-        <button class="reply-submit px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-[#2d5648]">Post reply</button>
-        <button class="reply-cancel px-4 py-2 bg-surface-soft text-text-soft rounded-xl text-sm">Cancel</button>
-        <span class="reply-error text-sm text-red-600 hidden"></span>
-      </div>
-    `;
-    slot.classList.remove('hidden');
-    const input = slot.querySelector('.reply-input');
-    const submit = slot.querySelector('.reply-submit');
-    const cancel = slot.querySelector('.reply-cancel');
-    const errorLabel = slot.querySelector('.reply-error');
-    input.focus();
-
-    cancel.addEventListener('click', () => {
-      slot.innerHTML = '';
-      slot.classList.add('hidden');
+        button.disabled = true;
+        try {
+          await submitCommentReport(button.dataset.commentId, normalized);
+          showNotice('Comment report sent.');
+        } catch (error) {
+          showNotice(error.message || 'Failed to send comment report.', true);
+        } finally {
+          button.disabled = false;
+        }
+      });
     });
-
-    submit.addEventListener('click', async () => {
-      const content = input.value.trim();
-      errorLabel.classList.add('hidden');
-      if (!content) {
-        errorLabel.textContent = 'Reply cannot be empty.';
-        errorLabel.classList.remove('hidden');
-        return;
-      }
-      submit.disabled = true;
-      try {
-        const reply = await replyToComment(commentId, content);
-        insertReplyAfterParent(Number(commentId), reply);
-        expandedReplyParents.add(Number(commentId));
-        renderComments();
-        showNotice('Reply posted.');
-      } catch (error) {
-        submit.disabled = false;
-        errorLabel.textContent = error.message || 'Failed to post reply.';
-        errorLabel.classList.remove('hidden');
-      }
-    });
-  }
-
-  function openEditComposer(commentId) {
-    const card = document.querySelector(`.comment-card[data-comment-id="${commentId}"]`);
-    if (!card) return;
-    const numericId = Number(commentId);
-    const existing = loadedComments.find(comment => comment.id === numericId);
-    if (!existing) return;
-
-    const body = card.querySelector('[data-role="body"]');
-    const original = existing.content;
-    body.innerHTML = `
-      <textarea class="edit-input w-full min-h-[80px] p-3 bg-surface-soft border border-surface-line rounded-xl text-sm"
-                maxlength="500">${escapeHtml(original)}</textarea>
-      <div class="flex items-center gap-2 mt-2">
-        <button class="edit-save px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-[#2d5648]">Save</button>
-        <button class="edit-cancel px-4 py-2 bg-surface-soft text-text-soft rounded-xl text-sm">Cancel</button>
-        <span class="edit-error text-sm text-red-600 hidden"></span>
-      </div>
-    `;
-    const input = body.querySelector('.edit-input');
-    const save = body.querySelector('.edit-save');
-    const cancel = body.querySelector('.edit-cancel');
-    const errorLabel = body.querySelector('.edit-error');
-    input.focus();
-
-    cancel.addEventListener('click', () => {
-      renderComments();
-    });
-
-    save.addEventListener('click', async () => {
-      const content = input.value.trim();
-      errorLabel.classList.add('hidden');
-      if (!content) {
-        errorLabel.textContent = 'Comment cannot be empty.';
-        errorLabel.classList.remove('hidden');
-        return;
-      }
-      if (content === original) {
-        renderComments();
-        return;
-      }
-      save.disabled = true;
-      try {
-        const updated = await updateComment(commentId, content);
-        replaceCommentInPlace(updated);
-        renderComments();
-        showNotice('Comment updated.');
-      } catch (error) {
-        save.disabled = false;
-        errorLabel.textContent = error.message || 'Failed to update comment.';
-        errorLabel.classList.remove('hidden');
-      }
-    });
-  }
-
-  async function confirmDeleteComment(commentId) {
-    if (!window.confirm('Delete this comment? Replies from others will remain visible.')) {
-      return;
-    }
-    try {
-      await deleteComment(commentId);
-      const numericId = Number(commentId);
-      const existing = loadedComments.find(comment => comment.id === numericId);
-      if (existing && loadedComments.some(comment => comment.parentId === numericId)) {
-        replaceCommentInPlace({
-          ...existing,
-          content: '[Deleted]',
-          deleted: true,
-          canEdit: false,
-          canDelete: false,
-          canReply: false,
-          likedByMe: false
-        });
-      } else {
-        removeComment(numericId);
-      }
-      renderComments();
-      showNotice('Comment deleted.');
-    } catch (error) {
-      showNotice(error.message || 'Failed to delete comment.', true);
-    }
   }
 
   async function loadComments(reset = false) {
@@ -744,9 +713,12 @@
       const viewResult = await incrementView(resourceId);
       resource.viewCount = viewResult.viewCount;
       renderDetail(resource);
+      bindReportButton();
       bindFavoriteButton();
       renderCommentForm();
+      renderReportSection();
       bindCommentForm();
+      bindReportForm();
       bindCommonEvents();
       await loadComments(true);
     } catch (error) {

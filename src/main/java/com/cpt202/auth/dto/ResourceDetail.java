@@ -23,6 +23,8 @@ import java.util.List;
  * @param rejectionComments latest rejection feedback
  * @param appealMessages appeal thread messages
  * @param canSendAppeal whether the viewer can send a new appeal message
+ * @param reportMessages resource report messages visible to the current viewer
+ * @param canSendReport whether the current viewer can report the resource
  * @param tags resource tags
  * @param files attached files
  * @param links external links
@@ -46,6 +48,8 @@ public record ResourceDetail(
         String rejectionComments,
         List<ResourceAppealMessageResponse> appealMessages,
         boolean canSendAppeal,
+        List<ResourceAppealMessageResponse> reportMessages,
+        boolean canSendReport,
         List<String> tags,
         List<FileItem> files,
         List<LinkItem> links

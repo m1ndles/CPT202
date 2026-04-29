@@ -147,6 +147,7 @@
                 <div class="action-stack">
                     <button id="approveButton" class="primary-button" type="button">Approve Resource</button>
                     <button id="rejectButton" class="danger-button" type="button">Reject Resource</button>
+                    <button id="archiveButton" class="secondary-button archive-button" type="button" hidden>Archive Resource</button>
                     <a class="secondary-button button-link" href="/admin/resource-review-list.html">Back to Queue</a>
                 </div>
 
@@ -159,6 +160,22 @@
             </section>
         </aside>
     </main>
+</div>
+
+<div id="archiveModal" class="archive-modal" hidden>
+    <div class="archive-modal-backdrop" data-archive-cancel></div>
+    <section class="archive-modal-card panel" role="dialog" aria-modal="true" aria-labelledby="archiveModalTitle">
+        <p class="eyebrow">Archive Resource</p>
+        <h2 id="archiveModalTitle">Confirm archive decision</h2>
+        <p class="decision-helper">This will hide the approved resource from the public lifecycle and move it into Archive Management. Please record the reason.</p>
+        <label class="textarea-label" for="archiveReasonInput">Archive reason</label>
+        <textarea id="archiveReasonInput" rows="5" maxlength="1000" placeholder="Explain why this approved resource should be archived."></textarea>
+        <p id="archiveModalFeedback" class="feedback-message"></p>
+        <div class="action-stack archive-modal-actions">
+            <button id="confirmArchiveButton" class="danger-button" type="button">Confirm Archive</button>
+            <button class="secondary-button" type="button" data-archive-cancel>Cancel</button>
+        </div>
+    </section>
 </div>
 
 <script type="module" src="/admin/js/common.js"></script>
