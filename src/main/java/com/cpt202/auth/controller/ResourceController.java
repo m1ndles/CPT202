@@ -164,7 +164,7 @@ public class ResourceController {
             @RequestParam(name = "size", defaultValue = "10") int size,
             HttpSession session
     ) {
-        return commentService.getComments(resourceId, currentUserId(session), page, size);
+        return commentService.getComments(resourceId, currentUserId(session), currentRole(session), page, size);
     }
 
     /**

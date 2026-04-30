@@ -1,5 +1,6 @@
 package com.cpt202.auth.controller;
 
+import com.cpt202.auth.dto.AddCommentRequest;
 import com.cpt202.auth.dto.CommentResponse;
 import com.cpt202.auth.dto.MessageThreadSubmissionResponse;
 import com.cpt202.auth.dto.ResourceAppealRequest;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,7 +40,31 @@ public class CommentController {
     }
 
     /**
-     * Deletes a comment when the current role has moderation permission.
+     * Adds a reply to a root comment.
+     */
+    @PostMapping("/{parentId}/reply")
+    public CommentResponse replyToComment(
+            @PathVariable("parentId") Long parentId,
+            @Valid @RequestBody AddCommentRequest request,
+            HttpSession session
+    ) {
+        return commentService.replyToComment(parentId, currentUserId(session), currentRole(session), request.content());
+    }
+
+    /**
+     * Updates the current user's own comment.
+     */
+    @PutMapping("/{commentId}")
+    public CommentResponse updateComment(
+            @PathVariable("commentId") Long commentId,
+            @Valid @RequestBody AddCommentRequest request,
+            HttpSession session
+    ) {
+        return commentService.updateComment(commentId, currentUserId(session), currentRole(session), request.content());
+    }
+
+    /**
+     * Soft-deletes a comment when the current user owns it or is an administrator.
      */
     @DeleteMapping("/{commentId}")
     public ResponseEntity<Map<String, String>> deleteComment(@PathVariable("commentId") Long commentId, HttpSession session) {

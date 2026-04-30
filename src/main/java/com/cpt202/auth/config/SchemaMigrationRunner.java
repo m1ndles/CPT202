@@ -109,6 +109,30 @@ public class SchemaMigrationRunner implements CommandLineRunner {
                 )
                 """
         );
+        addColumnIfMissing(
+                "comments",
+                "parent_id",
+                """
+                ALTER TABLE comments
+                ADD COLUMN parent_id BIGINT NULL
+                """
+        );
+        addColumnIfMissing(
+                "comments",
+                "status",
+                """
+                ALTER TABLE comments
+                ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'ACTIVE'
+                """
+        );
+        addColumnIfMissing(
+                "comments",
+                "updated_at",
+                """
+                ALTER TABLE comments
+                ADD COLUMN updated_at DATETIME NULL
+                """
+        );
         createTableIfMissing(
                 "comment_report_threads",
                 """
