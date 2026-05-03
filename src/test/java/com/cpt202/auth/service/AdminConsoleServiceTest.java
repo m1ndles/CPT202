@@ -2,6 +2,7 @@ package com.cpt202.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -15,9 +16,13 @@ import com.cpt202.auth.repository.AdminActivityRepository;
 import com.cpt202.auth.repository.AdminArchiveRepository;
 import com.cpt202.auth.repository.AdminTaxonomyRepository;
 import com.cpt202.auth.repository.AdminTaxonomyRepository.TaxonomyRecord;
+import com.cpt202.auth.repository.CommentReportRepository;
+import com.cpt202.auth.repository.CommentRepository;
 import com.cpt202.auth.repository.ContributorApplicationRepository;
 import com.cpt202.auth.repository.ResourceAppealMessageRepository;
 import com.cpt202.auth.repository.ResourceRepository;
+import com.cpt202.auth.repository.ResourceReportRepository;
+import com.cpt202.auth.repository.ResourceReportRepository.ResourceReportThreadRecord;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +59,15 @@ class AdminConsoleServiceTest {
 
     @Mock
     private AdminActivityRepository adminActivityRepository;
+
+    @Mock
+    private ResourceReportRepository resourceReportRepository;
+
+    @Mock
+    private CommentReportRepository commentReportRepository;
+
+    @Mock
+    private CommentRepository commentRepository;
 
     @InjectMocks
     private AdminConsoleService adminConsoleService;
@@ -143,5 +157,58 @@ class AdminConsoleServiceTest {
 
         verify(adminTaxonomyRepository).updateCategoryStatus(
                 eq(1L), eq("INACTIVE"), any(LocalDateTime.class));
+    }
+
+    /**
+     * Reopening a complaint thread that no longer exists returns 404.
+     */
+    @Test
+    void reopenReportedResource_throwsWhenThreadMissing() {
+        when(resourceReportRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminConsoleService.reopenReportedResource(999L, "admin"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Complaint thread")
+                .extracting("status").isEqualTo(HttpStatus.NOT_FOUND);
+
+        verify(resourceRepository, never()).updateDraft(any());
+    }
+
+    /**
+     * Only published resources can be reopened for moderation review.
+     */
+    @Test
+    void reopenReportedResource_requiresPublishedResource() {
+        ResourceReportThreadRecord thread = new ResourceReportThreadRecord(
+                5L, 50L, 2L, "bob", "OPEN",
+                LocalDateTime.now(), LocalDateTime.now(),
+                "Garden", "REJECTED", "alice");
+        when(resourceReportRepository.findById(5L)).thenReturn(Optional.of(thread));
+        when(resourceRepository.findAnyById(50L))
+                .thenReturn(Optional.of(resourceWithStatus(50L, "REJECTED")));
+
+        assertThatThrownBy(() -> adminConsoleService.reopenReportedResource(5L, "admin"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("published")
+                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
+
+        verify(resourceRepository, never()).updateDraft(any());
+        verify(resourceReportRepository, never())
+                .updateThreadStatus(anyLong(), anyString(), any(LocalDateTime.class));
+    }
+
+    /**
+     * Deleting a comment report when the thread is missing returns 404.
+     */
+    @Test
+    void deleteReportedComment_throwsWhenThreadMissing() {
+        when(commentReportRepository.findById(777L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminConsoleService.deleteReportedComment(777L, "admin"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Complaint thread")
+                .extracting("status").isEqualTo(HttpStatus.NOT_FOUND);
+
+        verify(commentRepository, never()).delete(anyLong());
     }
 }

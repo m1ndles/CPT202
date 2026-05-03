@@ -13,9 +13,12 @@ import static org.mockito.Mockito.when;
 import com.cpt202.auth.dto.PageResponse;
 import com.cpt202.auth.dto.ResourceSummary;
 import com.cpt202.auth.exception.ApiException;
+import com.cpt202.auth.model.HeritageResource;
 import com.cpt202.auth.repository.AdminArchiveRepository;
 import com.cpt202.auth.repository.ResourceAppealMessageRepository;
 import com.cpt202.auth.repository.ResourceRepository;
+import com.cpt202.auth.repository.ResourceReportRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -41,6 +44,9 @@ class ResourceServiceTest {
     private ResourceAppealMessageRepository resourceAppealMessageRepository;
 
     @Mock
+    private ResourceReportRepository resourceReportRepository;
+
+    @Mock
     private DraftAttachmentService draftAttachmentService;
 
     @Mock
@@ -48,6 +54,17 @@ class ResourceServiceTest {
 
     @InjectMocks
     private ResourceService resourceService;
+
+    /**
+     * Builds a stub heritage resource with the given id and status.
+     */
+    private HeritageResource resourceWithStatus(long id, String status) {
+        return new HeritageResource(
+                id, "Garden", "Garden", "Classical Garden", null, "Suzhou",
+                "Desc", null, null, "TRK-" + id, status, 0,
+                LocalDateTime.now(), 1L, "alice"
+        );
+    }
 
     /**
      * Empty database yields an empty page response.
@@ -105,5 +122,37 @@ class ResourceServiceTest {
 
         verify(resourceRepository, never()).addFavorite(anyLong(), anyLong());
         verify(resourceRepository, never()).removeFavorite(anyLong(), anyLong());
+    }
+
+    /**
+     * Whitespace-only report content is rejected before any thread is opened.
+     */
+    @Test
+    void submitReport_requiresReportContent() {
+        when(resourceRepository.findById(10L)).thenReturn(Optional.of(resourceWithStatus(10L, "APPROVED")));
+
+        assertThatThrownBy(() -> resourceService.submitReport(10L, 1L, "alice", "   "))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Report content")
+                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
+
+        verify(resourceReportRepository, never())
+                .createThread(anyLong(), anyLong(), anyString(), anyString(), any());
+        verify(resourceReportRepository, never())
+                .insertMessage(anyLong(), anyString(), anyString(), anyString(), any());
+    }
+
+    /**
+     * Appeal submission requires a signed-in contributor session.
+     */
+    @Test
+    void submitAppeal_rejectsWithoutSignedInUser() {
+        assertThatThrownBy(() -> resourceService.submitAppeal(10L, null, "alice", "Please reconsider."))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("log in")
+                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        verify(resourceAppealMessageRepository, never())
+                .insert(anyLong(), anyString(), anyString(), anyString(), any());
     }
 }

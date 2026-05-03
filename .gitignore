@@ -9,5 +9,9 @@ uploads/
 *.tmp
 *.swp
 
+# Local database exports may contain account data and password hashes.
+sql/*_dump_*.sql
+sql/*_full_*.sql
+
 .DS_Store
 Thumbs.db

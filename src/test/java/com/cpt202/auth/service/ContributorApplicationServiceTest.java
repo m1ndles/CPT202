@@ -129,4 +129,37 @@ class ContributorApplicationServiceTest {
 
         verify(contributorApplicationRepository, never()).updateReview(anyLong(), anyString(), anyString());
     }
+
+    /**
+     * Appeal submission requires a signed-in user session.
+     */
+    @Test
+    void submitAppeal_rejectsWithoutSignedInUser() {
+        assertThatThrownBy(() -> contributorApplicationService.submitAppeal(null, "Please reconsider."))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("log in")
+                .extracting("status").isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        verify(contributorApplicationAppealMessageRepository, never())
+                .insert(anyLong(), anyString(), anyString(), anyString(), any());
+    }
+
+    /**
+     * Admin reply is rejected when the application has no active appeal thread.
+     */
+    @Test
+    void replyToAppeal_rejectsWhenApplicationHasNoAppealThread() {
+        when(contributorApplicationRepository.findById(10L))
+                .thenReturn(Optional.of(application("PENDING")));
+        when(contributorApplicationAppealMessageRepository.findByApplicationId(10L))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> contributorApplicationService.replyToAppeal(10L, "admin", "Please retry."))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("appeal thread")
+                .extracting("status").isEqualTo(HttpStatus.BAD_REQUEST);
+
+        verify(contributorApplicationAppealMessageRepository, never())
+                .insert(anyLong(), anyString(), anyString(), anyString(), any());
+    }
 }

@@ -305,6 +305,24 @@
             "url": {"raw": "{{baseUrl}}/api/resources/1/appeals", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "appeals"]},
             "body": {"mode": "raw", "raw": "{\n  \"content\": \"I have revised the description and added two additional references. Please review again.\"\n}"}
           }
+        },
+        {
+          "name": "Submit resource report (registered user)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/resources/1/reports", "host": ["{{baseUrl}}"], "path": ["api", "resources", "1", "reports"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"This resource contains inaccurate or inappropriate information. Please review.\"\n}"}
+          }
+        },
+        {
+          "name": "Submit comment report (registered user)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/comments/2/reports", "host": ["{{baseUrl}}"], "path": ["api", "comments", "2", "reports"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"The comment is offensive and violates community guidelines.\"\n}"}
+          }
         }
       ]
     },
@@ -472,6 +490,48 @@
           "request": {
             "method": "GET",
             "url": {"raw": "{{baseUrl}}/api/admin/history", "host": ["{{baseUrl}}"], "path": ["api", "admin", "history"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Admin - Complaints Inbox",
+      "item": [
+        {
+          "name": "List complaints",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/complaints", "host": ["{{baseUrl}}"], "path": ["api", "admin", "complaints"]}
+          }
+        },
+        {
+          "name": "Get resource report detail",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/admin/complaints/resource-report/1", "host": ["{{baseUrl}}"], "path": ["api", "admin", "complaints", "resource-report", "1"]}
+          }
+        },
+        {
+          "name": "Reply to resource report",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/complaints/resource-report/1/reply", "host": ["{{baseUrl}}"], "path": ["api", "admin", "complaints", "resource-report", "1", "reply"]},
+            "body": {"mode": "raw", "raw": "{\n  \"content\": \"Thanks for the report. We are investigating and will follow up shortly.\"\n}"}
+          }
+        },
+        {
+          "name": "Reopen reported resource",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{baseUrl}}/api/admin/complaints/resource-report/1/reopen", "host": ["{{baseUrl}}"], "path": ["api", "admin", "complaints", "resource-report", "1", "reopen"]}
+          }
+        },
+        {
+          "name": "Delete reported comment",
+          "request": {
+            "method": "DELETE",
+            "url": {"raw": "{{baseUrl}}/api/admin/complaints/comment-report/1/delete-comment", "host": ["{{baseUrl}}"], "path": ["api", "admin", "complaints", "comment-report", "1", "delete-comment"]}
           }
         }
       ]
