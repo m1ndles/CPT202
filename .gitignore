@@ -12,6 +12,7 @@ uploads/
 # Local database exports may contain account data and password hashes.
 sql/*_dump_*.sql
 sql/*_full_*.sql
+sql/*_er_diagram.*
 
 .DS_Store
 Thumbs.db
