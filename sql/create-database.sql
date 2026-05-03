@@ -1,3 +1,3 @@
-CREATE DATABASE IF NOT EXISTS community_auth
+CREATE DATABASE IF NOT EXISTS heritage_platform
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;

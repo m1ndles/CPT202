@@ -1,55 +1,66 @@
-# Community Auth Demo
+# HeritageHub
 
-This is a Spring Boot + Maven login demo built with:
+HeritageHub is a Spring Boot + MySQL web platform for community-driven cultural heritage sharing, review, and moderation. It supports public browsing, registered user engagement, contributor submissions, and an administrator console for approval, taxonomy, archive, history, and complaint workflows.
 
-- Backend: Java 17, Spring Boot
+## Tech Stack
+
+- Backend: Java 17, Spring Boot 3.3.4, JdbcTemplate
+- Frontend: HTML, CSS, JavaScript ES modules
+- Database: MySQL 8.0+
 - Build tool: Maven
-- Frontend: HTML, CSS, JavaScript
-- Database: MySQL
+- Security: BCrypt password hashing, server-side sessions, role-based access control
+- Tests: JUnit 5, Mockito, H2 test schemas
 
 ## Features
 
-- User registration with email, username, and password validation
-- Email and password login
-- Guest session entry for read-only access
-- Client-side empty-field validation
-- Generic credential error response
-- Warning after repeated failed attempts
-- 15-minute account lock after too many failed logins
-- Session-based login state with optional 30-day remember-me cookie
-- Seeded demo accounts for user, contributor, and admin roles
-- Role-aware session payload from `/api/auth/me`
+- Authentication: registration, login, guest access, logout, remember-me cookie, account lock after repeated failed login attempts
+- Roles: `USER`, `CONTRIBUTOR`, and `ADMIN`
+- Profile: profile details, avatar upload, password update, email update, engagement summary
+- Resource discovery: public resource list, filtering, sorting, detail page, view count, favorites
+- Comments: post, reply, edit, soft delete, like, and report comments
+- Contributor workflow: application submission, admin approval/rejection, rejected-application appeal thread
+- Resource workflow: draft save, submission, file attachments, admin review, approval/rejection, revision, appeal thread
+- Moderation: resource reports, comment reports, contributor appeals, admin complaint inbox, admin replies, reopen reported resources, delete reported comments
+- Admin console: dashboard, contributor approval, resource review, taxonomy management, archive management, activity history, complaint management
 
 ## Project Structure
 
-- `src/main/java`: backend controller, service, repository, config
-- `src/main/resources/static`: authentication entry pages plus placeholder post-login pages
-- `src/main/resources/schema.sql`: `users` table
-- `sql/create-database.sql`: database creation script
+- `src/main/java/com/cpt202/auth`: controllers, services, repositories, DTOs, models, config, and exception handling
+- `src/main/resources/static`: user-facing pages and JavaScript modules
+- `src/main/resources/static/admin`: administrator console pages and JavaScript modules
+- `src/main/resources/schema.sql`: MySQL schema created on application startup
+- `src/main/resources/application.properties`: local runtime configuration with environment-variable overrides
+- `postman/heritage-api.postman_collection.json`: API request collection for manual integration testing
+- `sql/create-database.sql`: database creation helper
+- `uploads/`: local uploaded files, ignored by Git
 
 ## MySQL Setup
 
-Run this first in MySQL:
+The default application database is `heritage_platform`.
+
+Create the database first:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS community_auth
+CREATE DATABASE IF NOT EXISTS heritage_platform
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 ```
 
-Then update database credentials if needed:
+You can also run the helper script:
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/community_auth?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-spring.datasource.username=root
-spring.datasource.password=123456
+```sql
+SOURCE sql/create-database.sql;
 ```
 
-You can also override them with environment variables:
+Database credentials can be supplied with environment variables:
 
-- `DB_URL`
-- `DB_USERNAME`
-- `DB_PASSWORD`
+```powershell
+$env:DB_URL="jdbc:mysql://localhost:3306/heritage_platform?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="your_mysql_password"
+```
+
+If these variables are not set, Spring Boot falls back to `src/main/resources/application.properties`.
 
 ## Run
 
@@ -59,23 +70,63 @@ Make sure Java 17 and Maven are installed, then run:
 mvn spring-boot:run
 ```
 
-Visit:
+If you are using the bundled Maven from this workspace on Windows:
+
+```powershell
+..\tools\apache-maven-3.9.14\bin\mvn.cmd spring-boot:run
+```
+
+Open:
 
 - `http://localhost:8080/login.html`
-- `http://localhost:8080/register.html`
+- `http://localhost:8080/index.html`
+- `http://localhost:8080/profile.html`
+- `http://localhost:8080/submit-resource.html`
+- `http://localhost:8080/admin/dashboard.html`
+- `http://localhost:8080/admin/complaint-management.html`
 
 ## Demo Accounts
+
+The application seeds these accounts automatically if they do not already exist:
 
 - User: `demo@heritagehub.com` / `Password123!`
 - Contributor: `contributor@heritagehub.com` / `Password123!`
 - Admin: `Admin@qq.com` / `admin123456`
 
-The application seeds these accounts automatically if they do not already exist.
+## Key API Areas
 
-## Integration Notes
+- Auth: `/api/auth/register`, `/api/auth/login`, `/api/auth/guest`, `/api/auth/me`, `/api/auth/logout`
+- Profile: `/api/profile`, `/api/profile/avatar`, `/api/profile/password`, `/api/profile/email`
+- Resources: `/api/resources`, `/api/resources/{resourceId}`, `/api/resources/submit`, `/api/resources/draft`
+- Resource actions: `/api/resources/{resourceId}/favorite`, `/api/resources/{resourceId}/comments`, `/api/resources/{resourceId}/appeals`, `/api/resources/{resourceId}/reports`
+- Comments: `/api/comments/{commentId}/like`, `/api/comments/{parentId}/reply`, `/api/comments/{commentId}`, `/api/comments/{commentId}/reports`
+- Contributor applications: `/api/contributor-applications`, `/api/contributor-applications/current/appeals`
+- Admin: `/api/admin/dashboard`, `/api/admin/resources/reviews`, `/api/admin/categories`, `/api/admin/tags`, `/api/admin/archives`, `/api/admin/history`
+- Admin complaints: `/api/admin/complaints`, `/api/admin/complaints/{complaintType}/{complaintId}`, `/api/admin/complaints/{complaintType}/{complaintId}/reply`, `/api/admin/complaints/resource-report/{complaintId}/reopen`, `/api/admin/complaints/comment-report/{complaintId}/delete-comment`
 
-- New registrations always create `USER` accounts.
-- Contributor status is stored as a role in the database and can be updated later by other modules.
-- Admin accounts are seeded directly and are not created through registration.
-- Login responses return a `redirectUrl`; the downstream page at that URL can be implemented by other teammates.
-- `/api/auth/me` now returns role and permission flags so later pages can decide what to show or disable.
+## Postman
+
+Import `postman/heritage-api.postman_collection.json` and set:
+
+- `baseUrl`: `http://localhost:8080`
+
+The collection includes login flows, resource and comment report submission, and the admin complaint inbox workflow.
+
+## Tests
+
+Run the full test suite:
+
+```bash
+mvn test
+```
+
+Run the complaint/reporting-related service tests:
+
+```powershell
+..\tools\apache-maven-3.9.14\bin\mvn.cmd -q "-Dtest=AdminConsoleServiceTest,ContributorApplicationServiceTest,ResourceServiceTest" test
+```
+
+## Repository Notes
+
+- `target/`, `uploads/`, local SQL dumps, and generated ER diagram files are ignored by Git.
+- Do not commit local database exports such as `sql/*_dump_*.sql` or `sql/*_full_*.sql`; they may contain user data and password hashes.
